@@ -5,6 +5,8 @@ import { geocodeMany, geocodeByName, isGeocodingConfigured } from '@/lib/consume
 import { checkUrgency } from '@/lib/crm/services/scoring'
 
 export const dynamic = 'force-dynamic'
+/** 캐시가 빈 첫 호출은 지오코딩을 한 바퀴 돌아야 한다. 중간에 끊기면 지도가 빈다 */
+export const maxDuration = 60
 
 /**
  * 지도에 올릴 공고.
@@ -34,14 +36,17 @@ export async function GET() {
      * "어디"를 말하지 못했다.
      *
      * 이름에는 자리가 적혀 있다 — '평택고덕 A57-2블록'. 한 건마다 두 번씩
-     * 물어야 하므로 한꺼번에 몰아 보내지 않고 몇 개씩 끊는다. 하루 캐시가
-     * 걸려 있어 다음 방문부터는 묻지 않는다.
+     * 물어야 하므로 한꺼번에 몰아 보내지 않고 끊어 보낸다.
+     *
+     * 끊는 폭이 여섯일 때 첫 호출이 33초 걸렸다. 하루 캐시가 걸려 있어 그
+     * 뒤로는 2초지만, 그 한 번이 발표 중일 수 있다. 폭을 넓혀 줄인다 —
+     * 카카오 쪽 하루 한도에 견주면 이 정도 호출은 크지 않다.
      */
     const byName = new Map<string, { lat: number; lng: number }>()
     if (isGeocodingConfigured()) {
       const needy = all.filter(p => !(p.address ?? '').trim())
-      for (let i = 0; i < needy.length; i += 6) {
-        const slice = needy.slice(i, i + 6)
+      for (let i = 0; i < needy.length; i += 16) {
+        const slice = needy.slice(i, i + 16)
         const hits = await Promise.all(
           slice.map(p => geocodeByName(p.name, provinceOf(p)).catch(() => null)),
         )
