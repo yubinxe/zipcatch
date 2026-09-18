@@ -1,7 +1,7 @@
 import { listOfficialProperties } from '@/lib/consumer/official'
 import { isRental, provinceOf } from '@/lib/consumer/classify'
 import { resolveCoord } from '@/lib/consumer/geo'
-import { geocodeMany, isGeocodingConfigured } from '@/lib/consumer/geocode'
+import { geocodeMany, geocodeByName, isGeocodingConfigured } from '@/lib/consumer/geocode'
 import { checkUrgency } from '@/lib/crm/services/scoring'
 
 export const dynamic = 'force-dynamic'
@@ -26,6 +26,32 @@ export async function GET() {
       ? await geocodeMany(all.map(p => p.address)).catch(() => new Map())
       : new Map()
 
+    /**
+     * 주소가 없는 공고는 이름으로 찾는다.
+     *
+     * LH 공고에는 주소 칸이 아예 없어, 지금까지 광역 기준점으로 물러서 도청
+     * 한 점에 수십 건이 겹쳤다. 지도가 "경기에 공고가 있다"까지만 말하고
+     * "어디"를 말하지 못했다.
+     *
+     * 이름에는 자리가 적혀 있다 — '평택고덕 A57-2블록'. 한 건마다 두 번씩
+     * 물어야 하므로 한꺼번에 몰아 보내지 않고 몇 개씩 끊는다. 하루 캐시가
+     * 걸려 있어 다음 방문부터는 묻지 않는다.
+     */
+    const byName = new Map<string, { lat: number; lng: number }>()
+    if (isGeocodingConfigured()) {
+      const needy = all.filter(p => !(p.address ?? '').trim())
+      for (let i = 0; i < needy.length; i += 6) {
+        const slice = needy.slice(i, i + 6)
+        const hits = await Promise.all(
+          slice.map(p => geocodeByName(p.name, provinceOf(p)).catch(() => null)),
+        )
+        slice.forEach((p, n) => {
+          const hit = hits[n]
+          if (hit) byName.set(p.id, { lat: hit.lat, lng: hit.lng })
+        })
+      }
+    }
+
     const pins = []
     let noCoord = 0
     const byProvince = new Map<string, number>()
@@ -38,7 +64,7 @@ export async function GET() {
       byProvince.set(province, (byProvince.get(province) ?? 0) + 1)
 
       const coord = resolveCoord({
-        geocoded: geocoded.get((p.address ?? '').trim()) ?? null,
+        geocoded: geocoded.get((p.address ?? '').trim()) ?? byName.get(p.id) ?? null,
         address: p.address,
         region: p.region,
         province,
