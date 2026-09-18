@@ -93,6 +93,117 @@ async function ask(query: string): Promise<GeoHit | null> {
   }
 }
 
+/**
+ * 공고 이름으로 자리를 찾는다.
+ *
+ * LH 공고에는 주소 칸이 아예 없다 — 쉰두 건 전부 비어 있었다. 그래서 지도에서
+ * 광역 기준점으로 물러서 한 점에 뭉치고, 법정동코드를 못 구해 주변 시세도
+ * 붙이지 못했다.
+ *
+ * 그런데 이름에는 자리가 적혀 있다. '평택고덕 A57-2블록', '인천계양 A6블록',
+ * '포항창포 영구임대아파트' — 사람은 읽는다. 주소 검색은 이런 표기를 못 풀지만
+ * 장소 검색은 푼다.
+ *
+ * ── 틀린 자리를 찍지 않기 위한 장치 ──
+ *
+ * 장소 검색은 그럴듯한 것을 무엇이든 돌려준다. '오룡'이라는 카페가 나올 수도
+ * 있다. 그래서 찾은 곳의 광역이 공고의 광역과 다르면 버린다. 틀린 좌표는
+ * 없는 좌표보다 나쁘다 — 지도는 틀렸다고 말해 주지 않는다.
+ */
+const KEYWORD_ENDPOINT = 'https://dapi.kakao.com/v2/local/search/keyword.json'
+const REGIONCODE_ENDPOINT = 'https://dapi.kakao.com/v2/local/geo/coord2regioncode.json'
+
+/** 이름에서 자리로 쓸 만한 앞부분을 잘라낸다 */
+function nameQueries(name: string): string[] {
+  const cleaned = (name ?? '')
+    .replace(/^\[[^\]]*\]\s*/g, '') // [정정공고], [경기남부] 같은 머리표
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!cleaned) return []
+  const parts = cleaned.split(' ')
+  const out = new Set<string>()
+  // 두 어절 → 한 어절 순. '무안 오룡마을'처럼 둘이 붙어야 풀리는 이름이 있다.
+  if (parts.length >= 2) out.add(`${parts[0]} ${parts[1]}`)
+  if (parts[0]) out.add(parts[0])
+  return [...out].filter(q => q.length >= 2)
+}
+
+async function askKeyword(query: string): Promise<GeoHit | null> {
+  const res = await fetch(`${KEYWORD_ENDPOINT}?${new URLSearchParams({ query, size: '1' })}`, {
+    headers: { Authorization: `KakaoAK ${key()}` },
+    next: { revalidate: 86400 },
+  })
+  if (!res.ok) return null
+  const json = (await res.json()) as { documents?: { x: string; y: string; address_name?: string }[] }
+  const doc = json.documents?.[0]
+  if (!doc) return null
+
+  const lat = Number(doc.y)
+  const lng = Number(doc.x)
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+
+  // 좌표에서 법정동코드를 되짚는다. 장소 검색 응답에는 b_code 가 없다.
+  const rc = await fetch(
+    `${REGIONCODE_ENDPOINT}?${new URLSearchParams({ x: String(lng), y: String(lat) })}`,
+    { headers: { Authorization: `KakaoAK ${key()}` }, next: { revalidate: 86400 } },
+  )
+  let bCode: string | null = null
+  let dong: string | null = null
+  let sigungu: string | null = null
+  if (rc.ok) {
+    const rj = (await rc.json()) as {
+      documents?: {
+        region_type?: string
+        code?: string
+        region_1depth_name?: string
+        region_2depth_name?: string
+        region_3depth_name?: string
+      }[]
+    }
+    const b = rj.documents?.find(d => d.region_type === 'B') ?? rj.documents?.[0]
+    if (b) {
+      bCode = b.code ?? null
+      dong = b.region_3depth_name ?? null
+      sigungu = [b.region_1depth_name, b.region_2depth_name].filter(Boolean).join(' ') || null
+    }
+  }
+  return { lat, lng, bCode, dong, sigungu }
+}
+
+/**
+ * 공고 이름으로 자리를 찾는다. `province` 를 주면 그 광역과 맞는 것만 받는다.
+ */
+export async function geocodeByName(
+  name: string | null | undefined,
+  province?: string | null,
+): Promise<GeoHit | null> {
+  const raw = (name ?? '').trim()
+  if (!raw || !key()) return null
+
+  const want = (province ?? '')
+    .split('·')
+    .map(t => t.trim())
+    .filter(Boolean)
+
+  for (const q of nameQueries(raw)) {
+    try {
+      const hit = await askKeyword(q)
+      if (!hit) continue
+      if (want.length > 0) {
+        const where = hit.sigungu ?? ''
+        // '경기'는 '경기도'로, '충남'은 '충청남도'로 돌아온다. 앞 두 글자로 견준다.
+        const ok = want.some(w => where.includes(w) || where.includes(w.slice(0, 2)))
+        if (!ok) continue
+      }
+      return hit
+    } catch {
+      // 다음 후보로
+    }
+  }
+  return null
+}
+
 /** 주소 하나를 좌표로. 못 찾으면 null — 아무 데나 찍지 않는다 */
 export async function geocode(address: string | null | undefined): Promise<GeoHit | null> {
   const raw = (address ?? '').trim()

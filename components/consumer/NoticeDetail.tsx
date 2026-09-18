@@ -51,12 +51,26 @@ interface NearbyItem {
   under: boolean
 }
 
+interface RentBand {
+  key: string
+  jeonse: { count: number; deposit: number | null }
+  wolse: { count: number; deposit: number | null; rent: number | null }
+}
+
+interface RentStat {
+  scope: string
+  months: number
+  total: number
+  bands: RentBand[]
+}
+
 interface DetailResponse {
   property: Property
   urgency: UrgencyInfo
   candidate: Candidate | null
   schedule: Task[]
   supplyModels?: SupplyModel[]
+  rent?: RentStat | null
   trade?: TradeStat | null
 }
 
@@ -157,6 +171,7 @@ export default function NoticeDetail({ id }: { id: string }) {
   const { property, urgency, candidate, schedule } = data
   const supplyModels = data.supplyModels ?? []
   const trade = data.trade ?? null
+  const rent = data.rent ?? null
 
   /**
    * 견줌자 — 주변 전용 평당가 중앙값.
@@ -348,6 +363,68 @@ export default function NoticeDetail({ id }: { id: string }) {
             <p className="cs-note" style={{ marginTop: 14 }}>
               분양가는 주택형별 최고가 기준이고, 평당은 공급면적으로 나눈 값입니다. 층·동별 금액과
               옵션은 공고문에서 확인해 주세요.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* 주변 전월세 — 임대 공고는 금액을 내놓지 않는다. 공고의 값을 알 수 없다면
+          적어도 그 동네가 얼마인지는 말해 줄 수 있다. */}
+      {rent && (
+        <section style={{ marginTop: 32 }}>
+          <h2 className="cs-section-title" style={{ fontSize: 24 }}>
+            주변 전월세 시세
+          </h2>
+          <div className="cs-card" style={{ marginTop: 18 }}>
+            <p className="cs-pro__p" style={{ marginBottom: 18 }}>
+              <strong>{rent.scope}</strong> 최근 {rent.months}개월 <strong>{rent.total.toLocaleString()}건</strong>의
+              전월세 신고를 면적대로 나눠 셌습니다.
+            </p>
+
+            <div className="cs-models">
+              <table className="cs-table">
+                <thead>
+                  <tr>
+                    <th>전용면적</th>
+                    <th className="cs-table__r">전세 보증금</th>
+                    <th className="cs-table__r">월세 (보증금 / 월)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rent.bands.map(b => (
+                    <tr key={b.key}>
+                      <td className="cs-table__key">{b.key}</td>
+                      <td className="cs-num cs-table__r">
+                        {b.jeonse.deposit === null ? (
+                          <span style={{ color: 'var(--muted)' }}>—</span>
+                        ) : (
+                          <>
+                            {formatMan(b.jeonse.deposit)}
+                            <span className="cs-table__sub">{b.jeonse.count}건</span>
+                          </>
+                        )}
+                      </td>
+                      <td className="cs-num cs-table__r">
+                        {b.wolse.rent === null ? (
+                          <span style={{ color: 'var(--muted)' }}>—</span>
+                        ) : (
+                          <>
+                            {formatMan(b.wolse.deposit ?? 0)} / {b.wolse.rent.toLocaleString()}만원
+                            <span className="cs-table__sub">{b.wolse.count}건</span>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="cs-note" style={{ marginTop: 16 }}>
+              각 칸은 그 면적대의 중앙값이고, 전세와 월세를 갈라 셌습니다. 월세는 보증금과 월세를
+              서로 맞바꿀 수 있어 한 숫자로 묶지 않고 따로 적었습니다. 공공임대는 이 시세보다 낮게
+              공급되는 것이 일반적이지만, 이 공고의 실제 조건은 모집공고문에서 확인해 주세요.
+              출처: 국토교통부 전월세 실거래.
             </p>
           </div>
         </section>
