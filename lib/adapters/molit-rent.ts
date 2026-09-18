@@ -166,9 +166,17 @@ export async function fetchRentStat(
       return { ...EMPTY, kinds, months, ok: true, reason: '해당 기간에 신고된 전월세가 없습니다.' }
     }
 
-    // 같은 동에 충분히 쌓였으면 동으로 좁힌다. 아니면 시군구 전체로 본다.
+    /**
+     * 어느 범위로 셀까.
+     *
+     * 건설임대(국민·영구·행복주택)는 단지가 한 곳에 서므로 같은 동으로 좁히는
+     * 편이 가깝다. 매입임대·전세임대는 LH 가 시 전역에서 집을 사 모은 것이라
+     * 한 동을 짚어 "이 동네 시세"라 말하면 거짓이 된다 — 공고가 그 동에 있다는
+     * 뜻으로 읽히기 때문이다. 그런 유형은 시·군·구로 넓혀 센다.
+     */
+    const spread = kinds.includes('ROW') || kinds.includes('OFFI')
     const target = (dong ?? '').trim()
-    const inDong = target ? all.filter(d => d.dong === target) : []
+    const inDong = spread || !target ? [] : all.filter(d => d.dong === target)
     const use = inDong.length >= 20 ? inDong : all
     const scope = use === inDong ? target : '같은 시·군·구'
 
