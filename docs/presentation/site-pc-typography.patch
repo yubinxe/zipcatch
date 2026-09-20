@@ -1,0 +1,76 @@
+diff --git a/app/consumer.css b/app/consumer.css
+index e598097..01b7ce8 100644
+--- a/app/consumer.css
++++ b/app/consumer.css
+@@ -2401,3 +2401,71 @@ body:has(.cs-ticker) .cs-chat {
+   color: var(--muted);
+   line-height: 1.5;
+ }
++
++/* ─────────────────────────────────────────────────────────
++   PC 조판 보정 — 줄 길이와 줄 분배
++   모바일은 화면 폭이 자연스러운 상한 역할을 하지만, 데스크톱에서는
++   1264px 지면에 한글 본문이 한 줄 70~80자로 늘어나 눈이 다음 줄
++   첫 글자를 잃는다. 또한 제목이 여러 줄로 갈 때 마지막 줄에 한 단어만
++   떨어져 균형이 깨진다. 아래 규칙은 데스크톱에서만 적용한다.
++   ───────────────────────────────────────────────────────── */
++@media (min-width: 1001px) {
++  /* 제목 — 줄을 고르게 나눈다. 마지막 줄 외톨이 단어를 없앤다 */
++  .cs-hero-title,
++  .cs-section-title,
++  .cs-page-title,
++  .cs h1,
++  .cs h2,
++  .cs h3 {
++    text-wrap: balance;
++  }
++
++  /* 본문 — 마지막 줄이 한 단어로 끝나지 않게 한다 */
++  .cs-lead,
++  .cs-sub,
++  .cs-note,
++  .cs p {
++    text-wrap: pretty;
++  }
++
++  /* 읽는 줄의 길이 상한 — 한글 기준 40자 내외에서 눈이 가장 편하다.
++     컨테이너를 좁히지 않고 텍스트 블록에만 건다 */
++  .cs-lead {
++    max-width: 42em;   /* 20px × 42 ≈ 840px */
++  }
++  .cs-sub {
++    max-width: 46em;   /* 17px × 46 ≈ 780px */
++  }
++  .cs-note {
++    max-width: 54em;
++  }
++  /* 클래스 없는 본문 문단 — /guide 등에서 한 줄 90자를 넘던 자리 */
++  .cs p {
++    max-width: 46em;
++  }
++
++  /* 히어로 문구는 지면의 주인공이라 조금 더 넓게 두되 상한은 건다 */
++  .cs-hero-title {
++    max-width: 18em;
++  }
++
++  /* 섹션 머리의 제목도 같은 규칙을 받는다 */
++  .cs-sec-head__body .cs-section-title {
++    max-width: 24em;
++  }
++
++  /* 카드 안 본문은 카드 폭을 따른다 — 카드가 이미 측정 폭 역할을 한다 */
++  .cs-card p,
++  .cs-card .cs-sub,
++  .cs-card .cs-note,
++  .cs-card .cs-lead {
++    max-width: none;
++  }
++}
++
++/* 넓은 화면에서 지면이 과하게 벌어지지 않게 한다 */
++@media (min-width: 1600px) {
++  .cs {
++    --maxw: 1360px;
++  }
++}
