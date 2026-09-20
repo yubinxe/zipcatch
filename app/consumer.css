@@ -7,6 +7,8 @@
    이 값만 문서 뿌리에 둔다 — 서로 비켜설 거리를 공유해야 한다. */
 :root {
   --ticker-h: 56px;
+  /* 헤더 높이 — 히어로가 첫 화면 안에 들어가는지 계산할 때 쓴다 */
+  --header-h: 73px;
 }
 
 /* 지면의 토큰. 챗봇(`.cs-chat-fab` · `.cs-chat`)은 `.cs` 바깥에 떠 있어서
@@ -1346,12 +1348,21 @@
 
 /* ── 홈 ─────────────────────────────────────────────────── */
 .cs-hero {
+  /* 첫 화면이 쓸 수 있는 높이. 헤더(고정)와 마감 티커(하단 고정) 사이가 전부다.
+     이 계산을 빼면 1440x800 같은 흔한 노트북에서 미리보기 카드가 티커를
+     135px 파고들고 CTA 버튼까지 가려진다. 실제로 그렇게 나가 있었다.
+     계산에 히어로 위쪽 패딩(40px)과 티커 앞 여유(16px)를 함께 뺀다.
+     이 둘을 빼먹으면 카드가 정확히 그 높이만큼 티커를 파고든다. */
+  --hero-avail: calc(100svh - var(--header-h) - var(--ticker-h) - 40px - 16px);
+
   display: grid;
   grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
   gap: 40px;
-  align-items: center;
-  padding-top: 72px;
-  padding-bottom: 32px;
+  /* center 로 두면 짧은 글 기둥이 키 큰 카드 한가운데로 떠서
+     내비바와 첫 글자 사이가 152px 까지 벌어진다. 두 기둥을 같은 어깨선에 세운다 */
+  align-items: start;
+  padding-top: 40px;
+  padding-bottom: 28px;
 }
 @media (max-width: 1000px) {
   .cs-hero {
@@ -1385,6 +1396,10 @@
   display: grid;
   gap: 14px;
   position: relative;
+  /* 화면에 남은 만큼만 차지한다. 넘치면 카드 안에서 스크롤되고,
+     티커 위로 삐져나가지 않는다 */
+  max-height: var(--hero-avail);
+  overflow: hidden;
 }
 /* 대표 카드만 살짝 띄우고 나머지는 괘선으로 정돈 */
 .cs-preview .cs-card--lift {
@@ -1575,6 +1590,8 @@
  .cs-header__inner { flex-wrap: wrap; height: auto; padding-top: 12px; gap: 8px; }
  .cs-nav { order: 3; width: 100%; flex-basis: 100%; justify-content: center; }
  .cs-hero { grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: 24px; }
+ /* 한 기둥으로 쌓이면 화면 높이에 맞출 이유가 없다. 상한을 푼다 */
+ .cs-preview { max-height: none; overflow: visible; }
  .cs-preview { padding: 16px; }
 }
 @media (max-width: 760px) {
@@ -3606,13 +3623,17 @@ body:has(.cs-ticker) .cs-chat {
 }
 
 .cs-map {
+  /* 지도와 옆 목록의 높이를 한 곳에서 정한다.
+     따로 두면 둘이 어긋나고, 목록에만 제약이 없으면 공고 98건이
+     그리드 행을 6000px 로 끌어올려 지도가 여백에 파묻힌다. */
+  --map-h: clamp(420px, 56vh, 620px);
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.85fr);
   gap: 18px;
-  align-items: stretch;
+  align-items: start;
 }
 .cs-map__canvas {
-  height: clamp(420px, 56vh, 620px);
+  height: var(--map-h);
   border: 1px solid var(--line-ink);
   border-radius: var(--r-card);
   overflow: hidden;
@@ -3621,6 +3642,9 @@ body:has(.cs-ticker) .cs-chat {
 .cs-map__side {
   display: flex;
   flex-direction: column;
+  /* 지도와 같은 높이로 묶는다. 안쪽 목록이 스크롤되려면 바깥 높이가 정해져야 한다 */
+  height: var(--map-h);
+  min-height: 0;
   border: 1px solid var(--line);
   border-radius: var(--r-card);
   background: var(--surface);
@@ -3642,6 +3666,9 @@ body:has(.cs-ticker) .cs-chat {
   padding: 0;
   overflow-y: auto;
   flex: 1;
+  /* flex 자식은 기본 min-height:auto 라 내용만큼 부풀어 스크롤이 안 생긴다 */
+  min-height: 0;
+  overscroll-behavior: contain;
 }
 .cs-map__list a {
   display: grid;
@@ -3733,11 +3760,12 @@ body:has(.cs-ticker) .cs-chat {
   .cs-map {
     grid-template-columns: minmax(0, 1fr);
   }
-  .cs-map__canvas {
-    height: 380px;
+  .cs-map {
+    --map-h: 380px;
   }
   .cs-map__side {
-    max-height: 420px;
+    /* 한 칸으로 쌓이면 지도 아래에 목록이 온다. 지도와 같은 높이일 필요는 없다 */
+    height: 420px;
   }
 }
 
@@ -5015,4 +5043,230 @@ a.cs-pin:hover {
   font-weight: 700;
   color: var(--title);
   margin-bottom: 8px;
+}
+
+/* ── 공급 판독 ───────────────────────────────────────────
+   우리가 이미 받아오면서 어느 화면도 쓰지 않던 표를 판단으로 바꾼다.
+   표본을 먼저 밝히고, 숫자마다 "실무에서 읽는 법"을 붙인다.
+   근거 없는 큰 숫자는 아무것도 바꾸지 못한다.                    */
+.cs-read {
+  margin-top: 30px;
+}
+.cs-read__basis {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--body);
+  background: var(--paper-2);
+  border-radius: var(--r-inner);
+  padding: 16px 18px;
+  margin: 0 0 30px;
+}
+.cs-read__block {
+  padding-top: 26px;
+  border-top: 1px solid var(--line-ink);
+  margin-bottom: 34px;
+}
+.cs-read__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+.cs-read__idx {
+  font-family: var(--font-brand), var(--font-sans);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.3;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.cs-read__h {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--title);
+  margin: 0;
+  line-height: 1.3;
+}
+.cs-read__why {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin: 8px 0 0;
+  max-width: 62ch;
+}
+.cs-read__lede {
+  font-size: 17px;
+  color: var(--body);
+  margin: 0 0 18px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cs-read__big {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 40px;
+  line-height: 1;
+  color: var(--title);
+  font-variant-numeric: tabular-nums;
+}
+.cs-read__sub {
+  font-size: 15px;
+  color: var(--muted);
+}
+
+/* 표 — 좁은 화면에서는 가로로 민다 */
+.cs-read__tablewrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-inner);
+}
+.cs-read__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+  min-width: 460px;
+}
+.cs-read__table th,
+.cs-read__table td {
+  padding: 11px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.cs-read__table thead th {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--paper);
+}
+.cs-read__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.cs-read__table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cs-read__short {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* 구성비 막대 */
+.cs-read__bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.cs-read__bar {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+}
+.cs-read__bar-k {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--title);
+}
+.cs-read__bar-track {
+  height: 10px;
+  background: var(--paper-2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.cs-read__bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--title);
+  border-radius: 99px;
+}
+.cs-read__bar-v {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--body);
+  white-space: nowrap;
+}
+
+.cs-read__hot {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.cs-read__hot li {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cs-read__hot-t {
+  font-weight: 600;
+  color: var(--title);
+  min-width: 84px;
+}
+.cs-read__hot-r {
+  font-family: var(--font-brand), var(--font-sans);
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-read__note {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--muted);
+  margin: 16px 0 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--line);
+  max-width: 68ch;
+}
+
+/* 판독과 용어 사이 — 여기서부터는 읽을거리다 */
+.cs-pro__divider {
+  padding-top: 30px;
+  border-top: 1px solid var(--line-ink);
+  margin: 10px 0 24px;
+}
+
+@media (max-width: 640px) {
+  .cs-read__bar {
+    grid-template-columns: 70px minmax(0, 1fr);
+    row-gap: 4px;
+  }
+  .cs-read__bar-v {
+    grid-column: 2;
+  }
+  .cs-read__big {
+    font-size: 32px;
+  }
+}
+
+/* 미달 표 — 주택형이 먼저 읽히고 단지명이 따라온다 */
+.cs-read__ty {
+  display: block;
+  font-weight: 600;
+  color: var(--title);
+}
+.cs-read__nm {
+  display: block;
+  font-size: 14px;
+  color: var(--body);
+  margin-top: 2px;
+  max-width: 34ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cs-read__table td:first-child {
+  white-space: normal;
+  min-width: 220px;
 }

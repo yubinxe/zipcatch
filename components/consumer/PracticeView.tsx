@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { PRACTICE } from '@/lib/consumer/practice'
+import SupplyRead from './SupplyRead'
 
 /**
  * 공급 실무 지식.
@@ -18,12 +19,24 @@ export default function PracticeView() {
   const domain = PRACTICE.find(d => d.key === key) ?? PRACTICE[0]
 
   return (
-    <div className="cs-wrap" style={{ paddingTop: 44, maxWidth: 880 }}>
-      <h1 className="cs-page-title">공급 실무 지식</h1>
+    <div className="cs-wrap" style={{ paddingTop: 44, maxWidth: 940 }}>
+      <h1 className="cs-page-title">공급 판독</h1>
       <p className="cs-lead" style={{ marginTop: 16 }}>
-        공고문 한 장은 몇 해가 걸린 일의 마지막 장입니다. 거기 적힌 말들이 실무에서 무엇을 뜻하는지
-        정리했어요.
+        접수 결과는 마감된 뒤에 공개됩니다. 그 기록을 훑어 <b>어디가 비었고 누가 넣었는지</b>를
+        읽어 드려요. 앞일을 점치지 않고, 지난 기록이 말하는 데까지만 말합니다.
       </p>
+
+      {/* 지식보다 판독이 먼저다. 용어는 판단을 도울 때만 쓸모가 있다 */}
+      <SupplyRead />
+
+      <div className="cs-pro__divider">
+        <h2 className="cs-section-title" style={{ fontSize: 26 }}>
+          이 숫자를 읽으려면 알아야 하는 말
+        </h2>
+        <p className="cs-sub" style={{ marginTop: 10 }}>
+          위 판독에 나오는 용어가 실무에서 무엇을 뜻하는지 정리했어요.
+        </p>
+      </div>
 
       {/* 탭 — 네 도메인 */}
       <div className="cs-protab" role="tablist" aria-label="실무 분야">
