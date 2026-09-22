@@ -12,8 +12,6 @@ function fmtMonth(ym: string) {
 }
 
 export default function HotMapTab() {
-  const [data, setData] = useState<HotmapPayload | null>(null)
-  const [loading, setLoading] = useState(true)
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
   const [selectedSpot, setSelectedSpot] = useState<HotmapSpot | null>(null)
   const [months, setMonths] = useState<string[]>([])
@@ -34,16 +32,34 @@ export default function HotMapTab() {
       .catch(() => {})
   }, [])
 
+  /**
+   * 어느 달의 결과인지 함께 들고 있는다 — '불러오는 중'은 그걸로 판단한다.
+   * 효과 첫 줄에서 곧바로 setLoading(true) 를 부르면 달을 바꿀 때마다 화면을
+   * 두 번 그리고, 먼저 낸 요청이 늦게 도착해 새 달의 지도를 덮을 수도 있다.
+   */
+  const [got, setGot] = useState<{ month: string | null; payload: HotmapPayload | null }>({
+    // 아직 아무것도 받지 못했다. 어느 달과도 같지 않으므로 첫 그림은 '불러오는 중'이 된다
+    month: null,
+    payload: null,
+  })
+  const loading = got.month !== month
+  const data = loading ? null : got.payload
+
   useEffect(() => {
-    setLoading(true)
+    let alive = true
     fetch(`/api/hotmap?month=${encodeURIComponent(month)}`)
       .then(r => r.json())
       .then((payload: HotmapPayload) => {
-        setData(payload)
+        if (!alive) return
+        setGot({ month, payload })
         if (!month && payload.statMonth) setMonth(payload.statMonth)
       })
-      .catch(() => setData(null))
-      .finally(() => setLoading(false))
+      .catch(() => {
+        if (alive) setGot({ month, payload: null })
+      })
+    return () => {
+      alive = false
+    }
   }, [month])
 
   const topHot = data?.regions

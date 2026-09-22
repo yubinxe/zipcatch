@@ -23,11 +23,6 @@ function ymd(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function parse(s: string) {
-  const [y, m, d] = s.split('-').map(Number)
-  return new Date(y, m - 1, d)
-}
-
 export default function NoticeCalendar({ marks }: { marks: CalMark[] }) {
   const valid = marks.filter(m => /^\d{4}-\d{2}-\d{2}$/.test(m.date))
   if (valid.length === 0) return null

@@ -21,8 +21,12 @@ export default function HotmapBottomSheet({
   spot: HotmapSpot | null
   onClose: () => void
 }) {
-  const [detail, setDetail] = useState<SheetDetail | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [got, setGot] = useState<{ pblancNo: string; detail: SheetDetail | null }>({
+    pblancNo: '',
+    detail: null,
+  })
+  /** 경쟁률을 못 받았을 때 대신 적을 값 — 지역 평균이다 */
+  const fallbackRate = spot?.compRate ?? 0
 
   useEffect(() => {
     if (!spot) return
@@ -36,32 +40,52 @@ export default function HotmapBottomSheet({
     }
   }, [spot, onClose])
 
+  /**
+   * 받아 온 것이 **어느 공고의** 것인지 함께 들고 있는다.
+   *
+   * 예전에는 효과 첫 줄에서 setDetail(null) / setLoading(true) 를 불렀다.
+   * 그러면 시트를 열 때마다 화면을 두 번 그렸고, 마커를 빠르게 옮겨 누르면
+   * 먼저 낸 요청이 늦게 도착해 **다른 단지의 경쟁률**이 붙어 있기도 했다.
+   * 공고 번호를 결과에 붙여 두면 두 문제가 함께 사라진다.
+   */
+  const pblancNo = spot?.pblancNo ?? ''
+  const loading = pblancNo !== '' && got.pblancNo !== pblancNo
+  const detail = got.pblancNo === pblancNo ? got.detail : null
+
   useEffect(() => {
-    if (!spot?.pblancNo) {
-      setDetail(null)
-      return
-    }
-    setLoading(true)
-    fetch(`/api/property/${encodeURIComponent(spot.pblancNo)}`)
+    if (!pblancNo) return
+    let alive = true
+    fetch(`/api/property/${encodeURIComponent(pblancNo)}`)
       .then(r => r.json())
       .then(data => {
+        if (!alive) return
         const comp = (data.competition as CompetitionItem[]) ?? []
         const rates = comp
           .map(c => parseFloat(c.CMPET_RATE))
           .filter(Number.isFinite)
-        setDetail({
-          competition: comp.slice(0, 5),
-          avgComp: rates.length
-            ? Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 100) / 100
-            : spot.compRate,
-          maxComp: rates.length ? Math.max(...rates) : spot.compRate,
+        setGot({
+          pblancNo,
+          detail: {
+            competition: comp.slice(0, 5),
+            avgComp: rates.length
+              ? Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 100) / 100
+              : fallbackRate,
+            maxComp: rates.length ? Math.max(...rates) : fallbackRate,
+          },
         })
       })
       .catch(() => {
-        setDetail({ competition: [], avgComp: spot.compRate, maxComp: spot.compRate })
+        if (alive) {
+          setGot({
+            pblancNo,
+            detail: { competition: [], avgComp: fallbackRate, maxComp: fallbackRate },
+          })
+        }
       })
-      .finally(() => setLoading(false))
-  }, [spot])
+    return () => {
+      alive = false
+    }
+  }, [pblancNo, fallbackRate])
 
   if (!spot) return null
 

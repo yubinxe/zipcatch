@@ -1,4 +1,4 @@
-import type { Property } from '@/lib/crm/types'
+import type { Property, PropertyStatus } from '@/lib/crm/types'
 import type { OpportunityRow } from '@/lib/db/types'
 import * as repo from '@/lib/db/repo'
 
@@ -18,6 +18,29 @@ const SOURCE_LABEL: Record<string, string> = {
   LH: 'LH 청약플러스 (공공데이터포털)',
 }
 
+/**
+ * 접수 상태는 **읽는 날** 기준으로 다시 센다.
+ *
+ * 저장된 status 는 수집하던 순간의 값이다. 공고는 가만히 있어도 날짜가 지나면
+ * 상태가 바뀌는데 저장값은 그대로 남아, 오늘 마감인 공고가 며칠 전에 찍힌
+ * '접수 예정'을 계속 달고 있었다. 운영 화면의 '접수 중 / 접수 예정' 집계가
+ * 매일 조금씩 틀어지고, 끝난 공고가 목록에 남는다.
+ *
+ * 날짜가 없으면 저장값을 그대로 둔다 — 모르는 것을 지어내지 않는다.
+ * 취소(CANCELLED)도 그대로 둔다. 그건 날짜로는 알 수 없는 사실이다.
+ */
+function statusToday(row: OpportunityRow, today: Date): PropertyStatus {
+  if (row.status === 'CANCELLED') return 'CANCELLED'
+  const { application_start: start, application_end: end } = row
+  if (!start || !end) return row.status
+  const t = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(
+    today.getDate(),
+  ).padStart(2, '0')}`
+  if (t < start) return 'UPCOMING'
+  if (t > end) return 'CLOSED'
+  return 'OPEN'
+}
+
 /** 공고가 '민영'·'국민' 처럼 자체 표기를 쓰면 그대로 둔다 */
 function displayType(row: OpportunityRow): string {
   const t = (row.housing_type ?? '').trim()
@@ -25,7 +48,7 @@ function displayType(row: OpportunityRow): string {
   return row.opportunity_type === 'SUBSCRIPTION' ? '분양' : '임대'
 }
 
-function toProperty(row: OpportunityRow): Property {
+function toProperty(row: OpportunityRow, today = new Date()): Property {
   return {
     id: row.id,
     source: SOURCE_LABEL[row.source] ?? row.source,
@@ -47,7 +70,7 @@ function toProperty(row: OpportunityRow): Property {
     resultDate: row.result_date,
     contractStart: row.contract_start,
     sourceUrl: row.source_url,
-    status: row.status,
+    status: statusToday(row, today),
     competitionRate: row.competition_rate,
     dataOrigin: 'OFFICIAL',
   }
@@ -71,7 +94,8 @@ export async function listOfficialProperties(q: OfficialQuery = {}): Promise<Pro
       includeDemo: false,
       limit: q.limit ?? 100,
     })
-    const out = rows.map(toProperty)
+    const today = new Date()
+    const out = rows.map(row => toProperty(row, today))
     if (!q.housingType) return out
     return out.filter(p => p.housingType.includes(q.housingType!) || q.housingType!.includes(p.housingType))
   } catch {

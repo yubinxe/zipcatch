@@ -55,15 +55,20 @@ export default function SupplyPanel() {
   const [data, setData] = useState<Supply | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // 가져오기 전에 오류를 미리 지우지 않는다. 그러면 화면이 한 번 비었다가
+  // 다시 채워지고, 다시 시도했다가 또 실패하면 오류가 깜빡인다.
+  // 결과가 온 뒤에 한 번만 갈아 끼운다.
   const load = () => {
-    setError(null)
     fetch('/api/admin/supply', { cache: 'no-store' })
       .then(async r => {
         const json = await r.json()
         if (!r.ok) throw new Error(json?.error ?? '공급 현황을 불러오지 못했습니다.')
         return json as Supply
       })
-      .then(setData)
+      .then(json => {
+        setData(json)
+        setError(null)
+      })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : '공급 현황을 불러오지 못했습니다.'))
   }
 

@@ -32,7 +32,15 @@ export interface Announcement {
 export interface AnnouncementsResponse {
   page: number
   perPage: number
+  /**
+   * 자료 전체의 행 수. **조건을 걸어도 줄지 않는다** — 공공데이터포털이
+   * 그렇게 준다. 조건에 맞는 건수는 `matchCount` 다. 이 둘을 바꿔 쓰면
+   * 화면이 "총 2,884건"이라고 적어 놓고 82건만 보여주게 된다.
+   */
   totalCount: number
+  /** 조건(지역·기간·유형)에 맞는 행 수. 화면에 적고 쪽 수를 세는 값 */
+  matchCount?: number
+  /** 이번 쪽에 실제로 담긴 행 수 */
   currentCount: number
   data: Announcement[]
 }

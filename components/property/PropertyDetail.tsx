@@ -53,14 +53,27 @@ function TimelineRow({ label, value, active }: { label: string; value: string; a
 
 export default function PropertyDetail({ id }: { id: string }) {
   const [dark, setDark] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [payload, setPayload] = useState<PropertyPayload | null>(null)
   const [predictOpen, setPredictOpen] = useState(false)
 
+  /**
+   * 받아 온 것이 **어느 공고의** 결과인지 함께 들고 있는다.
+   *
+   * 예전에는 효과 첫 줄에서 setLoading(true) 를 불러 화면을 한 번 더 그렸고,
+   * 그 사이 주소가 바뀌면 이전 공고의 내용이 새 공고 자리에 잠깐 남았다.
+   * 결과에 공고 번호를 붙여 두면 '불러오는 중'은 견주어 알 수 있고,
+   * 남의 공고를 보여줄 일도 없다.
+   */
+  const [got, setGot] = useState<{ id: string; payload: PropertyPayload | null; error: string }>({
+    id: '',
+    payload: null,
+    error: '',
+  })
+  const loading = got.id !== id
+  const payload = loading ? null : got.payload
+  const error = loading ? '' : got.error
+
   useEffect(() => {
-    setLoading(true)
-    setError('')
+    let alive = true
     fetch(`/api/property/${encodeURIComponent(id)}`)
       .then(async res => {
         if (!res.ok) {
@@ -69,9 +82,17 @@ export default function PropertyDetail({ id }: { id: string }) {
         }
         return res.json() as Promise<PropertyPayload>
       })
-      .then(setPayload)
-      .catch(e => setError(e instanceof Error ? e.message : '오류가 발생했습니다'))
-      .finally(() => setLoading(false))
+      .then(p => {
+        if (alive) setGot({ id, payload: p, error: '' })
+      })
+      .catch(e => {
+        if (alive) {
+          setGot({ id, payload: null, error: e instanceof Error ? e.message : '오류가 발생했습니다' })
+        }
+      })
+    return () => {
+      alive = false
+    }
   }, [id])
 
   const toggleDark = () => {

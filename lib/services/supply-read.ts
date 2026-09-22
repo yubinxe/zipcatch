@@ -1,4 +1,8 @@
-import { fetchCompetition, type CompetitionRow } from '@/lib/adapters/applyhome-competition'
+import {
+  fetchCompetition,
+  cascadeRank,
+  type CompetitionRow,
+} from '@/lib/adapters/applyhome-competition'
 import * as repo from '@/lib/db/repo'
 
 /**
@@ -109,28 +113,37 @@ export async function readSupply(opts: { pages?: number } = {}): Promise<SupplyR
   /**
    * 미달은 구역 순서대로 깎여 나간다.
    *
-   * 공급 941세대에 해당지역 85건이 들어오면 856세대가 남고, 이어서 기타지역
-   * 5건이 들어오면 851세대가 남는다. 표에는 이 두 줄이 모두 실린다.
-   * 그대로 늘어놓으면 같은 주택형이 구역 수만큼 반복되면서 서로 다른 미달처럼
-   * 보인다. 실제로 남은 것은 **마지막 값 하나**뿐이다.
+   * 한 주택형이 구역 수만큼 여러 줄로 실리는데, 실제로 남은 세대는 **연쇄의
+   * 마지막 줄 하나**에만 적혀 있다. 앞 단계에서 남은 물량이 다음 단계에 얹혀
+   * 내려가기 때문이다(`cascadeRank` 에 표로 적어 두었다).
+   *
+   * 예전에는 여러 줄 가운데 가장 작은 값을 골랐다. 그건 **첫 단계** 값이라
+   * 두 가지를 틀리게 만들었다.
+   *
+   *  - 남은 세대를 줄여서 적었다. 실제 572세대가 남은 주택형을 166세대로 적었다.
+   *  - 해당지역이 꽉 찬 단지를 아예 미달이 아닌 것으로 지워버렸다. 첫 단계가
+   *    0이면 최솟값도 0이 되기 때문이다. 그런데 **해당지역은 찼지만 기타지역에
+   *    자리가 남은 곳**이야말로 가점 낮은 사람이 노릴 자리다. 가장 중요한
+   *    후보가 표에서 통째로 빠져 있었다.
+   *
+   * 접수는 그대로 더한다 — 그건 구역마다 다른 값이라 합치는 게 맞다.
    */
-  const perType = new Map<string, { row: CompetitionRow; applied: number; shortBy: number }>()
+  const perType = new Map<string, { row: CompetitionRow; last: CompetitionRow; applied: number }>()
   for (const r of rows) {
     if (r.rank !== 1) continue // 1순위 잔여가 2순위로 넘어간다. 기준은 1순위다
     const key = `${r.pblancNo}|${r.houseTy}`
     const cur = perType.get(key)
     if (!cur) {
-      perType.set(key, { row: r, applied: r.applied, shortBy: r.shortBy })
+      perType.set(key, { row: r, last: r, applied: r.applied })
       continue
     }
     cur.applied += r.applied
-    // 가장 적게 남은 값이 마지막 구역까지 간 결과다
-    cur.shortBy = Math.min(cur.shortBy, r.shortBy)
+    if (cascadeRank(r) >= cascadeRank(cur.last)) cur.last = r
   }
 
   const shortList = [...perType.values()]
-    .filter(v => v.shortBy > 0)
-    .sort((a, b) => b.shortBy - a.shortBy)
+    .filter(v => v.last.shortBy > 0)
+    .sort((a, b) => b.last.shortBy - a.last.shortBy)
     .slice(0, 8)
 
   // 공고번호만 적으면 무슨 단지인지 알 수 없다. 저장소에서 이름을 붙인다.
@@ -153,13 +166,13 @@ export async function readSupply(opts: { pages?: number } = {}): Promise<SupplyR
       houseTy: v.row.houseTy,
       supply: v.row.supply,
       applied: v.applied,
-      shortBy: v.shortBy,
+      shortBy: v.last.shortBy,
       rank: v.row.rank,
     }
   })
 
   // 비율도 행이 아니라 **주택형 단위**로 센다. 행으로 세면 구역 수만큼 부풀려진다.
-  const shortCount = [...perType.values()].filter(v => v.shortBy > 0).length
+  const shortCount = [...perType.values()].filter(v => v.last.shortBy > 0).length
 
   const hottest = rows
     .filter(r => r.rate !== null && r.supply > 0)

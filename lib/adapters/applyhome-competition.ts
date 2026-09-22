@@ -31,8 +31,15 @@ export interface CompetitionRow {
   supply: number
   /** 접수 건수 */
   applied: number
-  /** 해당지역 / 기타지역 */
+  /** 해당지역 / 기타경기 / 기타지역 */
   reside: string
+  /**
+   * 구역 코드. 01 해당지역 · 03 기타경기 · 02 기타지역.
+   *
+   * 번호 순서가 곧 배정 순서가 **아니다** — 물량은 01 → 03 → 02 로 흐른다.
+   * 이 순서를 모르면 미달 세대를 엉뚱한 줄에서 읽게 된다(cascadeRank 참고).
+   */
+  resideCode: string
   /** 1 | 2 순위 */
   rank: number
   /**
@@ -42,6 +49,33 @@ export interface CompetitionRow {
   rate: number | null
   /** 미달 세대수. 미달이 아니면 0 */
   shortBy: number
+}
+
+/**
+ * 물량이 구역을 건너가는 순서.
+ *
+ * 수도권 대규모택지의 우선공급은 세 단계다 —
+ * **해당 주택건설지역(01) → 기타경기(03) → 기타지역(02).**
+ * 앞 단계에서 남은 물량이 다음 단계로 얹혀 내려가므로, 한 주택형이 최종적으로
+ * 몇 세대 남았는지는 **마지막 단계 줄 하나**에만 적혀 있다.
+ *
+ * 실제 표로 확인한 모양 (공고 2026000438 · 084.0000A · 공급 635):
+ *
+ *   해당지역  접수 25 → (△166)     635×30% = 191,  191 − 25 = 166
+ *   기타경기  접수 20 → (△273)     635×20% = 127,  127 + 166 − 20 = 273
+ *   기타지역  접수 18 → (△572)     635×50% = 317,  317 + 273 − 18 = 572
+ *
+ * 세 줄을 나란히 놓고 작은 값을 고르면 166 이 나오지만, 실제로 남은 것은 572 다.
+ * 코드 번호 순으로 정렬해도 02 가 03 보다 앞서서 역시 틀린다. 그래서 번호가
+ * 아니라 이 순서를 따로 적어 둔다.
+ *
+ * 표에 없는 코드가 나오면 기타지역보다 앞에 세운다 — '기타지역'은 남은 사람을
+ * 전부 받는 가장 넓은 구역이라 마지막 자리를 내주지 않는다.
+ */
+export function cascadeRank(row: Pick<CompetitionRow, 'resideCode' | 'reside'>): number {
+  if (row.resideCode === '01' || row.reside === '해당지역') return 0
+  if (row.resideCode === '02' || row.reside === '기타지역') return 2
+  return 1
 }
 
 /** `"(△209)"` → 209세대 미달 · `"5.23"` → 5.23배 */
@@ -60,6 +94,7 @@ interface RawRow {
   SUPLY_HSHLDCO?: number | string
   REQ_CNT?: number | string
   RESIDE_SENM?: string
+  RESIDE_SECD?: string | number
   SUBSCRPT_RANK_CODE?: number | string
   CMPET_RATE?: string
 }
@@ -76,6 +111,7 @@ function normalize(rows: RawRow[]): CompetitionRow[] {
         supply: Number(r.SUPLY_HSHLDCO) || 0,
         applied: Number(r.REQ_CNT) || 0,
         reside: String(r.RESIDE_SENM ?? '').trim(),
+        resideCode: String(r.RESIDE_SECD ?? '').trim(),
         rank: Number(r.SUBSCRPT_RANK_CODE) || 0,
         rate,
         shortBy,

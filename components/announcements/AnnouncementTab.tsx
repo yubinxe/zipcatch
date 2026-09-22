@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { fetchAnnouncements } from '@/lib/api'
 import type { Announcement, AnnouncementsResponse } from '@/lib/types'
@@ -69,37 +69,68 @@ export default function AnnouncementTab() {
   const [dateTo, setDateTo] = useState(format(today, 'yyyy-MM-dd'))
   const [houseName, setHouseName] = useState('')
   const [page, setPage] = useState(1)
-  const [data, setData] = useState<AnnouncementsResponse | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  /**
+   * 조회 결과는 **어떤 조건으로 받은 것인지**와 함께 들고 있는다.
+   *
+   * 예전에는 효과 첫 줄에서 곧바로 setLoading(true) 를 불렀다. 그러면 조건이
+   * 바뀔 때마다 화면이 두 번 그려지고(불러오는 중 → 결과), 늦게 온 응답이
+   * 새 조건의 결과를 덮어쓰는 길도 열려 있었다. 대신 지금 조건(sig)과 결과에
+   * 붙은 조건을 견주어 '불러오는 중'을 **판단**한다. 상태를 하나 줄이면
+   * 어긋날 자리도 함께 사라진다.
+   */
+  const sig = [region, houseType, dateFrom, dateTo, houseName, page].join('|')
+  const [result, setResult] = useState<{
+    sig: string
+    data: AnnouncementsResponse | null
+    error: string
+  }>({ sig: '', data: null, error: '' })
 
-  const load = useCallback(async (p: number) => {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await fetchAnnouncements({
-        page: p,
-        perPage: 15,
-        region,
-        dateFrom,
-        dateTo,
-        houseName,
-        houseType,
-      })
-      setData(res)
-    } catch {
-      setError('데이터를 불러오는 중 오류가 발생했습니다.')
-    } finally {
-      setLoading(false)
-    }
-  }, [region, houseType, dateFrom, dateTo, houseName])
+  const loading = result.sig !== sig
+  // 다음 쪽을 기다리는 동안 이전 쪽을 그대로 둔다. 목록이 비었다가 채워지면
+  // 쪽을 넘길 때마다 화면이 껌벅인다.
+  const data = result.data
+  const error = loading ? '' : result.error
 
   useEffect(() => {
-    load(1)
-    setPage(1)
-  }, [load])
+    let alive = true
+    fetchAnnouncements({
+      page,
+      perPage: 15,
+      region,
+      dateFrom,
+      dateTo,
+      houseName,
+      houseType,
+    })
+      .then(res => {
+        if (alive) setResult({ sig, data: res, error: '' })
+      })
+      .catch(() => {
+        if (alive) setResult({ sig, data: null, error: '데이터를 불러오는 중 오류가 발생했습니다.' })
+      })
+    // 조건이 바뀌면 먼저 낸 요청의 결과는 버린다
+    return () => {
+      alive = false
+    }
+  }, [sig, page, region, houseType, dateFrom, dateTo, houseName])
 
-  const totalPages = data ? Math.ceil(data.totalCount / 15) : 1
+  /** 조건을 바꾸면 첫 쪽으로 돌아간다 — 3쪽을 보던 중에 조건만 바꾸면 빈 쪽이 나온다 */
+  function onFilter<T>(set: (v: T) => void) {
+    return (v: T) => {
+      set(v)
+      setPage(1)
+    }
+  }
+
+  /**
+   * 조건에 맞는 건수로 센다.
+   *
+   * 전에는 totalCount 로 셌는데 그 값은 조건을 걸어도 줄지 않는 **자료 전체의
+   * 크기**다. 그래서 서울만 골라 일곱 건이 나와도 화면은 "총 2,884건"이라 적고
+   * 쪽 번호를 193까지 만들었다. 7쪽부터는 눌러도 빈 표가 나왔다.
+   */
+  const matched = data ? (data.matchCount ?? data.totalCount) : 0
+  const totalPages = Math.max(1, Math.ceil(matched / 15))
 
   const goDetail = (item: Announcement) => {
     router.push(propertyPath(item))
@@ -124,27 +155,27 @@ export default function AnnouncementTab() {
           <FilterSelect
             label="공급지역"
             value={region}
-            onChange={setRegion}
+            onChange={onFilter(setRegion)}
             options={REGIONS.map(r => ({ value: r.code, label: r.name }))}
           />
           <SegmentControl
             label="주택 유형"
             value={houseType}
-            onChange={setHouseType}
+            onChange={onFilter(setHouseType)}
             options={HOUSE_TYPE_OPTIONS.map(o => ({
               value: o.value,
               label: o.label,
             }))}
           />
           <div className="ann-filter-dates">
-            <DateField label="공고일 시작" value={dateFrom} onChange={setDateFrom} max={dateTo} />
+            <DateField label="공고일 시작" value={dateFrom} onChange={onFilter(setDateFrom)} max={dateTo} />
             <span className="ann-filter-dates__sep" aria-hidden />
-            <DateField label="공고일 종료" value={dateTo} onChange={setDateTo} min={dateFrom} />
+            <DateField label="공고일 종료" value={dateTo} onChange={onFilter(setDateTo)} min={dateFrom} />
           </div>
           <FilterSearch
             label="주택명"
             value={houseName}
-            onChange={setHouseName}
+            onChange={onFilter(setHouseName)}
             placeholder="단지명 검색"
           />
         </div>
@@ -152,7 +183,7 @@ export default function AnnouncementTab() {
 
       {data && (
         <p className="ann-result-meta">
-          총 <strong className="tnum">{data.totalCount.toLocaleString()}</strong>건
+          총 <strong className="tnum">{matched.toLocaleString()}</strong>건
           <span>행을 선택하면 상세로 이동합니다</span>
         </p>
       )}
@@ -302,10 +333,7 @@ export default function AnnouncementTab() {
       <Pagination
         page={page}
         totalPages={totalPages}
-        onChange={p => {
-          setPage(p)
-          load(p)
-        }}
+        onChange={setPage}
       />
     </div>
   )
