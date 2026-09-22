@@ -5406,49 +5406,56 @@ a.cs-pin:hover {
   }
 }
 
-/* ── 마감 당일 / 하루 전 ──────────────────────────────────
-   둘은 부르는 결정이 다르다. 오늘은 지금 넣어야 하고, 하루 전은
-   서류를 챙길 하루가 남았다. 한 색으로 묶으면 그 차이가 사라진다.
-   지도 위에서 읽혀야 하므로 지면 팔레트보다 채도를 올린다.        */
+/* ── 남은 날 = 신호등 ────────────────────────────────────
+   급한 쪽이 붉고 여유가 있으면 푸르다. 사람이 이미 아는 규칙이라
+   범례를 읽지 않아도 먼저 읽힌다.
+
+   색은 남은 날이 **결정을 바꾸는 구간까지만** 쓴다.
+   여드레 넘게 남은 공고까지 물들이면 화면만 시끄럽고 급한 것이 묻힌다.
+   지도 위에서 읽혀야 하므로 지면 팔레트보다 채도를 올린다.         */
 :root,
 .cs {
-  --d-today: #D9A21B;   /* 마감 당일 */
-  --d-tomorrow: #2E8B57; /* 하루 전 */
+  --d-today: #C62F1E;     /* 오늘 마감 — 지금 넣지 않으면 끝난다 */
+  --d-soon: #D9901B;      /* 사흘 안 — 서류 챙길 시간이 빠듯하다 */
+  --d-easy: #2E8B57;      /* 한 주 안 — 준비하면 된다 */
 }
 
 .cs-pin--d0 {
   background: var(--d-today);
   border-color: #fff;
-  color: #1A1206;
+  color: #fff;
 }
 .cs-pin--d1 {
-  background: var(--d-tomorrow);
+  background: var(--d-soon);
+  border-color: #fff;
+  color: #1A1206;
+}
+.cs-pin--d2 {
+  background: var(--d-easy);
   border-color: #fff;
   color: #fff;
 }
 /* 임박 규칙보다 뒤에 와야 색이 덮이지 않는다 */
-.cs-pin--urgent.cs-pin--d0 {
-  background: var(--d-today);
-  color: #1A1206;
+.cs-pin--urgent.cs-pin--d0 { background: var(--d-today); color: #fff; }
+.cs-pin--urgent.cs-pin--d1 { background: var(--d-soon); color: #1A1206; }
+
+/* 오늘 마감만 한 번 더 부른다. 전부 깜빡이면 아무것도 안 띈다 */
+.cs-pin--d0 {
+  animation: csPinToday 2.2s var(--ease) infinite;
 }
-.cs-pin--urgent.cs-pin--d1 {
-  background: var(--d-tomorrow);
-  color: #fff;
+@keyframes csPinToday {
+  0%, 100% { box-shadow: 0 2px 8px -1px rgba(16, 24, 40, 0.5), 0 0 0 0 rgba(198, 47, 30, 0.5); }
+  50% { box-shadow: 0 2px 8px -1px rgba(16, 24, 40, 0.5), 0 0 0 7px rgba(198, 47, 30, 0); }
 }
 
 /* 옆 목록도 같은 규칙을 쓴다. 지도와 목록이 다른 말을 하면 안 된다 */
-.cs-map__dday[data-d='0'] {
-  color: #8A6410;
-  background: rgba(217, 162, 27, 0.16);
+.cs-map__dday[data-d] {
   border-radius: 4px;
   padding: 1px 6px;
 }
-.cs-map__dday[data-d='1'] {
-  color: #1F6B41;
-  background: rgba(46, 139, 87, 0.14);
-  border-radius: 4px;
-  padding: 1px 6px;
-}
+.cs-map__dday[data-d='0'] { color: #8E2114; background: rgba(198, 47, 30, 0.14); }
+.cs-map__dday[data-d='1'] { color: #8A5A10; background: rgba(217, 144, 27, 0.16); }
+.cs-map__dday[data-d='2'] { color: #1F6B41; background: rgba(46, 139, 87, 0.14); }
 
 /* 범례 — 색을 썼으면 무슨 뜻인지 적는다 */
 .cs-map__legend-day {
@@ -5466,7 +5473,12 @@ a.cs-pin:hover {
   box-shadow: 0 0 0 1px var(--line);
 }
 .cs-map__legend-dot[data-d='0'] { background: var(--d-today); }
-.cs-map__legend-dot[data-d='1'] { background: var(--d-tomorrow); }
+.cs-map__legend-dot[data-d='1'] { background: var(--d-soon); }
+.cs-map__legend-dot[data-d='2'] { background: var(--d-easy); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-pin--d0 { animation: none; }
+}
 
 /* ── 지도로 가는 길 ──────────────────────────────────────
    목록 끝에 지도를 또 그리면 같은 것을 두 번 내려받는다.
@@ -5735,4 +5747,23 @@ html {
   [data-reveal='in'] .cs-notice-grid > * { animation: none; }
   [data-reveal] .cs-sec-head::before { transition: none; width: 100%; }
   .cs-progress { display: none; }
+}
+
+/* 범례의 날짜 묶음 — 유형(분양·임대)과 다른 축이라 사이를 띄운다 */
+.cs-map__days {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-left: 12px;
+  margin-left: 2px;
+  border-left: 1px solid var(--line);
+}
+@media (max-width: 760px) {
+  .cs-map__days {
+    padding-left: 0;
+    margin-left: 0;
+    border-left: 0;
+    width: 100%;
+  }
 }

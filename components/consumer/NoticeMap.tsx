@@ -288,10 +288,19 @@ export default function NoticeMap() {
     data.pins.forEach(pin => {
       const urgent = pin.daysLeft !== null && pin.daysLeft <= 3
       const approx = pin.coordSource !== 'GEOCODED'
-      // 마감 당일과 하루 전은 서로 다른 결정을 부른다 — 오늘은 지금 넣어야 하고,
-      // 하루 전은 서류를 챙길 시간이 남았다. 같은 색으로 묶으면 그 차이가 사라진다.
+      // 신호등. 급한 쪽이 붉고, 여유가 있으면 푸르다.
+      // 색은 남은 날이 결정을 바꾸는 구간까지만 쓴다 — 여드레 넘게 남은 공고를
+      // 물들여 봐야 화면만 시끄럽고 급한 것이 묻힌다.
       const dayClass =
-        pin.daysLeft === 0 ? 'cs-pin--d0' : pin.daysLeft === 1 ? 'cs-pin--d1' : ''
+        pin.daysLeft === null
+          ? ''
+          : pin.daysLeft === 0
+            ? 'cs-pin--d0' // 오늘 마감 — 지금 넣지 않으면 끝난다
+            : pin.daysLeft <= 3
+              ? 'cs-pin--d1' // 사흘 안 — 서류를 챙길 시간이 빠듯하다
+              : pin.daysLeft <= 7
+                ? 'cs-pin--d2' // 한 주 안 — 준비하면 된다
+                : ''
       const cls = [
         'cs-pin',
         `cs-pin--${pin.kind.toLowerCase()}`,
@@ -404,6 +413,22 @@ export default function NoticeMap() {
             <i className="cs-pin cs-pin--rent cs-pin--approx cs-pin--chip" />
             지역 기준
           </span>
+
+          {/* 색을 썼으면 무슨 뜻인지 적는다. 신호등이라도 밝혀 두는 편이 낫다 */}
+          <span className="cs-map__days">
+            <span className="cs-map__legend-day">
+              <i className="cs-map__legend-dot" data-d="0" />
+              오늘 마감
+            </span>
+            <span className="cs-map__legend-day">
+              <i className="cs-map__legend-dot" data-d="1" />
+              사흘 안
+            </span>
+            <span className="cs-map__legend-day">
+              <i className="cs-map__legend-dot" data-d="2" />
+              한 주 안
+            </span>
+          </span>
         </div>
       </div>
 
@@ -442,7 +467,17 @@ export default function NoticeMap() {
                   >
                     <span
                       className="cs-map__dday"
-                      data-d={p.daysLeft === 0 ? '0' : p.daysLeft === 1 ? '1' : undefined}
+                      data-d={
+                        p.daysLeft === null
+                          ? undefined
+                          : p.daysLeft === 0
+                            ? '0'
+                            : p.daysLeft <= 3
+                              ? '1'
+                              : p.daysLeft <= 7
+                                ? '2'
+                                : undefined
+                      }
                     >
                       {dday(p.daysLeft)}
                     </span>
