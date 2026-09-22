@@ -148,8 +148,10 @@ export default function ConsumerHome() {
               모집공고 둘러보기
             </Link>
             {/* 목록과 지도는 같은 공고를 다르게 보는 두 창구다. 목록으로만
-                들여보내면 지도가 있는 줄도 모른다. */}
-            <Link href="/notices#map" className="cs-btn cs-btn--text cs-btn--map">
+                들여보내면 지도가 있는 줄도 모른다.
+                지도를 독립 화면으로 옮긴 뒤 이 링크만 /notices#map 에 남아
+                지도를 눌렀는데 목록이 열렸다. 옮길 때 들어오는 길을 같이 옮겨야 한다. */}
+            <Link href="/map" className="cs-btn cs-btn--text cs-btn--map">
               <svg
                 width="17"
                 height="17"

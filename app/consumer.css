@@ -5820,3 +5820,9 @@ html {
   .cs-emblem,
   .cs-notice:hover .cs-emblem { transition: none; transform: none; }
 }
+
+/* 목록 아래 지도 — 앵커로 들어와도 헤더에 가리지 않게 자리를 비운다 */
+.cs-notices__map {
+  margin-top: 40px;
+  scroll-margin-top: calc(var(--header-h) + 20px);
+}

@@ -6,6 +6,7 @@ import { ELIGIBILITY_CAUTION, type UrgencyInfo } from '@/lib/crm/services/scorin
 import type { Property } from '@/lib/crm/types'
 import NoticeCard from './NoticeCard'
 import FilterRow, { type FilterOption } from './FilterRow'
+import NoticeMap from './NoticeMap'
 import SampleOnlyNotice from './SampleOnlyNotice'
 
 interface Row {
@@ -155,20 +156,13 @@ export default function NoticeBrowser() {
         </>
       )}
 
-      {/* 지도는 독립 화면으로 옮겼다. 목록 끝에 또 그리면 같은 것을 두 번 내려받는다 */}
-      <Link href="/map" className="cs-mapcta">
-        <span className="cs-mapcta__icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 3 3 5.4v15.1L9 18l6 3 6-2.4V3.5L15 6Z" />
-            <path d="M9 3v15M15 6v15" />
-          </svg>
-        </span>
-        <span>
-          <b className="cs-mapcta__t">지도로 보기</b>
-          <span className="cs-mapcta__d">접수 중인 공고가 어디에 있는지 한눈에 확인하세요</span>
-        </span>
-        <span className="cs-arrow" aria-hidden="true">→</span>
-      </Link>
+      {/* 목록을 내려오면 같은 공고가 지도 위에 있다.
+          nav 의 /map 은 지도부터 보려는 사람을 위한 문이고, 여기는
+          목록을 훑다 "어디쯤인지" 궁금해진 사람을 위한 자리다.
+          한쪽만 두면 다른 쪽 사람이 지도를 못 찾는다. */}
+      <div id="map" className="cs-notices__map">
+        <NoticeMap />
+      </div>
 
       {officialCount > 0 && (
         <p className="cs-note" style={{ marginTop: 24 }}>
