@@ -1,6 +1,6 @@
 {
   "source": "Wikimedia Commons",
-  "fetchedAt": "2026-09-22T02:51:02.569Z",
+  "fetchedAt": "2026-09-22T23:49:03.665Z",
   "items": {
     "서울": {
       "file": "seoul.svg",
@@ -239,6 +239,34 @@
       "license": "Public domain",
       "artist": "Wonju City Government",
       "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Wonju.svg"
+    },
+    "춘천시": {
+      "file": "chuncheon.svg",
+      "title": "Flag of Chuncheon.svg",
+      "license": "Public domain",
+      "artist": "Chuncheon City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Chuncheon.svg"
+    },
+    "홍천군": {
+      "file": "hongcheon.svg",
+      "title": "Flag of Hongcheon.svg",
+      "license": "Public domain",
+      "artist": "Hongcheon County Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Hongcheon.svg"
+    },
+    "수원시": {
+      "file": "suwon.svg",
+      "title": "Flag of Suwon.svg",
+      "license": "Public domain",
+      "artist": "Suwon City",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Suwon.svg"
+    },
+    "성남시": {
+      "file": "seongnam.svg",
+      "title": "Flag of Seongnam.svg",
+      "license": "Public domain",
+      "artist": "Seongnam City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Seongnam.svg"
     }
   },
   "note": "한국 지자체 상징은 공공저작물(저작권법 제24조의2). Public domain 으로 공표된 파일만 받는다."

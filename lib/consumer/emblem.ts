@@ -19,6 +19,7 @@
  */
 
 import manifest from '@/public/emblems/manifest.json'
+import guInCity from './gu-in-city.json'
 
 interface EmblemMeta {
   file: string
@@ -65,6 +66,33 @@ const SEOUL_GU = new Set([
   '용산구','은평구','종로구','중구','중랑구',
 ])
 
+/**
+ * 일반구(자치구가 아닌 구) -> 그 구가 속한 시.
+ *
+ * 소사구는 부천시의 구이고 권선구는 수원시의 구다. 이런 구에는 따로 상징이
+ * 없는 일이 많은데, 그렇다고 '경기'로 내려보내면 부천 공고에 경기도 상징이
+ * 붙는다. 틀린 말은 아니지만 지도 위 한 점을 도 전체로 바꿔 버리는 셈이다.
+ * 광역으로 내려가기 전에 **모시(母市)를 한 번 거친다.**
+ *
+ * 표는 gu-in-city.json 에 둔다 — 상징을 내려받는 스크립트도 같은 표를 읽어
+ * 모시의 상징을 함께 받아 둔다. 같은 목록을 두 곳에 적으면 언젠가 어긋난다.
+ *
+ * 광역을 함께 적어 둔 이유는 이름이 겹치기 때문이다. '남구'는 포항에도 있고
+ * 부산 . 대구 . 인천 . 광주 . 울산에도 있는데 그쪽은 제 상징을 가진 자치구다.
+ * 공고의 광역이 맞을 때만 모시로 보낸다 — 아니면 울산 남구 공고에 포항시
+ * 상징이 붙는다.
+ */
+const GU_IN_CITY = guInCity as Record<string, { city: string; province: string }>
+
+/** 이 이름이 어느 시의 일반구인가. 광역이 맞을 때만 답한다 */
+function cityOfGu(gu: string, province: string | undefined): string | null {
+  const hit = GU_IN_CITY[gu]
+  if (!hit) return null
+  // 광역을 모르면 보내지 않는다. 겹치는 이름을 찍어 맞히느니 비워 두는 편이 낫다.
+  if (!province || province !== hit.province) return null
+  return hit.city
+}
+
 export interface Emblem {
   src: string
   /** 상징이 가리키는 지역 (광역일 수 있다) */
@@ -101,9 +129,17 @@ export function emblemFor(
     fromTitle.push(m[1])
   }
 
+  // 이 공고의 광역. 일반구를 모시로 보낼 때 이름이 겹치는지 가리는 데 쓴다.
+  const province = TO_PROVINCE[r] ?? TO_PROVINCE[d] ?? (SEOUL_GU.has(r) ? '서울' : undefined) ?? (d.length <= 3 ? d : undefined)
+
   const tries = [
     ...fromTitle, // 가장 구체적인 값이 먼저다
     r, // 시·군·구 파일이 있으면 가장 정확하다
+    // 상징 없는 일반구는 광역이 아니라 제 시로 보낸다 (소사구 → 부천시).
+    // **district 보다 먼저** 본다 — LH·청약홈 공고는 district 칸에 광역을
+    // 담아 보내는 일이 많아서, 뒤에 두면 부천시를 찾기 전에 '경기'가 걸린다.
+    ...fromTitle.map(t => cityOfGu(t, province)),
+    cityOfGu(r, province),
     d,
     TO_PROVINCE[r],
     TO_PROVINCE[d],

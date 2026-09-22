@@ -187,8 +187,26 @@ async function mineRegions() {
     }
   }
 
-  console.log(`공고 ${notices.length}건에서 시·군·구 후보 ${locals.size}개를 캤다`)
-  return [...locals.keys()]
+  /*
+   * 일반구는 제 상징이 없는 일이 많다 — 소사구·권선구·분당구가 그렇다.
+   * 그럴 때 광역으로 내려보내면 부천 공고에 경기도 상징이 붙는다.
+   * 화면(lib/consumer/emblem.ts)은 광역으로 가기 전에 모시를 한 번 거치므로,
+   * 여기서 그 **모시의 상징도 함께 받아 둔다.** 같은 표를 읽으니 어긋나지 않는다.
+   */
+  const guTable = JSON.parse(
+    await readFile(join(process.cwd(), 'lib', 'consumer', 'gu-in-city.json'), 'utf8'),
+  )
+  const parents = new Set()
+  for (const name of locals.keys()) {
+    const hit = guTable[name]
+    if (hit && !locals.has(hit.city)) parents.add(hit.city)
+  }
+
+  console.log(
+    `공고 ${notices.length}건에서 시·군·구 후보 ${locals.size}개를 캤다` +
+      (parents.size ? ` (일반구가 속한 시 ${parents.size}곳을 더한다: ${[...parents].join(', ')})` : ''),
+  )
+  return [...locals.keys(), ...parents]
 }
 
 async function main() {
