@@ -1,0 +1,116 @@
+/**
+ * 공고의 지역 → 지자체 상징.
+ *
+ * ── 왜 광역 상징을 쓰는가 ──
+ *
+ * 시·군·구 CI 를 공고마다 박고 싶었지만 두 가지에 막혔다.
+ *
+ *  1) 우리가 받는 공고의 **셋 중 둘은 시·군·구를 주지 않는다.** LH 목록 API 가
+ *     지역본부(경기·경남·인천…) 단위까지만 내려주기 때문이다. 없는 값으로는
+ *     로고를 고를 수 없다.
+ *  2) 한국 시·군·구 CI 는 위키미디어 공용에 체계적으로 올라와 있지 않다.
+ *     광역 17곳은 Public domain 으로 정리돼 있지만 기초자치단체는 비어 있다.
+ *     지자체 홈페이지에서 250곳을 긁는 것은 저작권 확인 없이 할 일이 아니다.
+ *
+ * 그래서 **상징은 광역으로 확실하게, 이름은 시·군·구까지 정확하게** 적는다.
+ * 평택시 공고에는 경기도 상징이 붙고 그 아래 "평택시"가 적힌다 —
+ * 틀린 말이 아니고, 어느 지역인지도 한눈에 들어온다.
+ *
+ * 기초자치단체 CI 파일을 확보하면 `public/emblems/` 에 `평택시.svg` 로 넣기만
+ * 하면 된다. 아래 조회가 시·군·구를 먼저 찾으므로 코드는 건드릴 필요가 없다.
+ */
+
+import manifest from '@/public/emblems/manifest.json'
+
+interface EmblemMeta {
+  file: string
+  title: string
+  license: string
+  artist: string
+  source: string
+}
+
+const ITEMS = manifest.items as Record<string, EmblemMeta>
+
+/** LH 지역본부 표기·행정구역 전체 이름을 광역 두 글자로 맞춘다 */
+const TO_PROVINCE: Record<string, string> = {
+  서울특별시: '서울',
+  부산광역시: '부산',
+  대구광역시: '대구',
+  인천광역시: '인천',
+  광주광역시: '광주',
+  대전광역시: '대전',
+  울산광역시: '울산',
+  세종특별자치시: '세종',
+  경기도: '경기',
+  강원도: '강원',
+  강원특별자치도: '강원',
+  충청북도: '충북',
+  충청남도: '충남',
+  전라북도: '전북',
+  전북특별자치도: '전북',
+  전라남도: '전남',
+  경상북도: '경북',
+  경상남도: '경남',
+  제주특별자치도: '제주',
+  // LH 지역본부 — 행정구역이 아니라 관할이다. 대표 광역으로 잇는다
+  '전남·광주': '광주',
+  '대구 외': '대구',
+  '대전 외': '대전',
+  '인천 외': '인천',
+}
+
+/** 서울 자치구 — 구 이름만 오는 청약홈 행을 광역으로 되짚는다 */
+const SEOUL_GU = new Set([
+  '강남구','강동구','강북구','강서구','관악구','광진구','구로구','금천구','노원구','도봉구',
+  '동대문구','동작구','마포구','서대문구','서초구','성동구','성북구','송파구','양천구','영등포구',
+  '용산구','은평구','종로구','중구','중랑구',
+])
+
+export interface Emblem {
+  src: string
+  /** 상징이 가리키는 지역 (광역일 수 있다) */
+  of: string
+  license: string
+  artist: string
+  source: string
+}
+
+/**
+ * 공고 한 건에 붙일 상징을 고른다.
+ *
+ * 시·군·구 파일이 있으면 그것을, 없으면 그 지역이 속한 광역을 쓴다.
+ * 둘 다 없으면 null — 없는 것을 아무거나로 채우지 않는다.
+ */
+export function emblemFor(region: string, district?: string | null): Emblem | null {
+  const r = (region ?? '').trim()
+  const d = (district ?? '').trim()
+
+  const tries = [
+    r, // 시·군·구 파일이 있으면 가장 정확하다
+    d,
+    TO_PROVINCE[r],
+    TO_PROVINCE[d],
+    SEOUL_GU.has(r) ? '서울' : '',
+    // "충남 서북구" 처럼 광역이 district 에 오는 경우
+    d && d.length <= 3 ? d : '',
+  ].filter(Boolean) as string[]
+
+  for (const key of tries) {
+    const hit = ITEMS[key]
+    if (hit) {
+      return {
+        src: `/emblems/${hit.file}`,
+        of: key,
+        license: hit.license,
+        artist: hit.artist,
+        source: hit.source,
+      }
+    }
+  }
+  return null
+}
+
+/** 화면 아래에 적을 출처 한 줄 */
+export const EMBLEM_CREDIT =
+  '지자체 상징은 각 지자체가 공표한 공공저작물이며 위키미디어 공용(Public domain)에서 받았습니다.'

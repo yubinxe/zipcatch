@@ -5767,3 +5767,56 @@ html {
     width: 100%;
   }
 }
+
+/* ── 지자체 상징 ─────────────────────────────────────────
+   단지명·지역이 카드 왼쪽에만 몰려 오른쪽이 비어 있었다.
+   그 자리에 상징을 박는다. 벡터라 40px 에서도 선이 안 뭉개진다.
+   상징만으로는 시·군·구까지 못 짚으므로 이름을 아래 붙인다.       */
+.cs-emblem {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  width: 58px;
+  pointer-events: none;
+  transition: transform 0.3s var(--ease);
+}
+.cs-emblem__img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  /* 지자체 상징은 저마다 색이 달라 카드마다 튄다. 살짝 눌러 지면에 앉힌다 */
+  opacity: 0.92;
+}
+.cs-emblem__name {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.cs-notice:hover .cs-emblem {
+  transform: translateY(-2px);
+}
+.cs-notice:hover .cs-emblem__img {
+  opacity: 1;
+}
+
+@media (max-width: 520px) {
+  .cs-emblem {
+    width: 46px;
+    top: 14px;
+    right: 14px;
+  }
+  .cs-emblem__img { width: 32px; height: 32px; }
+  .cs-emblem__name { font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-emblem,
+  .cs-notice:hover .cs-emblem { transition: none; transform: none; }
+}

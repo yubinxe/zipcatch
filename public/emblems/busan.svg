@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="299.99997mm"
+   height="299.99997mm"
+   viewBox="0 0 299.99997 299.99997"
+   version="1.1"
+   id="svg847"
+   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
+   sodipodi:docname="Emblem of Busan-bu.svg">
+  <defs
+     id="defs841" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.35"
+     inkscape:cx="723.17059"
+     inkscape:cy="603.31871"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:window-width="1920"
+     inkscape:window-height="1018"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata844">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(251.89394,35.744881)">
+    <circle
+       style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:30;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path1521"
+       cx="-101.89395"
+       cy="114.2551"
+       r="137.20535" />
+    <path
+       style="opacity:1;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.15006702;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M -101.89371,-35.669847 A 149.92497,149.92497 0 0 0 -251.81891,114.25537 149.92497,149.92497 0 0 0 -101.89371,264.18006 149.92497,149.92497 0 0 0 48.031005,114.25537 149.92497,149.92497 0 0 0 -101.89371,-35.669847 Z m -9,13.78056 V 6.1798039 c -12.5442,1.02377 -24.4684,4.1751191 -35.4211,9.0846991 9.84,31.615731 24.5664,56.443008 44.419,74.383058 19.853099,-17.94148 34.5828,-42.765797 44.423202,-74.383058 -10.9528,-4.90958 -22.876902,-8.0609291 -35.421102,-9.0846991 V -21.889287 c 66.955302,4.39383 120.925305,57.4377 126.769005,123.996047 H 5.7472912 C 2.5920922,73.262761 -11.81151,47.888424 -33.00541,30.437753 c -10.507999,30.23166 -26.281298,55.597868 -46.6442,75.236757 18.588601,10.49432 40.461401,16.62514 65.738102,18.34459 1.5562,0.10586 11.3573992,0.38238 12.93930024,0.45477 L -10.48381,152.25718 c -35.0916,-1.60626 -65.8536,-11.52721 -91.411,-28.63287 -25.5565,17.10529 -56.3179,27.02663 -91.4088,28.63287 l -9.5111,-27.78331 c 1.582,-0.0724 11.3831,-0.34891 12.9393,-0.45477 25.2761,-1.71938 47.1479,-7.85082 65.7355,-18.34565 -20.3625,-19.638459 -36.1343,-45.004807 -46.6421,-75.235697 -21.1939,17.450671 -35.5973,42.825008 -38.7527,71.669007 h -28.128 c 5.8436,-66.558368 59.8136,-119.602217 126.769,-123.996047 z m -126.769,147.996137 h 28.128 c 5.4348,49.68271 44.2392,89.074 93.6408,95.40296 v -27.11205 a 14.0014,14.0014 0 0 1 13.7894,-14.19706 14.0014,14.0014 0 0 1 14.210999,14.19706 v 27.11205 C -38.491908,215.18123 0.31099224,175.78988 5.7456922,126.10685 H 33.873705 c -6.103014,69.51659 -64.702814,124.29319 -135.766915,124.29319 -71.06419,0 -129.6664,-54.7766 -135.7695,-124.29319 z"
+       id="path2328"
+       inkscape:connector-curvature="0" />
+  </g>
+</svg>

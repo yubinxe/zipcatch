@@ -172,7 +172,8 @@ export default function NoticeBrowser() {
 
       {officialCount > 0 && (
         <p className="cs-note" style={{ marginTop: 24 }}>
-          공공데이터포털 청약홈·LH 청약플러스에서 모은 실제 모집공고입니다. 분양을 앞에 두고, 그 안에서
+          공공데이터포털 청약홈·LH 청약플러스에서 모은 실제 모집공고입니다. 카드의 지자체 상징은
+          각 지자체가 공표한 공공저작물(Public domain)이며 위키미디어 공용에서 받았습니다. 분양을 앞에 두고, 그 안에서
           접수 마감이 가까운 순으로 보여드려요.
         </p>
       )}

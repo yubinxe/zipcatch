@@ -1,0 +1,118 @@
+{
+  "source": "Wikimedia Commons",
+  "fetchedAt": "2026-09-22T01:53:35.580Z",
+  "items": {
+    "서울": {
+      "file": "seoul.svg",
+      "title": "Seal of Seoul.svg",
+      "license": "Public domain",
+      "artist": "Seoul Metropolitan Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Seal%20of%20Seoul.svg"
+    },
+    "부산": {
+      "file": "busan.svg",
+      "title": "Emblem of Busan-bu.svg",
+      "license": "Public domain",
+      "artist": "Vectorized by Nv7801",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20Busan-bu.svg"
+    },
+    "대구": {
+      "file": "daegu.svg",
+      "title": "Emblem of Daegu-bu.svg",
+      "license": "Public domain",
+      "artist": "Vectorized by Nv7801",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20Daegu-bu.svg"
+    },
+    "인천": {
+      "file": "incheon.svg",
+      "title": "Emblem of Incheon.svg",
+      "license": "Public domain",
+      "artist": "Incheon Metropolitan City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20Incheon.svg"
+    },
+    "광주": {
+      "file": "gwangju.svg",
+      "title": "Emblem of Gwangju.svg",
+      "license": "Public domain",
+      "artist": "Gwangju Metropolitan City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20Gwangju.svg"
+    },
+    "대전": {
+      "file": "daejeon.svg",
+      "title": "Emblem of Daejeon.svg",
+      "license": "Public domain",
+      "artist": "Daejeon Metropolitan City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20Daejeon.svg"
+    },
+    "울산": {
+      "file": "ulsan.svg",
+      "title": "Emblem of Ulsan.svg",
+      "license": "Public domain",
+      "artist": "Ulsan Metropolitan City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20Ulsan.svg"
+    },
+    "경기": {
+      "file": "gyeonggi.svg",
+      "title": "Emblem of Gyeonggi Province (2021).svg",
+      "license": "Public domain",
+      "artist": "Gyeonggi Province Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20Gyeonggi%20Province%20(2021).svg"
+    },
+    "강원": {
+      "file": "gangwon.svg",
+      "title": "Emblem of Gangwon Province.svg",
+      "license": "Public domain",
+      "artist": "Gangwon Province Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20Gangwon%20Province.svg"
+    },
+    "충북": {
+      "file": "chungbuk.svg",
+      "title": "Emblem of North Chungcheong Province.svg",
+      "license": "Public domain",
+      "artist": "North Chungcheong Province Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20North%20Chungcheong%20Province.svg"
+    },
+    "충남": {
+      "file": "chungnam.svg",
+      "title": "Emblem of South Chungcheong Province.svg",
+      "license": "Public domain",
+      "artist": "South Chungcheong Province Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20South%20Chungcheong%20Province.svg"
+    },
+    "전북": {
+      "file": "jeonbuk.svg",
+      "title": "Emblem of North Jeolla Province.svg",
+      "license": "Public domain",
+      "artist": "North Jeolla Province Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20North%20Jeolla%20Province.svg"
+    },
+    "전남": {
+      "file": "jeonnam.svg",
+      "title": "Emblem of South Jeolla Province.svg",
+      "license": "Public domain",
+      "artist": "South Jeolla Province Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20South%20Jeolla%20Province.svg"
+    },
+    "경북": {
+      "file": "gyeongbuk.svg",
+      "title": "Emblem of North Gyeongsang Province.svg",
+      "license": "Public domain",
+      "artist": "North Gyeongsang Province Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20North%20Gyeongsang%20Province.svg"
+    },
+    "제주": {
+      "file": "jeju.svg",
+      "title": "Emblem of Jeju Province.svg",
+      "license": "Public domain",
+      "artist": "Jeju Special Self-Governing Province",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20Jeju%20Province.svg"
+    },
+    "세종": {
+      "file": "sejong.svg",
+      "title": "Seal of Sejong City, South Korea.svg",
+      "license": "Public domain",
+      "artist": "Sejong Special Self-Governing City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Seal%20of%20Sejong%20City%2C%20South%20Korea.svg"
+    }
+  }
+}
