@@ -5826,3 +5826,205 @@ html {
   margin-top: 40px;
   scroll-margin-top: calc(var(--header-h) + 20px);
 }
+
+/* ── 특별공급 판독 ───────────────────────────────────────────────────────
+   접수가 열려 있는 공고에도 붙는 유일한 수요 숫자다. 눈에 먼저 들어와야
+   하지만 경쟁률 통계처럼 큰 자리를 차지하면 안 된다 — 이건 참고이지
+   결론이 아니다. 그래서 숫자 하나만 크게 두고 나머지는 글줄로 눕힌다. */
+.cs-spsply {
+  padding: 22px 24px 20px;
+}
+
+.cs-spsply__head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.cs-spsply__figure {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+.cs-spsply__big {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 40px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--title);
+  font-variant-numeric: tabular-nums;
+}
+/* 다 찬 공고만 색을 준다. 전부 칠하면 아무것도 안 띈다 */
+.cs-spsply__head[data-tone='HOT'] .cs-spsply__big {
+  color: var(--accent);
+}
+.cs-spsply__unit {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cs-spsply__line {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.62;
+  color: var(--body);
+}
+.cs-spsply__line b {
+  color: var(--title);
+  font-weight: 700;
+}
+
+.cs-spsply__list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+/* 이름 · 막대 · 판정 · 근거. 판정 자리를 고정해 세로로 읽히게 한다 */
+.cs-spsply__row {
+  display: grid;
+  grid-template-columns: 82px minmax(60px, 120px) 88px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cs-spsply__row:last-child {
+  border-bottom: 0;
+}
+.cs-spsply__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--title);
+}
+.cs-spsply__bar {
+  position: relative;
+  display: block;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+/* 1배 — 공급과 접수가 딱 맞는 자리. 왼쪽이면 미달, 오른쪽이면 넘쳤다 */
+.cs-spsply__tick {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--title);
+  opacity: 0.5;
+}
+.cs-spsply__fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--muted);
+}
+.cs-spsply__row[data-tone='HOT'] .cs-spsply__fill {
+  background: var(--accent);
+}
+.cs-spsply__row[data-tone='UNDER'] .cs-spsply__fill {
+  background: var(--d-easy);
+}
+.cs-spsply__verdict {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--title);
+  font-variant-numeric: tabular-nums;
+}
+.cs-spsply__row[data-tone='HOT'] .cs-spsply__verdict {
+  color: var(--accent);
+}
+.cs-spsply__row[data-tone='UNDER'] .cs-spsply__verdict {
+  color: var(--d-easy);
+}
+.cs-spsply__meta {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-spsply__area,
+.cs-spsply__inst {
+  margin: 14px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.cs-spsply__area b,
+.cs-spsply__inst b {
+  color: var(--body);
+  font-weight: 700;
+}
+.cs-spsply__warn {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 640px) {
+  .cs-spsply {
+    padding: 18px 16px 16px;
+  }
+  .cs-spsply__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  /* 좁은 화면에서는 막대를 접는다. 네 칸이 다 들어가면 전부 못 읽는다 */
+  .cs-spsply__row {
+    grid-template-columns: 1fr auto;
+    gap: 4px 10px;
+  }
+  .cs-spsply__bar {
+    display: none;
+  }
+  .cs-spsply__meta {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}
+
+/* 카드의 특별공급 한 줄 — 목록에서 어느 공고를 열지 고르게 하는 신호.
+   배지를 크게 만들면 '공식 공고'·유형 배지와 자리를 다투므로 글줄로 눕힌다. */
+.cs-notice__sp {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 0 0 8px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.cs-notice__sp-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+.cs-notice__sp b {
+  font-family: var(--font-brand), var(--font-sans);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.cs-notice__sp[data-tone='HOT'] b {
+  color: var(--accent);
+}
+.cs-notice__sp[data-tone='UNDER'] b {
+  color: var(--d-easy);
+}
+.cs-notice__sp-meta {
+  font-size: 12.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}

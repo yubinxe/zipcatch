@@ -4,12 +4,19 @@ import { checkUrgency, type UrgencyInfo } from '@/lib/crm/services/scoring'
 import { listOfficialProperties } from '@/lib/consumer/official'
 import { kindRank, provinceOf } from '@/lib/consumer/classify'
 import type { Property } from '@/lib/crm/types'
+import {
+  fetchSpecialSupply,
+  briefOf,
+  type SpecialBrief,
+} from '@/lib/adapters/applyhome-special'
 
 export const dynamic = 'force-dynamic'
 
 interface Row {
   property: Property
   urgency: UrgencyInfo
+  /** 특별공급이 이미 어떻게 끝났는지. 청약홈 분양에만 있고 없으면 생략된다 */
+  special?: SpecialBrief
 }
 
 /** 필터 선택지는 건수를 함께 준다 — 어디에 공고가 몰려 있는지 골라보기 전에 보이게 */
@@ -100,6 +107,31 @@ export async function GET(req: NextRequest) {
           (a.urgency.daysLeft ?? 9999) - (b.urgency.daysLeft ?? 9999),
       )
       .slice(0, limit)
+
+    /*
+     * 목록에 오른 청약홈 공고만 특별공급 결과를 붙인다.
+     *
+     * 상세를 열어야만 보이는 신호는 없는 것과 크게 다르지 않다. 어느 공고를
+     * 열지 고르는 자리가 바로 여기다.
+     *
+     * 자르고 나서 부르므로 한 화면 분량(24건) 안쪽이고, 그중 청약홈은 보통
+     * 열 건이 되지 않는다. 응답은 30분 캐시라 대개 다시 나가지도 않는다.
+     * 그래도 상한을 둔다 — 분양 공고가 몰리는 주에 목록 한 번이 바깥 호출
+     * 수십 건으로 불어나면 안 된다.
+     */
+    const SPECIAL_LOOKUP_MAX = 12
+    const applyhome = notices
+      .filter(r => r.property.dataOrigin === 'OFFICIAL' && r.property.source.includes('청약홈'))
+      .slice(0, SPECIAL_LOOKUP_MAX)
+
+    await Promise.all(
+      applyhome.map(async row => {
+        // 하나가 실패해도 목록은 그대로 나간다
+        const read = await fetchSpecialSupply(row.property.announcementId).catch(() => null)
+        const brief = read ? briefOf(read) : null
+        if (brief) row.special = brief
+      }),
+    )
 
     const officialCount = notices.filter(r => r.property.dataOrigin === 'OFFICIAL').length
 

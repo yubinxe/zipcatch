@@ -8,10 +8,12 @@ import NoticeCard from './NoticeCard'
 import FilterRow, { type FilterOption } from './FilterRow'
 import NoticeMap from './NoticeMap'
 import SampleOnlyNotice from './SampleOnlyNotice'
+import type { SpecialBrief } from '@/lib/adapters/applyhome-special'
 
 interface Row {
   property: Property
   urgency: UrgencyInfo
+  special?: SpecialBrief
 }
 
 export default function NoticeBrowser() {
@@ -150,6 +152,7 @@ export default function NoticeBrowser() {
                 excludedBy: [],
               }}
               showReasons={false}
+              special={row.special}
             />
           ))}
           </div>

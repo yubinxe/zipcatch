@@ -5,7 +5,9 @@ import { useEffect, useState } from 'react'
 import type { Candidate, UrgencyInfo } from '@/lib/crm/services/scoring'
 import { formatMan } from '@/lib/crm/services/scoring'
 import type { Property, Task } from '@/lib/crm/types'
+import type { SpecialRead } from '@/lib/adapters/applyhome-special'
 import { statusBadge } from './NoticeCard'
+import SpecialSupply from './SpecialSupply'
 import SaveButton from './SaveButton'
 import NoticeCalendar, { marksFrom } from './NoticeCalendar'
 import { useConsumer } from './ConsumerProvider'
@@ -70,6 +72,8 @@ interface DetailResponse {
   candidate: Candidate | null
   schedule: Task[]
   supplyModels?: SupplyModel[]
+  /** 특별공급 접수 결과. 기록이 없으면 null */
+  special?: SpecialRead | null
   rent?: RentStat | null
   trade?: TradeStat | null
 }
@@ -316,6 +320,12 @@ export default function NoticeDetail({ id }: { id: string }) {
           </div>
         )}
       </div>
+
+      {/* 특별공급 결과를 주택형 표보다 먼저 세운다. 접수 중인 공고에서
+          오늘 판단을 바꿀 수 있는 숫자는 이것 하나뿐이다. */}
+      {data.special && (
+        <SpecialSupply data={data.special} open={!closed} />
+      )}
 
       {/* 주택형별 공급 — 총계만으로는 "내가 넣을 평형이 몇 세대이고 얼마인가"에
           답할 수 없다. 답하지 못하면 결국 공고문 PDF 를 열게 된다. */}

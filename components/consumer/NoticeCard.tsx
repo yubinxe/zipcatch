@@ -4,6 +4,7 @@ import Link from 'next/link'
 import type { Candidate } from '@/lib/crm/services/scoring'
 import type { Property } from '@/lib/crm/types'
 import { formatManOr } from '@/lib/crm/services/scoring'
+import type { SpecialBrief } from '@/lib/adapters/applyhome-special'
 import SaveButton from './SaveButton'
 import RegionMark from './RegionMark'
 
@@ -38,6 +39,7 @@ export default function NoticeCard({
   candidate,
   showReasons = true,
   index,
+  special,
   variant = 'default',
 }: {
   property: Property
@@ -45,6 +47,14 @@ export default function NoticeCard({
   showReasons?: boolean
   /** 카탈로그 인덱스 (0-based). 주면 카드 머리에 번호가 붙는다 */
   index?: number
+  /**
+   * 특별공급이 이미 어떻게 끝났는지. 청약홈 분양에만 붙는다.
+   *
+   * 접수 중인 공고에 숫자를 얹는 유일한 자리다 — 특별공급이 하루 먼저
+   * 접수되고 그 결과가 일반공급 접수 사이에 공개되기 때문이다.
+   * 어느 공고를 열지 고르는 자리가 여기라서, 상세까지 미루지 않는다.
+   */
+  special?: SpecialBrief
   /**
    * 카드가 놓이는 층.
    *
@@ -111,6 +121,26 @@ export default function NoticeCard({
           : property.region}
         {property.area !== null && <> · 전용 {property.area}㎡</>}
       </p>
+
+      {/* 특별공급은 하루 먼저 끝난다. 접수가 열려 있는 공고에도 붙는
+          유일한 실제 숫자라 금액 줄보다 위에 둔다. */}
+      {special && (
+        <p
+          className="cs-notice__sp"
+          data-tone={special.shortBy > 0 ? 'UNDER' : 'HOT'}
+          // 카드에서는 '특별공급' 넉 자로만 범위를 밝힌다. 그 넉 자를 놓친 채
+          // 일반공급 잔여로 읽는 일이 없도록 한 줄을 덧붙인다.
+          title={`특별공급 ${special.supply.toLocaleString()}세대에 ${special.applied.toLocaleString()}건 접수. 일반공급 결과가 아닙니다.`}
+        >
+          <span className="cs-notice__sp-tag">특별공급</span>
+          <b className="cs-num">
+            {special.shortBy > 0 ? `${special.shortBy.toLocaleString()}세대 남고 마감` : `${special.rate}배 마감`}
+          </b>
+          <span className="cs-notice__sp-meta cs-num">
+            {special.supply.toLocaleString()}세대 · {special.applied.toLocaleString()}건
+          </span>
+        </p>
+      )}
 
       <div className="cs-notice__price">
         {property.deposit === null && property.monthlyRent === null ? (

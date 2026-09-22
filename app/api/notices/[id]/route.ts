@@ -1,6 +1,7 @@
 import { propertyById } from '@/lib/crm/store'
 import { findOfficialProperty } from '@/lib/consumer/official'
 import { fetchSupplyModels } from '@/lib/adapters/applyhome-models'
+import { fetchSpecialSupply } from '@/lib/adapters/applyhome-special'
 import { fetchTradeStat, fetchPresaleStat } from '@/lib/adapters/molit-trade'
 import { geocode, geocodeByName, isGeocodingConfigured } from '@/lib/consumer/geocode'
 import { fetchRentStat } from '@/lib/adapters/molit-rent'
@@ -48,10 +49,22 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
      * 주택형별 공급. 청약홈 분양에만 있다 — LH 임대는 이 API 에 나오지 않는다.
      * 없거나 실패하면 빈 배열이고, 화면은 그 자리를 접는다.
      */
-    const supply =
+    /**
+     * 특별공급 접수 결과.
+     *
+     * 일반공급 접수가 아직 열려 있어도 볼 수 있는 유일한 수요 신호다 —
+     * 특별공급이 하루 먼저 접수되고 결과가 그 사이에 공개되기 때문이다.
+     * 같은 청약홈 공고에만 있고, 없으면 화면이 그 자리를 접는다.
+     */
+    const isApplyhome =
       property.dataOrigin === 'OFFICIAL' && property.source.includes('청약홈')
-        ? await fetchSupplyModels(property.announcementId)
-        : { models: [], ok: true, reason: null }
+
+    const [supply, special] = await Promise.all([
+      isApplyhome
+        ? fetchSupplyModels(property.announcementId)
+        : Promise.resolve({ models: [], ok: true, reason: null }),
+      isApplyhome ? fetchSpecialSupply(property.announcementId) : Promise.resolve(null),
+    ])
 
     /**
      * 주변 실거래.
@@ -100,6 +113,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       budget: candidate?.budget ?? null,
       dataOrigin: property.dataOrigin,
       supplyModels: supply.models,
+      /** 특별공급 기록이 아직 없으면 null — 빈 표를 결과처럼 내놓지 않는다 */
+      special: special && special.hasData ? special : null,
       rent: rent && rent.ok && rent.bands.length > 0 ? rent : null,
       /** 지도에 찍을 자리. 이름으로 찾은 것도 포함된다 */
       place: where ? { lat: where.lat, lng: where.lng, dong: where.dong, sigungu: where.sigungu } : null,
