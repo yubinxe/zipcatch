@@ -2,18 +2,32 @@
  * 지자체 상징(엠블럼)을 내려받는다.
  *
  *   node scripts/fetch-region-emblems.mjs
+ *   node scripts/fetch-region-emblems.mjs --from=http://localhost:3000
  *
- * ── 어디서 받는가 ──
+ * ── 목록을 사람이 적지 않는다 ──
  *
- * 위키미디어 공용(Commons). 한국 지자체 CI 는 대부분 **공공저작물**이라
- * 저작권법 제24조의2에 따라 자유이용 대상이고, Commons 에도 Public domain 으로
- * 올라와 있다. 라이선스가 기계로 읽히는 곳에서 받아야 나중에 근거를 댈 수 있다.
+ * 어느 지역이 필요한지는 **지금 올라와 있는 공고가 알고 있다.**
+ * 그래서 목록을 손으로 관리하지 않고 `/api/notices` 를 읽어 지역을 캐낸다.
+ * 새 지역의 공고가 뜨면 이 스크립트를 다시 돌리는 것으로 끝난다.
  *
- * 그래서 이 스크립트는 파일만 받지 않고 **출처·저작자·라이선스를 함께 기록**한다.
+ * ── 쓰레기를 어떻게 거르나 ──
+ *
+ * LH 공고는 지역을 지역본부(경기·경남)까지만 주므로 시·군·구는 제목에서 캔다.
+ * 제목을 정규식으로 훑으면 "남악휴먼시아" 에서 `남악휴먼시` 같은 것이 딸려 온다.
+ * 이걸 거르는 규칙을 따로 만들지 않는다 — 대신 **한국어 위키백과에 영문 문서가
+ * 있는지** 묻는다. 실재하는 지자체만 영문 문서가 있으므로 확인이 곧 필터가 된다.
+ *
+ * ── 어디서 받나 ──
+ *
+ * 위키미디어 공용. 한국 지자체 CI 는 공공저작물이라 저작권법 제24조의2 에 따라
+ * 자유이용 대상이고 Commons 에도 Public domain 으로 올라와 있다.
+ * 파일만 받지 않고 출처·저작자·라이선스를 manifest 에 함께 남긴다.
  * PD 가 아닌 파일은 건너뛴다 — 조건이 붙은 것을 모르고 쓰는 일이 없게.
  *
- * SVG 만 받는다. 공고 카드에서 40px 로 쓰다가 상세에서 키울 수 있어야 하고,
+ * SVG 만 받는다. 카드에서 40px 로 쓰다 상세에서 키울 수 있어야 하고,
  * 지자체 상징은 선이 가늘어 래스터로 줄이면 뭉개진다.
+ * 파일 이름은 ASCII 로 둔다 — 한글 파일명은 서버·CDN 마다 퍼센트 인코딩을
+ * 다르게 다뤄 404 가 난다. 실제로 겪었다.
  */
 import { mkdir, writeFile, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -23,62 +37,19 @@ const UA = 'jipcatch/1.0 (https://zipcatch.vercel.app)'
 const OUT = join(process.cwd(), 'public', 'emblems')
 const MANIFEST = join(OUT, 'manifest.json')
 
-/**
- * 지역 이름 → Commons 파일 후보.
- *
- * 한 지역에 여러 표기가 있어 순서대로 시도한다.
- * 실제로 찍어 보니 "Emblem of X" 가 가장 흔하고, 도는 "Province" 가 붙는다.
- */
-const TARGETS = [
-  // ── 광역 17 ──
-  ['서울', ['Emblem of Seoul.svg', 'Seal of Seoul.svg', 'Symbol of Seoul.svg']],
-  ['부산', ['Emblem of Busan.svg', 'Emblem of Busan-bu.svg']],
-  ['대구', ['Emblem of Daegu.svg', 'Emblem of Daegu-bu.svg']],
-  ['인천', ['Emblem of Incheon.svg']],
-  ['광주', ['Emblem of Gwangju.svg']],
-  ['대전', ['Emblem of Daejeon.svg']],
-  ['울산', ['Emblem of Ulsan.svg']],
-  ['세종', ['Seal of Sejong City, South Korea.svg', 'Emblem of Sejong City.svg']],
-  ['경기', ['Emblem of Gyeonggi Province (2021).svg', 'Emblem of Gyeonggi Province.svg']],
-  ['강원', ['Emblem of Gangwon Province.svg', 'Emblem of Gangwon State.svg']],
-  ['충북', ['Emblem of North Chungcheong Province.svg', 'Emblem of Chungcheongbuk-do.svg']],
-  ['충남', ['Emblem of South Chungcheong Province.svg', 'Emblem of Chungcheongnam-do.svg']],
-  ['전북', ['Emblem of North Jeolla Province.svg', 'Emblem of Jeonbuk State.svg']],
-  ['전남', ['Emblem of South Jeolla Province.svg', 'Emblem of Jeollanam-do.svg']],
-  ['경북', ['Emblem of North Gyeongsang Province.svg', 'Emblem of Gyeongsangbuk-do.svg']],
-  ['경남', [
-    'Emblem of South Gyeongsang Province.svg',
-    'Seal of South Gyeongsang Province.svg',
-    'Emblem of Gyeongsangnam-do.svg',
-    'Symbol of South Gyeongsang Province.svg',
-  ]],
-  ['제주', ['Emblem of Jeju.svg', 'Emblem of Jeju Province.svg']],
+const fromArg = process.argv.find(a => a.startsWith('--from='))
+const ORIGIN = fromArg ? fromArg.slice('--from='.length) : 'https://zipcatch.vercel.app'
 
-  // ── 우리 공고에 실제로 나오는 시·군·구 ──
-  ['평택시', ['Emblem of Pyeongtaek.svg']],
-  ['남양주시', ['Emblem of Namyangju.svg']],
-  ['여주시', ['Emblem of Yeoju.svg']],
-  ['수원시', ['Emblem of Suwon.svg']],
-  ['성남시', ['Emblem of Seongnam.svg']],
-  ['부천시', ['Emblem of Bucheon.svg']],
-  ['천안시', ['Emblem of Cheonan.svg']],
-  ['울주군', ['Emblem of Ulju County.svg', 'Emblem of Ulju.svg']],
-  ['익산시', ['Emblem of Iksan.svg']],
-  ['군산시', ['Emblem of Gunsan.svg']],
-  ['시흥시', ['Emblem of Siheung.svg']],
-  ['양주시', ['Emblem of Yangju.svg']],
-  ['의정부시', ['Emblem of Uijeongbu.svg']],
-  ['거제시', ['Emblem of Geoje.svg']],
-  ['서산시', ['Emblem of Seosan.svg']],
-  ['음성군', ['Emblem of Eumseong County.svg', 'Emblem of Eumseong.svg']],
-  ['원주시', ['Emblem of Wonju.svg']],
-]
+/** 광역 17 — 공고가 지역본부까지만 줄 때 쓰는 바탕 */
+const PROVINCES = {
+  서울: 'Seoul', 부산: 'Busan', 대구: 'Daegu', 인천: 'Incheon', 광주: 'Gwangju',
+  대전: 'Daejeon', 울산: 'Ulsan', 세종: 'Sejong City', 경기: 'Gyeonggi Province',
+  강원: 'Gangwon Province', 충북: 'North Chungcheong Province',
+  충남: 'South Chungcheong Province', 전북: 'North Jeolla Province',
+  전남: 'South Jeolla Province', 경북: 'North Gyeongsang Province',
+  경남: 'South Gyeongsang Province', 제주: 'Jeju Province',
+}
 
-/**
- * 파일 이름은 ASCII 로 둔다.
- * 한글 파일명은 서버·CDN 마다 퍼센트 인코딩을 다르게 다뤄 404 가 난다.
- * 실제로 `/emblems/경기.svg` 가 404, `%EA%B2%BD%EA%B8%B0.svg` 만 200 이었다.
- */
 const SLUG = {
   서울: 'seoul', 부산: 'busan', 대구: 'daegu', 인천: 'incheon', 광주: 'gwangju',
   대전: 'daejeon', 울산: 'ulsan', 세종: 'sejong', 경기: 'gyeonggi', 강원: 'gangwon',
@@ -86,45 +57,138 @@ const SLUG = {
   경북: 'gyeongbuk', 경남: 'gyeongnam', 제주: 'jeju',
 }
 
-/** 사전에 없으면 알파벳·숫자만 남긴다. 그래도 비면 코드포인트로 만든다 */
-function slugOf(region) {
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+
+async function wiki(host, params) {
+  const u = new URL(`https://${host}/w/api.php`)
+  u.search = new URLSearchParams({ format: 'json', ...params }).toString()
+  for (let i = 0; i < 3; i++) {
+    const text = await fetch(u, { headers: { 'User-Agent': UA } }).then(r => r.text())
+    if (!text.startsWith('You are making too many')) return JSON.parse(text)
+    await sleep(15000)
+  }
+  throw new Error('rate limited')
+}
+
+/** 실재하는 지자체인지 묻고 영문명을 받는다. 없으면 null — 그게 필터다 */
+async function englishName(korean) {
+  const j = await wiki('ko.wikipedia.org', {
+    action: 'query',
+    prop: 'langlinks',
+    lllang: 'en',
+    titles: korean,
+  })
+  const page = Object.values(j.query?.pages ?? {})[0]
+  const en = page?.langlinks?.[0]?.['*']
+  if (!en) return null
+  return { full: en, short: en.replace(/\s+(District|County|City|Province)$/i, '') }
+}
+
+/**
+ * 제목을 정확히 몰라도 찾는다.
+ *
+ * "Emblem of Bucheon.svg" 는 없는데 "Flag of Bucheon 2025.svg" 는 있다 —
+ * 기초자치단체는 상징보다 **깃발**로 올라와 있는 경우가 많고, 한국 지자체기는
+ * 대개 그 지자체 CI 를 담고 있다. 연도가 붙은 이름까지 잡으려면 정확한 제목을
+ * 찍어 맞히는 대신 검색을 한 번 돌리는 편이 확실하다.
+ */
+async function searchTitles(name) {
+  const j = await wiki('commons.wikimedia.org', {
+    action: 'query',
+    list: 'search',
+    srsearch: `intitle:"of ${name}" (emblem OR flag OR symbol OR seal) filetype:drawing`,
+    srnamespace: '6',
+    srlimit: '8',
+  })
+  await sleep(700)
+  return (j.query?.search ?? [])
+    .map(r => r.title.replace(/^File:/, ''))
+    .filter(t => /\.svg$/i.test(t))
+}
+
+/** Commons 에서 PD 상징 파일을 찾는다 */
+async function findEmblem(names) {
+  const patterns = []
+  for (const n of names) {
+    patterns.push(`Emblem of ${n}.svg`, `Symbol of ${n}.svg`, `Seal of ${n}.svg`, `Flag of ${n}.svg`)
+  }
+  // 정확한 제목이 없으면 검색으로 넓힌다 (연도가 붙은 이름 등)
+  for (const n of names) {
+    for (const hit of await searchTitles(n)) {
+      if (!patterns.includes(hit)) patterns.push(hit)
+    }
+  }
+
+  for (const title of patterns) {
+    const j = await wiki('commons.wikimedia.org', {
+      action: 'query',
+      prop: 'imageinfo|categories',
+      iiprop: 'url|extmetadata',
+      cllimit: '50',
+      titles: `File:${title}`,
+    })
+    const page = Object.values(j.query?.pages ?? {})[0]
+    await sleep(700)
+    if (!page || page.missing !== undefined) continue
+
+    const info = (page.imageinfo ?? [])[0]
+    if (!info) continue
+    const meta = info.extmetadata ?? {}
+    const license = (meta.LicenseShortName?.value ?? '').trim()
+    if (!/public domain|^pd|cc0/i.test(license)) {
+      console.log(`    (${title} — ${license} 이라 건너뜀)`)
+      continue
+    }
+
+    // 같은 이름의 다른 나라 지명을 물어 오는 일이 실제로 있었다.
+    // "소사구" 를 찾다가 일본 지바현 소사시(Sosa, Chiba) 깃발을 받아 왔다.
+    // 이름이 비슷하다는 이유로 엉뚱한 나라 상징을 다는 것은 틀린 정보를
+    // 그럴듯하게 보여주는 일이라, 한국 것이 맞는지 확인하고 넘어간다.
+    const cats = (page.categories ?? []).map(c => c.title).join(' ')
+    const desc = (meta.ImageDescription?.value ?? '').replace(/<[^>]+>/g, '')
+    const haystack = `${cats} ${desc} ${title}`
+    const foreign = /Japan|Chiba|China|Taiwan|Prefecture/i.test(haystack)
+    const korean = /Korea|한국|[가-힣]/.test(haystack)
+    if (foreign && !korean) {
+      console.log(`    (${title} — 한국 지자체가 아니라 건너뜀)`)
+      continue
+    }
+    return {
+      title,
+      url: info.url.split('?')[0],
+      license,
+      artist: (meta.Artist?.value ?? '').replace(/<[^>]+>/g, '').trim(),
+    }
+  }
+  return null
+}
+
+function slugOf(region, en) {
   if (SLUG[region]) return SLUG[region]
-  const ascii = region.replace(/[^a-zA-Z0-9]/g, '')
+  const ascii = (en ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
   return ascii || [...region].map(c => c.codePointAt(0).toString(16)).join('')
 }
 
-const sleep = ms => new Promise(r => setTimeout(r, ms))
+/** 지금 올라와 있는 공고에서 지역을 캔다 */
+async function mineRegions() {
+  const data = await fetch(`${ORIGIN}/api/notices?limit=60`, {
+    headers: { 'User-Agent': UA },
+  }).then(r => r.json())
+  const notices = data.notices ?? []
 
-async function api(params) {
-  const u = new URL('https://commons.wikimedia.org/w/api.php')
-  u.search = new URLSearchParams({ format: 'json', ...params }).toString()
-  const res = await fetch(u, { headers: { 'User-Agent': UA } })
-  const text = await res.text()
-  if (text.startsWith('You are making too many')) throw new Error('RATE')
-  return JSON.parse(text)
-}
+  const locals = new Map()
+  for (const n of notices) {
+    const p = n.property ?? {}
+    for (const src of [p.region, p.district, p.name]) {
+      if (!src) continue
+      for (const m of String(src).matchAll(/([가-힣]{2,5}(?:시|군|구))/g)) {
+        locals.set(m[1], (locals.get(m[1]) ?? 0) + 1)
+      }
+    }
+  }
 
-/** 파일 하나의 실주소·라이선스를 읽는다. PD 가 아니면 null */
-async function lookup(title) {
-  const j = await api({
-    action: 'query',
-    prop: 'imageinfo',
-    iiprop: 'url|size|extmetadata',
-    titles: `File:${title}`,
-  })
-  const page = Object.values(j.query?.pages ?? {})[0]
-  if (!page || page.missing !== undefined) return null
-
-  const info = (page.imageinfo ?? [])[0]
-  if (!info) return null
-
-  const meta = info.extmetadata ?? {}
-  const license = (meta.LicenseShortName?.value ?? '').trim()
-  const artist = (meta.Artist?.value ?? '').replace(/<[^>]+>/g, '').trim()
-
-  // 조건이 붙은 파일은 쓰지 않는다. 모르고 쓰는 것이 가장 나쁘다.
-  const free = /public domain|^pd|cc0/i.test(license)
-  return { title, url: info.url.split('?')[0], license, artist, free }
+  console.log(`공고 ${notices.length}건에서 시·군·구 후보 ${locals.size}개를 캤다`)
+  return [...locals.keys()]
 }
 
 async function main() {
@@ -132,66 +196,70 @@ async function main() {
 
   const manifest = existsSync(MANIFEST)
     ? JSON.parse(await readFile(MANIFEST, 'utf8'))
-    : { source: 'Wikimedia Commons', fetchedAt: null, items: {} }
+    : { source: 'Wikimedia Commons', note: '', fetchedAt: null, items: {} }
 
-  let ok = 0
-  let skipped = 0
-  const missing = []
+  const locals = await mineRegions()
 
-  for (const [region, candidates] of TARGETS) {
-    if (manifest.items[region]) {
-      ok++
-      continue // 이미 받은 것은 다시 부르지 않는다
-    }
+  const targets = [
+    // 광역은 바탕이므로 공고에 없어도 전부 받아 둔다
+    ...Object.keys(PROVINCES).map(k => ({
+      region: k,
+      en: { full: PROVINCES[k], short: PROVINCES[k] },
+    })),
+    ...locals.map(region => ({ region, en: null })),
+  ]
 
-    let found = null
-    for (const c of candidates) {
-      try {
-        found = await lookup(c)
-      } catch (err) {
-        if (err.message === 'RATE') {
-          console.log('  … 속도 제한. 20초 쉰다')
-          await sleep(20000)
-          found = await lookup(c).catch(() => null)
-        }
-      }
-      await sleep(900) // Commons 에 부담을 주지 않는다
-      if (found) break
-    }
+  let got = 0
+  const rejected = []
+  const noEmblem = []
 
-    if (!found) {
-      missing.push(region)
-      console.log(`--  ${region.padEnd(8)} 찾지 못함`)
+  for (const t of targets) {
+    if (manifest.items[t.region]) {
+      got++
       continue
     }
-    if (!found.free) {
-      skipped++
-      console.log(`!!  ${region.padEnd(8)} ${found.license} — 조건이 붙어 건너뜀`)
+
+    let en = t.en
+    if (!en) {
+      en = await englishName(t.region)
+      await sleep(900)
+      if (!en) {
+        rejected.push(t.region)
+        continue
+      }
+    }
+
+    const found = await findEmblem([...new Set([en.full, en.short])])
+    if (!found) {
+      noEmblem.push(`${t.region}(${en.short})`)
       continue
     }
 
     const svg = await fetch(found.url, { headers: { 'User-Agent': UA } }).then(r => r.text())
-    const file = `${slugOf(region)}.svg`
+    const file = `${slugOf(t.region, en.short)}.svg`
     await writeFile(join(OUT, file), svg, 'utf8')
 
-    manifest.items[region] = {
+    manifest.items[t.region] = {
       file,
       title: found.title,
       license: found.license,
       artist: found.artist,
       source: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(found.title)}`,
     }
-    ok++
-    console.log(`OK  ${region.padEnd(8)} ${found.title}  (${found.license})`)
+    got++
+    console.log(`OK  ${t.region.padEnd(8)} ${found.title}`)
     await sleep(400)
   }
 
+  manifest.note =
+    '한국 지자체 상징은 공공저작물(저작권법 제24조의2). Public domain 으로 공표된 파일만 받는다.'
   manifest.fetchedAt = new Date().toISOString()
   await writeFile(MANIFEST, JSON.stringify(manifest, null, 2) + '\n', 'utf8')
 
   console.log('')
-  console.log(`받음 ${ok} · 건너뜀 ${skipped} · 못 찾음 ${missing.length}`)
-  if (missing.length) console.log('못 찾음:', missing.join(', '))
+  console.log(`보유 ${got}개`)
+  if (rejected.length) console.log(`실재하지 않는 지명(자동 탈락): ${rejected.join(', ')}`)
+  if (noEmblem.length) console.log(`상징 파일 없음: ${noEmblem.join(', ')}`)
 }
 
 main().catch(err => {

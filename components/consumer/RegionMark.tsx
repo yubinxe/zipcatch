@@ -34,18 +34,23 @@ function shortName(raw: string) {
 export default function RegionMark({
   region,
   district,
+  title,
 }: {
   region: string
   district?: string
+  /** 공고명. 지역본부까지만 주는 공고의 시·군·구가 여기 들어 있다 */
+  title?: string
 }) {
   const name = (region ?? '').trim()
   if (!name) return null
 
-  const emblem = emblemFor(name, district)
+  const emblem = emblemFor(name, district, title)
 
   if (emblem) {
+    // 상징과 이름이 같은 곳을 가리켜야 한다. 부천시 CI 를 달아 놓고 "경기"라고
+    // 적으면 보는 사람이 둘 중 무엇을 믿어야 할지 알 수 없다.
     return (
-      <span className="cs-emblem" title={`${name} · 상징은 ${emblem.of}`}>
+      <span className="cs-emblem" title={`${emblem.of} · 공고 지역 ${name}`}>
         <Image
           src={emblem.src}
           alt=""
@@ -55,7 +60,7 @@ export default function RegionMark({
           aria-hidden="true"
           unoptimized
         />
-        <span className="cs-emblem__name">{shortName(name)}</span>
+        <span className="cs-emblem__name">{shortName(emblem.of)}</span>
       </span>
     )
   }

@@ -1,6 +1,6 @@
 {
   "source": "Wikimedia Commons",
-  "fetchedAt": "2026-09-22T01:53:35.580Z",
+  "fetchedAt": "2026-09-22T02:51:02.569Z",
   "items": {
     "서울": {
       "file": "seoul.svg",
@@ -113,6 +113,133 @@
       "license": "Public domain",
       "artist": "Sejong Special Self-Governing City Government",
       "source": "https://commons.wikimedia.org/wiki/File:Seal%20of%20Sejong%20City%2C%20South%20Korea.svg"
+    },
+    "양산시": {
+      "file": "yangsan.svg",
+      "title": "Seal of Yangsan.svg",
+      "license": "Public domain",
+      "artist": "The logo is from the Yangsan Official Website website. http://yangsan.go.kr/",
+      "source": "https://commons.wikimedia.org/wiki/File:Seal%20of%20Yangsan.svg"
+    },
+    "부산광역시": {
+      "file": "busan.svg",
+      "title": "Symbol of Busan.svg",
+      "license": "Public domain",
+      "artist": "Busan Metropolitan City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Symbol%20of%20Busan.svg"
+    },
+    "경남": {
+      "file": "gyeongnam.svg",
+      "title": "Flag of South Gyeongsang Province.svg",
+      "license": "Public domain",
+      "artist": "South Gyeongsang Province Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20South%20Gyeongsang%20Province.svg"
+    },
+    "남양주시": {
+      "file": "namyangju.svg",
+      "title": "Flag of Namyangju.svg",
+      "license": "Public domain",
+      "artist": "Namyangju City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Namyangju.svg"
+    },
+    "평택시": {
+      "file": "pyeongtaek.svg",
+      "title": "Flag of Pyeongtaek.svg",
+      "license": "Public domain",
+      "artist": "Pyeongtaek City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Pyeongtaek.svg"
+    },
+    "계양구": {
+      "file": "gyeyang.svg",
+      "title": "Flag of Gyeyang, Incheon.svg",
+      "license": "Public domain",
+      "artist": "Gyeyang District Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Gyeyang%2C%20Incheon.svg"
+    },
+    "부천시": {
+      "file": "bucheon.svg",
+      "title": "Flag of Bucheon.svg",
+      "license": "Public domain",
+      "artist": "Bucheon City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Bucheon.svg"
+    },
+    "남동구": {
+      "file": "namdong.svg",
+      "title": "Flag of Namdong, Incheon.svg",
+      "license": "Public domain",
+      "artist": "Namdong District Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Namdong%2C%20Incheon.svg"
+    },
+    "김포시": {
+      "file": "gimpo.svg",
+      "title": "Flag of Gimpo.svg",
+      "license": "Public domain",
+      "artist": "Gimpo City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Gimpo.svg"
+    },
+    "함양군": {
+      "file": "hamyang.svg",
+      "title": "Flag of Hamyang.svg",
+      "license": "Public domain",
+      "artist": "Hamyang County Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Hamyang.svg"
+    },
+    "정읍시": {
+      "file": "jeongeup.svg",
+      "title": "Flag of Jeongeup.svg",
+      "license": "Public domain",
+      "artist": "Jeongeup City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Jeongeup.svg"
+    },
+    "장성군": {
+      "file": "jangseong.svg",
+      "title": "Flag of Jangseong.svg",
+      "license": "Public domain",
+      "artist": "Jangseong County Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Jangseong.svg"
+    },
+    "음성군": {
+      "file": "eumseong.svg",
+      "title": "Flag of Eumseong.svg",
+      "license": "Public domain",
+      "artist": "Eumsung County Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Eumseong.svg"
+    },
+    "기장군": {
+      "file": "gijang.svg",
+      "title": "Flag of Gijang, Busan.svg",
+      "license": "Public domain",
+      "artist": "Gijang County Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Gijang%2C%20Busan.svg"
+    },
+    "광산구": {
+      "file": "gwangsan.svg",
+      "title": "Flag of Gwangsan, Gwangju.svg",
+      "license": "Public domain",
+      "artist": "Gwangsan District Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Gwangsan%2C%20Gwangju.svg"
+    },
+    "보성군": {
+      "file": "boseong.svg",
+      "title": "Flag of Boseong.svg",
+      "license": "Public domain",
+      "artist": "Boseong County Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Boseong.svg"
+    },
+    "광양시": {
+      "file": "gwangyang.svg",
+      "title": "Flag of Gwangyang.svg",
+      "license": "Public domain",
+      "artist": "Gwangyang City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Gwangyang.svg"
+    },
+    "원주시": {
+      "file": "wonju.svg",
+      "title": "Flag of Wonju.svg",
+      "license": "Public domain",
+      "artist": "Wonju City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Wonju.svg"
     }
-  }
+  },
+  "note": "한국 지자체 상징은 공공저작물(저작권법 제24조의2). Public domain 으로 공표된 파일만 받는다."
 }

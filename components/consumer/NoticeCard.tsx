@@ -101,7 +101,7 @@ export default function NoticeCard({
       {overage && <div className="cs-notice__over">{overage}</div>}
 
       {/* 오른쪽 여백에 지역 마크. 단지명·지역이 왼쪽에만 몰려 있던 자리를 받는다 */}
-      <RegionMark region={property.region} district={property.district} />
+      <RegionMark region={property.region} district={property.district} title={property.name} />
 
       <h3 className="cs-notice__name">{property.name}</h3>
       <p className="cs-notice__where">
