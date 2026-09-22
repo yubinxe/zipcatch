@@ -70,10 +70,53 @@ function parseRate(v: string): { kind: 'RATE'; value: number } | { kind: 'UNDER'
   return Number.isFinite(n) ? { kind: 'RATE', value: n } : null
 }
 
+/**
+ * 구성비 막대 — 전체 100%를 나눠 갖는 값에만 쓴다.
+ *
+ * 연령대별 신청·당첨 비중처럼 합이 정해진 값은 길이로 견주는 것이 맞다.
+ * 경쟁률은 상한이 없어 72배가 4배를 눌러 버리므로 여기 쓰지 않는다.
+ */
 function Bar({ ratio, tone }: { ratio: number; tone?: 'accent' }) {
   return (
     <span className="cs-stat__bar" aria-hidden="true" data-tone={tone}>
       <span style={{ width: `${Math.max(2, Math.min(100, ratio * 100))}%` }} />
+    </span>
+  )
+}
+
+/**
+ * 경쟁률의 단계.
+ *
+ * 72.16 과 4.23 을 같은 자로 재면 4.23 은 보이지 않는 토막이 된다.
+ * 실무에서도 소수점 둘째 자리를 견주지 않는다 — "미달이냐, 한 자릿수냐,
+ * 두 자릿수냐, 그 위냐"로 읽는다. 그 단계를 그대로 표시로 쓴다.
+ */
+type Heat = 'UNDER' | 'CALM' | 'WARM' | 'HOT' | 'BLAZE'
+
+const HEAT: Record<Heat, { label: string; step: number }> = {
+  UNDER: { label: '미달', step: 0 },
+  CALM: { label: '여유', step: 1 },
+  WARM: { label: '보통', step: 2 },
+  HOT: { label: '치열', step: 3 },
+  BLAZE: { label: '과열', step: 4 },
+}
+
+function heatOf(rate: number): Heat {
+  if (rate < 1) return 'UNDER'
+  if (rate < 5) return 'CALM'
+  if (rate < 20) return 'WARM'
+  if (rate < 50) return 'HOT'
+  return 'BLAZE'
+}
+
+/** 네 칸짜리 단계 표시. 길이를 눈으로 재지 않고 칸 수로 센다 */
+function HeatSteps({ heat }: { heat: Heat }) {
+  const { step } = HEAT[heat]
+  return (
+    <span className="cs-heat" aria-hidden="true" data-heat={heat}>
+      {[1, 2, 3, 4].map(i => (
+        <span key={i} className="cs-heat__seg" data-on={i <= step} />
+      ))}
     </span>
   )
 }
@@ -133,14 +176,6 @@ export default function StatsView() {
     }
   }, [month])
 
-  const maxRate = Math.max(
-    1,
-    ...(comp ?? []).map(r => {
-      const p = parseRate(r.SUPLY_CMPET_RATE)
-      return p?.kind === 'RATE' ? p.value : 0
-    }),
-  )
-
   const ageTotals = useMemo(() => {
     if (!ages) return null
     const sum = (rows: AgeRow[], k: keyof AgeRow) => rows.reduce((t, r) => t + (Number(r[k]) || 0), 0)
@@ -194,7 +229,7 @@ export default function StatsView() {
             </p>
 
             {comp && comp.length > 0 ? (
-              <div className="cs-stat__list">
+              <div className="cs-heatgrid">
                 {comp
                   .slice()
                   .sort((a, b) => {
@@ -202,29 +237,46 @@ export default function StatsView() {
                     const pb = parseRate(b.SUPLY_CMPET_RATE)
                     return (pb?.kind === 'RATE' ? pb.value : -1) - (pa?.kind === 'RATE' ? pa.value : -1)
                   })
-                  .map(r => {
+                  .map((r, i) => {
                     const p = parseRate(r.SUPLY_CMPET_RATE)
+                    const heat: Heat = p?.kind === 'RATE' ? heatOf(p.value) : 'UNDER'
                     return (
-                      <div key={r.SUBSCRPT_AREA_CODE_NM} className="cs-stat__row">
-                        <span className="cs-stat__name">{r.SUBSCRPT_AREA_CODE_NM}</span>
-                        <Bar ratio={p?.kind === 'RATE' ? p.value / maxRate : 0.02} />
-                        <span className="cs-stat__value cs-num">
+                      <article
+                        key={r.SUBSCRPT_AREA_CODE_NM}
+                        className="cs-heatcard"
+                        data-heat={p ? heat : 'NONE'}
+                      >
+                        {/* 순위와 지역을 한 덩어리로. 눈이 옮겨다닐 거리를 없앤다 */}
+                        <div className="cs-heatcard__top">
+                          <span className="cs-heatcard__rank">{String(i + 1).padStart(2, '0')}</span>
+                          <span className="cs-heatcard__region">{r.SUBSCRPT_AREA_CODE_NM}</span>
+                        </div>
+
+                        <div className="cs-heatcard__figure">
                           {p?.kind === 'RATE' ? (
                             <>
-                              {p.value.toFixed(2)}
-                              <span className="cs-stat__unit"> : 1</span>
+                              <b className="cs-heatcard__rate">{p.value.toFixed(1)}</b>
+                              <span className="cs-heatcard__unit">: 1</span>
                             </>
                           ) : p?.kind === 'UNDER' ? (
-                            <span className="cs-stat__under">미달 {p.text}</span>
+                            <b className="cs-heatcard__under">미달 {p.text}</b>
                           ) : (
-                            <span className="cs-stat__under">집계 없음</span>
+                            <b className="cs-heatcard__none">집계 없음</b>
                           )}
-                        </span>
-                        <span className="cs-stat__meta cs-num">
+                        </div>
+
+                        <div className="cs-heatcard__heat">
+                          <HeatSteps heat={heat} />
+                          <span className="cs-heatcard__label">
+                            {p?.kind === 'RATE' ? HEAT[heat].label : '—'}
+                          </span>
+                        </div>
+
+                        <p className="cs-heatcard__meta cs-num">
                           공급 {r.SUPLY_HSHLDCO?.toLocaleString() ?? '—'} · 신청{' '}
                           {r.SUPLY_REQ_CNT?.toLocaleString() ?? '—'}
-                        </span>
-                      </div>
+                        </p>
+                      </article>
                     )
                   })}
               </div>

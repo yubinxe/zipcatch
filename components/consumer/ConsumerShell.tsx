@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import ScrollChrome from './ScrollChrome'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { useConsumer } from './ConsumerProvider'
@@ -9,6 +10,8 @@ const NAV = [
   // 처음 온 사람은 무엇을 고를지보다 무엇인지를 먼저 묻는다. 가이드를 앞에 둔다.
   { href: '/guide', label: '청약 가이드' },
   { href: '/notices', label: '공고 찾기' },
+  // 목록 맨 아래 붙여 두면 끝까지 내린 사람만 본다. "어디인지"부터 묻는 사람이 많다
+  { href: '/map', label: '지도' },
   { href: '/saved', label: '관심공고' },
   { href: '/score', label: '가점 계산' },
   { href: '/stats', label: '경쟁률·통계' },
@@ -30,6 +33,7 @@ export default function ConsumerShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="cs">
+      <ScrollChrome />
       <a href="#consumer-main" className="cs-skip">본문으로 건너뛰기</a>
       <header className="cs-header">
         <div className="cs-wrap cs-header__inner">

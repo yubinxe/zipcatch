@@ -288,10 +288,15 @@ export default function NoticeMap() {
     data.pins.forEach(pin => {
       const urgent = pin.daysLeft !== null && pin.daysLeft <= 3
       const approx = pin.coordSource !== 'GEOCODED'
+      // 마감 당일과 하루 전은 서로 다른 결정을 부른다 — 오늘은 지금 넣어야 하고,
+      // 하루 전은 서류를 챙길 시간이 남았다. 같은 색으로 묶으면 그 차이가 사라진다.
+      const dayClass =
+        pin.daysLeft === 0 ? 'cs-pin--d0' : pin.daysLeft === 1 ? 'cs-pin--d1' : ''
       const cls = [
         'cs-pin',
         `cs-pin--${pin.kind.toLowerCase()}`,
         urgent ? 'cs-pin--urgent' : '',
+        dayClass,
         approx ? 'cs-pin--approx' : '',
       ]
         .filter(Boolean)
@@ -435,7 +440,10 @@ export default function NoticeMap() {
                     onMouseEnter={() => setHovered(p.id)}
                     onMouseLeave={() => setHovered(null)}
                   >
-                    <span className="cs-map__dday">
+                    <span
+                      className="cs-map__dday"
+                      data-d={p.daysLeft === 0 ? '0' : p.daysLeft === 1 ? '1' : undefined}
+                    >
                       {dday(p.daysLeft)}
                     </span>
                     <span className="cs-map__name">{p.name}</span>

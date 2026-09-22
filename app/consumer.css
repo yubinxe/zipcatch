@@ -5270,3 +5270,469 @@ a.cs-pin:hover {
   white-space: normal;
   min-width: 220px;
 }
+
+/* ── 경쟁률 판 ───────────────────────────────────────────
+   가로 막대를 600px 늘어놓으면 지역명에서 숫자까지 눈이 이동한다.
+   그리고 72배와 4배를 같은 자로 재면 4배는 보이지 않는 토막이 된다.
+   순위·지역·배수를 한 덩어리로 묶어 격자로 깔고, 크기 비교는
+   길이가 아니라 네 칸짜리 단계로 센다.                          */
+.cs-heatgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+.cs-heatcard {
+  border: 1px solid var(--line);
+  border-radius: var(--r-inner);
+  background: var(--surface);
+  padding: 16px 16px 14px;
+  transition: transform 0.24s var(--ease), border-color 0.24s var(--ease);
+}
+.cs-heatcard:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-ink);
+}
+/* 과열 단계만 테두리로 먼저 띈다. 색을 다 칠하면 아무것도 안 띈다 */
+.cs-heatcard[data-heat='BLAZE'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.cs-heatcard[data-heat='UNDER'] {
+  background: var(--paper);
+}
+
+.cs-heatcard__top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.cs-heatcard__rank {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+/* 지역이 주인공이다. 가장 크고 진하게 */
+.cs-heatcard__region {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--title);
+}
+
+.cs-heatcard__figure {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.cs-heatcard__rate {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--title);
+  font-variant-numeric: tabular-nums;
+}
+.cs-heatcard[data-heat='BLAZE'] .cs-heatcard__rate {
+  color: var(--accent);
+}
+.cs-heatcard__unit {
+  font-size: 15px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.cs-heatcard__under {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ok);
+  line-height: 1.2;
+}
+.cs-heatcard__none {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.cs-heatcard__heat {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+.cs-heat {
+  display: inline-flex;
+  gap: 3px;
+}
+.cs-heat__seg {
+  width: 16px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--paper-2);
+}
+.cs-heat__seg[data-on='true'] {
+  background: var(--title);
+}
+.cs-heat[data-heat='BLAZE'] .cs-heat__seg[data-on='true'] {
+  background: var(--accent);
+}
+.cs-heatcard__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cs-heatcard[data-heat='BLAZE'] .cs-heatcard__label {
+  color: var(--accent);
+}
+.cs-heatcard__meta {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 520px) {
+  .cs-heatgrid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+  }
+  .cs-heatcard__rate {
+    font-size: 28px;
+  }
+}
+
+/* ── 마감 당일 / 하루 전 ──────────────────────────────────
+   둘은 부르는 결정이 다르다. 오늘은 지금 넣어야 하고, 하루 전은
+   서류를 챙길 하루가 남았다. 한 색으로 묶으면 그 차이가 사라진다.
+   지도 위에서 읽혀야 하므로 지면 팔레트보다 채도를 올린다.        */
+:root,
+.cs {
+  --d-today: #D9A21B;   /* 마감 당일 */
+  --d-tomorrow: #2E8B57; /* 하루 전 */
+}
+
+.cs-pin--d0 {
+  background: var(--d-today);
+  border-color: #fff;
+  color: #1A1206;
+}
+.cs-pin--d1 {
+  background: var(--d-tomorrow);
+  border-color: #fff;
+  color: #fff;
+}
+/* 임박 규칙보다 뒤에 와야 색이 덮이지 않는다 */
+.cs-pin--urgent.cs-pin--d0 {
+  background: var(--d-today);
+  color: #1A1206;
+}
+.cs-pin--urgent.cs-pin--d1 {
+  background: var(--d-tomorrow);
+  color: #fff;
+}
+
+/* 옆 목록도 같은 규칙을 쓴다. 지도와 목록이 다른 말을 하면 안 된다 */
+.cs-map__dday[data-d='0'] {
+  color: #8A6410;
+  background: rgba(217, 162, 27, 0.16);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.cs-map__dday[data-d='1'] {
+  color: #1F6B41;
+  background: rgba(46, 139, 87, 0.14);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+/* 범례 — 색을 썼으면 무슨 뜻인지 적는다 */
+.cs-map__legend-day {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.cs-map__legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 99px;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.cs-map__legend-dot[data-d='0'] { background: var(--d-today); }
+.cs-map__legend-dot[data-d='1'] { background: var(--d-tomorrow); }
+
+/* ── 지도로 가는 길 ──────────────────────────────────────
+   목록 끝에 지도를 또 그리면 같은 것을 두 번 내려받는다.
+   여기서는 문만 내고 실제 지도는 전용 화면에서 그린다.          */
+.cs-mapcta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  margin-top: 32px;
+  padding: 20px 22px;
+  border: 1px solid var(--line-ink);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  text-decoration: none;
+  color: var(--body);
+  transition: transform 0.24s var(--ease), box-shadow 0.24s var(--ease);
+}
+.cs-mapcta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 1px 2px rgba(20, 17, 12, 0.04), 0 16px 30px -22px rgba(20, 17, 12, 0.5);
+}
+.cs-mapcta:hover .cs-arrow {
+  transform: translateX(4px);
+}
+.cs-mapcta__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-inner);
+  background: var(--paper-2);
+  color: var(--title);
+}
+.cs-mapcta__t {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--title);
+}
+.cs-mapcta__d {
+  display: block;
+  font-size: 15px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+/* ── 03 섹션 — 이 지면에서 가장 중요한 권유다 ─────────────
+   저장은 이 화면의 핵심 행동인데 글자가 본문 크기라 그냥 설명으로 읽혔다.
+   한 단계씩 올려 문단이 말을 걸게 한다.                          */
+.cs-keep__copy p:first-child {
+  font-size: clamp(28px, 2.5vw, 36px);
+  line-height: 1.42;
+  letter-spacing: -0.022em;
+  max-width: 22ch;
+}
+.cs-keep__copy p {
+  font-size: clamp(19px, 1.6vw, 23px);
+  line-height: 1.68;
+  max-width: 30ch;
+}
+.cs-keep__copy p:last-child {
+  font-size: 18px;
+  line-height: 1.7;
+  max-width: 38ch;
+}
+.cs-keep__cta-main {
+  font-size: clamp(20px, 1.7vw, 24px);
+}
+
+@media (max-width: 760px) {
+  .cs-keep__copy p:first-child {
+    font-size: 26px;
+  }
+  .cs-keep__copy p {
+    font-size: 18px;
+  }
+  .cs-keep__copy p:last-child {
+    font-size: 17px;
+  }
+}
+
+/* 가이드 — "여기서 막혀요" 는 설명이 아니라 경고에 가깝다. 따로 세운다 */
+.cs-guide__watch {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  background: var(--check-soft);
+  border-radius: var(--r-inner);
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--body);
+  word-break: keep-all;
+}
+.cs-guide__watch b {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--check);
+  margin-bottom: 5px;
+}
+
+/* ── 지역 마크 ───────────────────────────────────────────
+   단지명·지역이 카드 왼쪽에만 몰려 오른쪽이 비어 있었다.
+   지자체 CI 는 저작권이 각 지자체에 있어 임의로 못 쓰므로,
+   지역 이름 자체를 마크로 만든다. 지역마다 색이 고정돼 로고처럼 읽힌다. */
+.cs-notice {
+  position: relative;
+}
+.cs-regionmark {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: hsl(var(--mark-h) 34% 96%);
+  color: hsl(var(--mark-h) 46% 28%);
+  pointer-events: none;
+  transition: transform 0.3s var(--ease);
+}
+.cs-regionmark__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid hsl(var(--mark-h) 34% 82%);
+}
+.cs-regionmark__text {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.cs-regionmark__sub {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  margin-top: 3px;
+  opacity: 0.72;
+}
+.cs-notice:hover .cs-regionmark {
+  transform: scale(1.06) rotate(-2deg);
+}
+
+/* 제목이 마크 밑으로 들어가지 않게 자리를 비운다 */
+.cs-notice__name,
+.cs-notice__where {
+  padding-right: 68px;
+}
+
+@media (max-width: 520px) {
+  .cs-regionmark {
+    width: 46px;
+    height: 46px;
+    top: 16px;
+    right: 16px;
+    border-radius: 13px;
+  }
+  .cs-regionmark__text { font-size: 15px; }
+  .cs-notice__name,
+  .cs-notice__where { padding-right: 56px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-regionmark,
+  .cs-notice:hover .cs-regionmark { transition: none; transform: none; }
+}
+
+/* ── 스크롤 ──────────────────────────────────────────────
+   내려가는 동안 지면이 따라 움직여야 손에 붙는다. 다만 움직임은
+   '읽는 흐름'을 돕는 데까지만 — 튀어오르거나 미끄러지면 오히려 멀미가 난다.
+   전부 reduced-motion 에서 꺼진다.                               */
+
+/* 앵커 이동이 툭 끊기지 않게. 헤더에 가리지 않게 여백도 함께 준다 */
+html {
+  scroll-behavior: smooth;
+}
+.cs :is(h1, h2, h3, section, [id]) {
+  scroll-margin-top: calc(var(--header-h) + 20px);
+}
+
+/* 등장을 한 박자 느리고 길게. 짧고 빠른 등장은 '깜빡임'으로 읽힌다 */
+[data-reveal] {
+  transition:
+    opacity 0.72s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.72s cubic-bezier(0.22, 0.61, 0.36, 1),
+    filter 0.72s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+[data-reveal='out'] {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0);
+  /* 아주 옅은 흐림에서 또렷해진다. 초점이 맞는 느낌을 준다 */
+  filter: blur(6px);
+}
+[data-reveal='in'] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* 카드 격자는 한 줄이 통째로 뜨지 않고 왼쪽부터 차례로 선다 */
+[data-reveal='in'] .cs-notice-grid > * {
+  animation: csStagger 0.62s var(--ease) both;
+}
+[data-reveal='in'] .cs-notice-grid > *:nth-child(1) { animation-delay: 0.04s; }
+[data-reveal='in'] .cs-notice-grid > *:nth-child(2) { animation-delay: 0.10s; }
+[data-reveal='in'] .cs-notice-grid > *:nth-child(3) { animation-delay: 0.16s; }
+[data-reveal='in'] .cs-notice-grid > *:nth-child(4) { animation-delay: 0.22s; }
+[data-reveal='in'] .cs-notice-grid > *:nth-child(5) { animation-delay: 0.28s; }
+[data-reveal='in'] .cs-notice-grid > *:nth-child(n + 6) { animation-delay: 0.34s; }
+@keyframes csStagger {
+  from { opacity: 0; transform: translate3d(0, 16px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 섹션 머리의 괘선이 왼쪽에서 그어진다 */
+[data-reveal] .cs-sec-head {
+  position: relative;
+}
+[data-reveal] .cs-sec-head::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  height: 1px;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.9s var(--ease) 0.1s;
+}
+[data-reveal='in'] .cs-sec-head::before {
+  width: 100%;
+}
+
+/* 헤더는 내려갈수록 얇아지고 지면에 붙는다 */
+.cs-header {
+  transition: box-shadow 0.3s var(--ease), background 0.3s var(--ease);
+}
+.cs-header[data-scrolled='true'] {
+  box-shadow: 0 1px 0 var(--line), 0 10px 24px -22px rgba(20, 17, 12, 0.6);
+}
+
+/* 읽은 만큼 차오르는 실선. 어디까지 왔는지 몸으로 알게 한다 */
+.cs-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  transform-origin: 0 50%;
+  transform: scaleX(var(--p, 0));
+  background: var(--accent);
+  z-index: 60;
+  pointer-events: none;
+  transition: opacity 0.3s var(--ease);
+}
+.cs-progress[data-idle='true'] {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  [data-reveal] { transition: none; }
+  [data-reveal='out'] { opacity: 1; transform: none; filter: none; }
+  [data-reveal='in'] .cs-notice-grid > * { animation: none; }
+  [data-reveal] .cs-sec-head::before { transition: none; width: 100%; }
+  .cs-progress { display: none; }
+}
