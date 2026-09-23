@@ -6028,3 +6028,406 @@ html {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* ── 사업성 판독 ──────────────────────────────────────────────────────
+   소비자 화면과 읽는 방향이 반대다. 공고 하나를 크게 보여주는 카드가 아니라
+   시장을 위에서 내려다보는 표다. 값 하나만 적지 않고 사례가 들어오는 폭을
+   띠로 그린다 — 감정평가가 보는 것은 대푯값이 아니라 폭이다. */
+.cs-mk__head {
+  margin-bottom: 26px;
+}
+.cs-mk__kicker {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  margin: 0 0 10px;
+}
+.cs-mk__intro {
+  margin-top: 12px;
+  max-width: 64ch;
+}
+.cs-mk__intro b {
+  color: var(--title);
+  font-weight: 700;
+}
+.cs-mk__sample {
+  padding: 12px 14px;
+  background: var(--paper-2);
+  border-radius: var(--r-inner);
+  margin-bottom: 20px;
+}
+.cs-mk__foot {
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+/* 민영 / 국민 가르기 */
+.cs-mk__toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 30px;
+}
+.cs-mk__tab {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.cs-mk__tab:hover {
+  border-color: var(--line-ink);
+  color: var(--body);
+}
+.cs-mk__tab[data-active='true'] {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--paper);
+}
+
+.cs-mk__sec {
+  margin-bottom: 46px;
+}
+.cs-mk__h {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--title);
+  margin: 0 0 12px;
+}
+.cs-mk__no {
+  font-size: 15px;
+  color: var(--accent);
+}
+.cs-mk__lead {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--body);
+  margin: 0 0 18px;
+  max-width: 72ch;
+}
+.cs-mk__lead b {
+  color: var(--title);
+  font-weight: 700;
+}
+
+.cs-mk__headline {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 18px 0 22px;
+}
+.cs-mk__big {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 46px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--title);
+  font-variant-numeric: tabular-nums;
+}
+.cs-mk__unit {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+.cs-mk__card {
+  padding: 18px 20px 16px;
+  overflow-x: auto;
+}
+.cs-mk__table {
+  width: 100%;
+  min-width: 660px;
+}
+.cs-mk__table th {
+  white-space: nowrap;
+}
+
+/* 지역 줄 — 눌러서 면적대를 펼친다 */
+.cs-mk__row {
+  cursor: pointer;
+}
+.cs-mk__row:hover td {
+  background: var(--paper);
+}
+.cs-mk__row[data-open='true'] td {
+  background: var(--paper-2);
+}
+.cs-mk__region {
+  font-weight: 700;
+  color: var(--title);
+  white-space: nowrap;
+}
+.cs-mk__n {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-left: 7px;
+}
+.cs-mk__band {
+  min-width: 220px;
+}
+/* 사례의 절반이 들어오는 폭. 가운뎃줄이 중앙값이다 */
+.cs-mk__track {
+  position: relative;
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--paper-2);
+  margin-bottom: 5px;
+}
+.cs-mk__range {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+  background: var(--brand);
+  opacity: 0.22;
+}
+.cs-mk__tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--accent);
+}
+.cs-mk__spread {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.cs-mk__price {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--title);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cs-mk__table td[data-heat='hot'] {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.cs-mk__detail td {
+  padding-top: 4px !important;
+  padding-bottom: 16px !important;
+  background: var(--paper-2);
+}
+.cs-mk__sizes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+.cs-mk__size {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-radius: var(--r-inner);
+  border: 1px solid var(--line);
+}
+.cs-mk__size-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cs-mk__size b {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--title);
+}
+.cs-mk__size-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* 싼 절반 / 비싼 절반 */
+.cs-mk__splits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+}
+.cs-mk__split {
+  padding: 16px 18px;
+}
+.cs-mk__split-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.cs-mk__split-top b {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 19px;
+  color: var(--title);
+}
+.cs-mk__split-row {
+  display: grid;
+  grid-template-columns: 62px 1fr auto;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13.5px;
+}
+.cs-mk__split-label {
+  color: var(--muted);
+  font-weight: 600;
+}
+.cs-mk__split-price {
+  color: var(--body);
+  font-variant-numeric: tabular-nums;
+}
+.cs-mk__split-row b {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+/* 색은 값을 따라간다 — 줄 위치가 아니라 어느 쪽이 더 미달났는지를 말한다 */
+.cs-mk__split-row[data-tone='worse'] b {
+  color: var(--accent);
+}
+.cs-mk__split-row[data-tone='better'] b {
+  color: var(--d-easy);
+}
+.cs-mk__split-row[data-tone='even'] b {
+  color: var(--muted);
+}
+
+/* 거꾸로 읽지 말라는 경고 — 이 화면에서 가장 중요한 줄이다 */
+.cs-mk__warn {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 var(--r-inner) var(--r-inner) 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--body);
+}
+.cs-mk__warn b {
+  color: var(--title);
+  font-weight: 700;
+}
+
+.cs-mk__where {
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.cs-mk__bench {
+  color: var(--muted);
+}
+.cs-mk__gap {
+  font-family: var(--font-brand), var(--font-sans);
+  font-weight: 700;
+}
+.cs-mk__gap[data-tone='good'] {
+  color: var(--d-easy);
+}
+.cs-mk__gap[data-tone='bad'] {
+  color: var(--accent);
+}
+
+/* 월별 물량 */
+.cs-mk__months {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  min-height: 150px;
+}
+.cs-mk__month {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.cs-mk__month-bar {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 104px;
+}
+.cs-mk__month-bar > span {
+  display: block;
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: var(--brand);
+  opacity: 0.8;
+}
+/* 아직 접수가 남은 달은 채우지 않는다 — 더 늘어날 수 있다는 뜻 */
+.cs-mk__month[data-ahead='true'] .cs-mk__month-bar > span {
+  background: repeating-linear-gradient(45deg, var(--accent) 0 4px, transparent 4px 8px);
+  border: 1px solid var(--accent);
+}
+.cs-mk__month b {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 13px;
+  color: var(--title);
+  font-variant-numeric: tabular-nums;
+}
+.cs-mk__month-label {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.cs-mk__loading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 40px 0;
+}
+.cs-mk__pulse {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  animation: cs-mk-spin 0.9s linear infinite;
+  flex: 0 0 auto;
+}
+@keyframes cs-mk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs-mk__pulse {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .cs-mk__card {
+    padding: 14px 12px 12px;
+  }
+  .cs-mk__big {
+    font-size: 38px;
+  }
+  .cs-mk__h {
+    font-size: 21px;
+  }
+}
