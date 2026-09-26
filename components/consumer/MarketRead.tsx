@@ -36,6 +36,7 @@ function Sample({ children }: { children: React.ReactNode }) {
 /** 지역 한 줄 — 값의 폭과 그 결과를 한 눈에 */
 function RegionLine({ row, max, open, onToggle }: {
   row: RegionRow
+  /** 축의 오른쪽 끝(만원/평). 모든 줄이 같은 자를 쓴다 */
   max: number
   open: boolean
   onToggle: () => void
@@ -109,7 +110,14 @@ function Slice({ slice }: { slice: MarketSlice }) {
     return <p className="cs-note">이 구간에 집계할 공고가 없습니다.</p>
   }
 
-  const max = Math.max(...slice.regions.map(r => r.price.p75), 1)
+  /*
+   * 축의 오른쪽 끝.
+   *
+   * 가장 비싼 지역의 상위 25% 값에 딱 맞추면 축 끝이 7,552 같은 수가 되어
+   * 읽는 사람이 위치를 가늠할 수 없다. 천 단위로 올려 눈금을 붙인다 —
+   * 자에 눈금이 없으면 띠가 어디쯤인지는 알아도 얼마인지는 모른다.
+   */
+  const axisMax = Math.max(1000, Math.ceil(Math.max(...slice.regions.map(r => r.price.p75), 1) / 1000) * 1000)
   const split = slice.splits[0]
 
   return (
@@ -143,7 +151,14 @@ function Slice({ slice }: { slice: MarketSlice }) {
             <thead>
               <tr>
                 <th>지역</th>
-                <th>평당가 분포 (만원)</th>
+                <th className="cs-mk__band">
+                  <span className="cs-mk__axis-title">평당가 분포</span>
+                  <span className="cs-mk__axis" aria-hidden="true">
+                    <span>0</span>
+                    <span>{(axisMax / 2).toLocaleString()}</span>
+                    <span>{axisMax.toLocaleString()}만원</span>
+                  </span>
+                </th>
                 <th className="cs-table__r">중앙값</th>
                 <th className="cs-table__r">공급세대</th>
                 <th className="cs-table__r">미달 주택형</th>
@@ -155,7 +170,7 @@ function Slice({ slice }: { slice: MarketSlice }) {
                 <RegionLine
                   key={r.name}
                   row={r}
-                  max={max}
+                  max={axisMax}
                   open={open === r.name}
                   onToggle={() => setOpen(open === r.name ? null : r.name)}
                 />

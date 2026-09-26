@@ -6,22 +6,32 @@ import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { useConsumer } from './ConsumerProvider'
 
+/**
+ * 메뉴 이름은 **화면 제목이 아니라 이름표**다.
+ *
+ * 화면 제목을 그대로 옮겨 적었더니 아홉 개가 1440px 에 들어가지 않아
+ * 마지막 항목이 "청'" 으로 잘렸다. 가로로 밀리게는 해 두었지만, 데스크톱에서
+ * 잘린 글자는 '더 있다'가 아니라 '망가졌다'로 읽힌다.
+ *
+ * 그래서 이름표는 줄이고 뜻은 화면 제목이 받는다 — '통계'를 누르면
+ * "경쟁률 · 당첨 통계"가, '사업성'을 누르면 "사업성 판독"이 뜬다.
+ */
 const NAV = [
   // 처음 온 사람은 무엇을 고를지보다 무엇인지를 먼저 묻는다. 가이드를 앞에 둔다.
-  { href: '/guide', label: '청약 가이드' },
+  { href: '/guide', label: '가이드' },
   { href: '/notices', label: '공고 찾기' },
   // 목록 맨 아래 붙여 두면 끝까지 내린 사람만 본다. "어디인지"부터 묻는 사람이 많다
   { href: '/map', label: '지도' },
   { href: '/saved', label: '관심공고' },
   { href: '/score', label: '가점 계산' },
-  { href: '/stats', label: '경쟁률·통계' },
+  { href: '/stats', label: '통계' },
   // 공고문을 읽다 막히는 말들 — 가이드가 '무엇을 고르나'라면 여기는 '이 말이 무슨 뜻인가'
   { href: '/pro', label: '공급 판독' },
   // 집을 구하는 쪽이 아니라 짓고 파는 쪽이 묻는 것. 소비자 메뉴 끝에 붙여
   // 두되 이름으로 대상을 밝힌다 — 잘못 들어온 사람이 헤매지 않게.
-  { href: '/biz', label: '사업성 판독' },
+  { href: '/biz', label: '사업성' },
   // 뉴스는 읽고 나가는 자리다. 공고·조건·통계를 먼저 세우고 맨 끝에 둔다.
-  { href: '/news', label: '청약뉴스' },
+  { href: '/news', label: '뉴스' },
 ]
 
 export default function ConsumerShell({ children }: { children: ReactNode }) {

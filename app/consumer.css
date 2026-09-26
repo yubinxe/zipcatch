@@ -320,6 +320,16 @@
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
+  /* 좁은 화면에서는 가로로 밀린다. 오른쪽 끝을 흐리게 지워 '더 있다'를
+     알린다 — 그냥 잘리면 망가진 것처럼 읽힌다. 다 들어오면 흐림도 사라진다. */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+@supports not (mask-image: linear-gradient(to right, #000, transparent)) {
+  .cs-nav {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
 }
 .cs-nav::-webkit-scrollbar {
   display: none;
@@ -328,7 +338,7 @@
 .cs-nav__link {
   position: relative;
   padding: 10px 4px;
-  margin: 0 10px;
+  margin: 0 9px;
   font-size: 16px;
   font-weight: 600;
   color: var(--muted);
@@ -977,15 +987,33 @@
   flex-shrink: 0;
 }
 
+/*
+ * 막대는 가늘게 보이되 **누르는 자리는 손가락만큼** 둔다.
+ *
+ * 예전에는 input 자체를 6px 로 눕혀 놓았다. 보기에는 같지만 그 6px 이 곧
+ * 손이 닿아야 하는 넓이라, 휴대폰에서는 사실상 잡히지 않았다. 이제 input 은
+ * 32px 을 차지하고 그 안에 6px 짜리 트랙을 그린다 — 모양은 그대로, 손은 넉넉히.
+ */
 .cs-range {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
+  height: 32px;
+  background: transparent;
+  border-radius: 99px;
+  outline: none;
+  margin: 6px 0 2px;
+  cursor: pointer;
+}
+.cs-range::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 99px;
   background: var(--paper-2);
-  outline: none;
-  margin: 16px 0 8px;
+}
+.cs-range::-moz-range-track {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--paper-2);
 }
 .cs-range::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -997,6 +1025,8 @@
   border: 3px solid var(--brand);
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(20, 17, 12, 0.18);
+  /* 트랙 한가운데에 걸리게 — (28 - 6) / 2 */
+  margin-top: -11px;
 }
 .cs-range::-moz-range-thumb {
   width: 24px;
@@ -1005,6 +1035,10 @@
   background: #fff;
   border: 3px solid var(--brand);
   cursor: pointer;
+}
+.cs-range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .cs-range-scale {
   display: flex;
@@ -1570,7 +1604,15 @@
 .cs-mini__icon { border-radius: 12px; }
 .cs-eyebrow { color: var(--brand); border: 0; font-size: 16px; }
 .cs-notice__name { font-size: 22px; min-height: 62px; }
+/*
+ * 금액 칸을 두 줄 높이로 잡아 두면 카드끼리 줄이 맞는다 — 금액이 있을 때만.
+ *
+ * 우리가 받는 공고는 열에 아홉이 금액을 주지 않아서, 그 자리가 늘 빈 채로
+ * 오십 픽셀쯤 벌어져 있었다. 맞출 줄이 없는데 자리만 비워 둔 셈이다.
+ * 금액이 없는 카드에서는 칸을 접는다.
+ */
 .cs-notice__price { min-height: 100px; }
+.cs-notice__price:has(.cs-notice__unknown) { min-height: 0; }
 .cs-notice__reasons { min-height: 100px; }
 .cs-notice__foot { gap: 12px; }
 .cs-notice__meta { flex: 1; }
@@ -1588,7 +1630,14 @@
 .cs-return__grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; margin-top: 28px; }
 @media (max-width: 1000px) {
  .cs-header__inner { flex-wrap: wrap; height: auto; padding-top: 12px; gap: 8px; }
- .cs-nav { order: 3; width: 100%; flex-basis: 100%; justify-content: center; }
+ /* 메뉴가 다 들어오면 가운데로 모으되, 넘칠 때는 왼쪽부터 세운다.
+    그냥 center 를 주면 넘친 만큼이 **왼쪽 밖으로** 밀려나고 스크롤로도
+    되돌아올 수 없다. 실제로 휴대폰에서 '가이드'와 '공고 찾기'가 손에
+    닿지 않았다. safe 는 넘치는 순간 flex-start 로 물러선다. */
+ .cs-nav { order: 3; width: 100%; flex-basis: 100%; justify-content: flex-start; }
+ @supports (justify-content: safe center) {
+   .cs-nav { justify-content: safe center; }
+ }
  .cs-hero { grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: 24px; }
  /* 한 기둥으로 쌓이면 화면 높이에 맞출 이유가 없다. 상한을 푼다 */
  .cs-preview { max-height: none; overflow: visible; }
@@ -3455,8 +3504,11 @@ body:has(.cs-ticker) .cs-chat {
 }
 /* 건수는 주묵으로 한 번 찍는다 — 누를 수 있다는 표시도 겸한다 */
 .cs-cal__count {
-  margin-bottom: 4px;
-  padding: 0;
+  /* 글자는 그대로 두고 누르는 자리만 넓힌다. 위아래 여백을 준 만큼
+     아래쪽 여백에서 되돌려, 기둥과 글자 사이 간격은 바뀌지 않게 한다. */
+  padding: 5px 6px;
+  margin: 0 -6px -1px;
+  min-height: 26px;
   border: 0;
   background: none;
   font-family: var(--font-brand), var(--font-sans);
@@ -5779,13 +5831,13 @@ html {
   display: grid;
   justify-items: center;
   gap: 5px;
-  width: 58px;
+  width: 64px;
   pointer-events: none;
   transition: transform 0.3s var(--ease);
 }
 .cs-emblem__img {
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   object-fit: contain;
   /* 지자체 상징은 저마다 색이 달라 카드마다 튄다. 살짝 눌러 지면에 앉힌다 */
   opacity: 0.92;
@@ -6179,8 +6231,30 @@ html {
   margin-left: 7px;
 }
 .cs-mk__band {
-  min-width: 220px;
+  /* 분포가 이 표의 주인공이다. 남는 폭을 여기로 몰아 주고 숫자 칸은 조인다 */
+  width: 36%;
+  min-width: 240px;
 }
+.cs-mk__table th:nth-child(n + 3),
+.cs-mk__table td:nth-child(n + 3) {
+  width: 1%;
+  white-space: nowrap;
+  padding-left: 18px;
+}
+/* 칸 머리의 눈금 — 띠가 '어디쯤'인지 말고 '얼마'인지 읽히게 한다 */
+.cs-mk__axis-title {
+  display: block;
+}
+.cs-mk__axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* 사례의 절반이 들어오는 폭. 가운뎃줄이 중앙값이다 */
 .cs-mk__track {
   position: relative;
@@ -6189,6 +6263,14 @@ html {
   border-radius: 4px;
   background: var(--paper-2);
   margin-bottom: 5px;
+  /* 눈금선 — 머리의 0 · 중간 · 끝과 같은 자리에 선다 */
+  background-image: linear-gradient(
+    to right,
+    transparent calc(50% - 1px),
+    var(--line) calc(50% - 1px),
+    var(--line) 50%,
+    transparent 50%
+  );
 }
 .cs-mk__range {
   position: absolute;
@@ -6196,7 +6278,8 @@ html {
   bottom: 0;
   border-radius: 4px;
   background: var(--brand);
-  opacity: 0.22;
+  /* 0.22 로는 지면과 구별되지 않아 띠가 있는지조차 안 보였다 */
+  opacity: 0.38;
 }
 .cs-mk__tick {
   position: absolute;
@@ -6429,5 +6512,112 @@ html {
   }
   .cs-mk__h {
     font-size: 21px;
+  }
+}
+
+/* ── 없는 주소 ────────────────────────────────────────────────────────
+   사과 한 줄로 끝내면 거기서 대화가 끊긴다. 여기까지 온 사람이 찾던 것은
+   대개 공고이므로 바로 갈 수 있는 문을 열어 둔다. */
+.cs-404 {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  background: var(--paper);
+}
+.cs-404__inner {
+  width: 100%;
+  max-width: 560px;
+}
+.cs-404__code {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  margin: 0 0 14px;
+}
+.cs-404__title {
+  font-family: var(--font-display), var(--font-brand), var(--font-sans);
+  font-size: clamp(28px, 6vw, 40px);
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--title);
+  margin: 0;
+}
+.cs-404__desc {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--body);
+  margin: 14px 0 30px;
+}
+.cs-404__doors {
+  list-style: none;
+  margin: 0 0 28px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.cs-404__door {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 16px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-inner);
+  background: var(--surface);
+  text-decoration: none;
+  transition: transform 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.cs-404__door:hover {
+  transform: translateX(3px);
+  border-color: var(--line-ink);
+}
+.cs-404__door-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--title);
+}
+.cs-404__door-hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+.cs-404__home {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  padding: 10px 2px;
+}
+.cs-404__home:hover {
+  color: var(--title);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs-404__door:hover {
+    transform: none;
+  }
+}
+
+/* ── 손끝 자리 ────────────────────────────────────────────────────────
+   휴대폰에서 실제로 손가락이 닿아야 하는 것들만 키운다. 글 안에 섞인
+   링크까지 키우면 문단이 성기게 벌어지므로 건드리지 않는다. */
+@media (max-width: 768px) {
+  /* 달력 기간 고르기 — 30px 은 엄지로 겨냥하기 좁다 */
+  .cs-cal__spanbtn {
+    min-height: 38px;
+    padding: 9px 16px;
+  }
+  /* 기사 제목 — 한 줄짜리 제목이 27px 밖에 안 됐다 */
+  .cs-news__title {
+    display: block;
+    padding: 6px 0;
+  }
+  .cs-news__item {
+    padding-block: 4px;
   }
 }

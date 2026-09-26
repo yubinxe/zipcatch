@@ -94,6 +94,10 @@ function SourceMark({ logo, source, rank }: { logo: string | null; source: strin
           loading="lazy"
           width={40}
           height={40}
+          // 파비콘은 구글에서 받아 온다. 기본값으로 두면 우리 주소가
+          // 매체마다 한 번씩 구글로 함께 나간다. 그림 한 장 받자고
+          // 사용자가 무엇을 읽는지까지 알려 줄 이유는 없다.
+          referrerPolicy="no-referrer"
           onError={() => setFailed(true)}
         />
       ) : (

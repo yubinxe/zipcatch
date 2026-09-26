@@ -147,6 +147,24 @@ const SCOPE_PROVINCES: Record<MapScope, string[] | null> = {
  */
 const LEVEL: Record<MapScope, number> = { 서울: 9, 수도권: 11, 전국: 13 }
 
+/**
+ * 카카오가 지도 안에 직접 그려 넣는 것들에 이름을 붙인다.
+ *
+ * 저작자 표시 링크(map.kakao.com)와 확대·축소 단추는 카카오 SDK 가 만들고,
+ * 이름표가 붙어 있지 않다. 화면을 읽어 주는 기계에는 "링크"라고만 들려서
+ * 어디로 가는 링크인지 알 수 없다. 우리가 만든 DOM 은 아니지만, 우리 화면에
+ * 놓인 이상 이름은 우리가 챙긴다. 붙이는 것 말고는 건드리지 않는다.
+ */
+function labelKakaoChrome(box: HTMLElement | null) {
+  if (!box) return
+  for (const a of box.querySelectorAll('a')) {
+    const named = (a.textContent ?? '').trim() || a.getAttribute('aria-label')
+    if (named) continue
+    a.setAttribute('aria-label', '카카오맵에서 보기 (새 창)')
+    a.setAttribute('rel', 'noopener noreferrer')
+  }
+}
+
 export default function NoticeMap() {
   const host = useRef<HTMLDivElement>(null)
   const mapRef = useRef<KakaoNS>(null)
@@ -238,6 +256,7 @@ export default function NoticeMap() {
         // 첫 화면을 여기서 정한다. 그린 뒤에는 옮기지 않는다.
         frame(kakao, map, pinsInScope(data.pins), false)
         framedRef.current = scope
+        labelKakaoChrome(host.current)
         setReady(true)
       })
       .catch((e: Error) => {
@@ -375,7 +394,10 @@ export default function NoticeMap() {
   }, [ready, data, scope])
 
   return (
-    <section className="cs-wrap cs-section" id="map">
+    // 앵커(id)를 여기 두지 않는다. 이 조각은 /notices 와 /map 두 곳에 놓이는데,
+    // /notices 에서는 바깥 감싸개가 이미 id="map" 을 들고 있어 한 화면에 같은
+    // id 가 둘이 된다. 감싸개가 앵커를 맡고 조각은 모양만 맡는다.
+    <section className="cs-wrap cs-section">
       <header>
         <h2 className="cs-section-title">지도로 보는 공고</h2>
         <p className="cs-sub" style={{ marginTop: 12, marginBottom: 22 }}>
