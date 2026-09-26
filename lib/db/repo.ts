@@ -331,6 +331,11 @@ export async function upsertOpportunities(rows: Partial<OpportunityRow>[]): Prom
           source_url: r.source_url ?? null,
           competition_rate: r.competition_rate ?? null,
           is_demo: r.is_demo ?? false,
+          // 좌표는 수집 뒤에 따로 채운다 (lib/services/geocode-fill.ts)
+          lat: r.lat ?? null,
+          lng: r.lng ?? null,
+          geo_source: r.geo_source ?? null,
+          geo_at: r.geo_at ?? null,
           created_at: stamp,
           updated_at: stamp,
         })

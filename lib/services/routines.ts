@@ -4,6 +4,7 @@ import { fetchLh } from '@/lib/adapters/lh'
 import { runMatchingForEvent } from '@/lib/services/pipeline'
 import { daysUntil } from '@/lib/services/matching'
 import { STAGE_LABEL } from '@/lib/services/lead-scoring'
+import { fillCoordinates } from '@/lib/services/geocode-fill'
 
 /**
  * 루틴 — 사람이 매일 손으로 하던 확인을 고정된 시각에 대신 돌린다.
@@ -234,7 +235,56 @@ const leadDigest: RoutineDef = {
   },
 }
 
-export const ROUTINES: RoutineDef[] = [syncNotices, deadlineWatch, leadDigest]
+// ── 4. 지도 좌표 채우기 ──────────────────────────────────────
+const fillGeo: RoutineDef = {
+  key: 'fill-geo',
+  name: '지도 좌표 채우기',
+  purpose:
+    '지도를 열 때마다 공고 주소를 카카오에 물어 좌표로 바꾸던 일. 공고 예순 건이면 백스무 번을 묻느라 첫 화면이 20초 넘게 비었다.',
+  instruction: `1. 좌표가 아직 없는 공고만 고른다. 이미 있는 건은 건드리지 않는다.
+2. 주소가 있으면 주소로, 없으면 공고명으로 찾는다 — LH 공고에는 주소 칸이
+   아예 없고 이름에 자리가 적혀 있다('평택고덕 A57-2블록').
+3. 못 찾았어도 **찾아본 시각을 남긴다.** 안 남기면 다음 번에 또 묻게 되고,
+   카카오가 모르는 자리는 몇 번을 물어도 결과가 같다. 2주 뒤에 한 번 더 본다.
+4. 한 건 저장에 실패해도 나머지는 계속 채운다.
+
+좌표는 공고가 뜬 뒤 바뀌지 않는다. 그래서 읽을 때가 아니라 여기서 찾는다.`,
+  // 공고 동기화가 끝난 뒤에 돌아야 그날 들어온 것까지 덮는다
+  scheduleCron: '20 0 * * *',
+  scheduleLabel: '매일 오전 9:20 (GMT+9)',
+
+  async run() {
+    const r = await fillCoordinates({ limit: 80 })
+
+    if (!r.ok) {
+      return {
+        summary: `좌표를 채우지 못했습니다 — ${r.reason}`,
+        detail: { ok: false, reason: r.reason },
+        actionable: true,
+      }
+    }
+
+    const found = r.byAddress + r.byName
+    return {
+      // 0건도 결과다. 채울 게 없었다는 것도 적는다.
+      summary:
+        r.tried === 0
+          ? `좌표가 빠진 공고가 없습니다 (보유 ${r.skipped}건)`
+          : `${r.tried}건을 찾아 ${found}건 채웠습니다 (주소 ${r.byAddress} · 공고명 ${r.byName} · 못 찾음 ${r.missed})`,
+      detail: {
+        tried: r.tried,
+        byAddress: r.byAddress,
+        byName: r.byName,
+        missed: r.missed,
+        alreadyHad: r.skipped,
+      },
+      // 못 찾은 건이 절반을 넘으면 사람이 볼 일이다 — 키가 막혔을 수 있다
+      actionable: r.tried > 0 && r.missed > found,
+    }
+  },
+}
+
+export const ROUTINES: RoutineDef[] = [syncNotices, deadlineWatch, leadDigest, fillGeo]
 
 export function findRoutine(key: string): RoutineDef | undefined {
   return ROUTINES.find(r => r.key === key)

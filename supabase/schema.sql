@@ -69,6 +69,12 @@ create table if not exists opportunities (
   competition_rate  numeric,                           -- 공개 통계가 있을 때만
   -- 시연용 합성 데이터 여부. 실데이터와 절대 섞지 않는다.
   is_demo           boolean not null default false,
+  -- 지도에 찍을 자리. 요청마다 지오코딩하면 첫 화면이 20초 넘게 비므로
+  -- 한 번 찾아 여기 적어 두고 지도는 읽기만 한다.
+  lat               numeric,
+  lng               numeric,
+  geo_source        text,                              -- ADDRESS | NAME | REGION
+  geo_at            timestamptz,                       -- 못 찾았어도 찍어 둔다
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now(),
   unique (source, external_id)
@@ -77,6 +83,8 @@ create index if not exists opp_region_idx on opportunities (region);
 create index if not exists opp_status_idx on opportunities (status, application_end);
 create index if not exists opp_demo_idx on opportunities (is_demo);
 create index if not exists opp_budget_idx on opportunities (deposit, monthly_rent);
+-- 아직 좌표를 못 채운 것만 빠르게 고른다
+create index if not exists opp_geo_missing_idx on opportunities (geo_at) where lat is null;
 
 -- ── 기회 이벤트 ─────────────────────────────────────────────
 create table if not exists opportunity_events (

@@ -198,6 +198,29 @@ export default function NoticeMap({
   const [visible, setVisible] = useState<Pin[]>([])
   const [hovered, setHovered] = useState<string | null>(null)
 
+  /**
+   * 지도 SDK 를 **공고와 나란히** 불러 온다.
+   *
+   * 예전에는 공고가 도착한 뒤에야 SDK 를 불렀다. 지도를 한 번만 그리려면
+   * 공고를 기다려야 하는 건 맞지만, 그건 **그리는 일**의 사정이지
+   * **받아 오는 일**의 사정이 아니다. 둘을 줄 세워 놓는 바람에 기다림이
+   * 더해져서 나왔다. 받아 오는 것은 동시에, 그리는 것은 둘 다 온 뒤에.
+   */
+  const [sdk, setSdk] = useState<KakaoNS | null>(null)
+  useEffect(() => {
+    let alive = true
+    loadKakao()
+      .then(k => {
+        if (alive) setSdk(k)
+      })
+      .catch((e: Error) => {
+        if (alive) setError(e.message)
+      })
+    return () => {
+      alive = false
+    }
+  }, [])
+
   useEffect(() => {
     let alive = true
     fetch('/api/notices/map', { cache: 'no-store' })
@@ -255,8 +278,9 @@ export default function NoticeMap({
    */
   useEffect(() => {
     let alive = true
-    if (!data) return
-    loadKakao()
+    // 둘 다 와야 그린다. 그래야 처음 그릴 때 이미 맞는 자리에 있다.
+    if (!data || !sdk) return
+    Promise.resolve(sdk)
       .then(kakao => {
         if (!alive || !host.current || mapRef.current) return
         const s = MAP_SCOPE[scope]
@@ -279,7 +303,7 @@ export default function NoticeMap({
     }
     // scope 는 아래 효과가 맡는다 — 지도를 다시 만들지 않는다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data])
+  }, [data, sdk])
 
   /**
    * 범위를 누르면 옮긴다. 이건 사용자가 시킨 움직임이라 부드럽게 따라가도 된다.

@@ -145,6 +145,11 @@ export function generateProperties(count = 50, seed = 990911, now = new Date()):
       sourceUrl: null,
       status,
       competitionRate,
+      // 예시 공고는 좌표를 만들지 않는다. 지어낸 자리를 지도에 찍으면
+      // 실제 공고와 구별되지 않는다.
+      lat: null,
+      lng: null,
+      geoSource: null,
       dataOrigin: 'SYNTHETIC',
     })
   }

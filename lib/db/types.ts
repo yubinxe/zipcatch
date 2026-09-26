@@ -59,9 +59,25 @@ export interface OpportunityRow {
   /** 공개 통계가 있을 때만. 없으면 null — 만들어내지 않는다 */
   competition_rate: number | null
   is_demo: boolean
+  /**
+   * 지도에 찍을 자리.
+   *
+   * 예전에는 지도를 열 때마다 주소·공고명을 카카오에 물어 좌표로 바꿨다.
+   * 캐시가 빈 인스턴스에서는 공고 예순 건에 백스무 번을 물어야 해서 첫 화면이
+   * 스무 초 넘게 비었다. 좌표는 공고가 뜬 뒤 바뀌지 않으므로 한 번 찾아
+   * 적어 두고, 지도는 읽기만 한다.
+   */
+  lat: number | null
+  lng: number | null
+  /** ADDRESS(주소로) · NAME(공고명으로) · REGION(지역 기준점) */
+  geo_source: GeoSource | null
+  /** 좌표를 찾아본 시각. 못 찾았어도 찍어 두어 같은 걸 매번 다시 묻지 않는다 */
+  geo_at: string | null
   created_at: string
   updated_at: string
 }
+
+export type GeoSource = 'ADDRESS' | 'NAME' | 'REGION'
 
 export type OpportunityEventType =
   | 'NEW_ANNOUNCEMENT'

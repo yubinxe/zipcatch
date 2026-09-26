@@ -88,6 +88,17 @@ export interface Property {
   status: PropertyStatus
   /** 직전 공고 경쟁률(배수). 공개 통계가 있을 때만. 없으면 null — 만들지 않는다 */
   competitionRate: number | null
+  /**
+   * 지도에 찍을 자리. 수집 뒤에 한 번 찾아 저장해 둔 값이다.
+   *
+   * 화면을 열 때 지오코딩하지 않는다 — 공고 예순 건을 물으면 첫 화면이
+   * 스무 초 넘게 빈다. 아직 못 찾은 공고는 null 이고, 지도는 지역 기준점으로
+   * 물러선다(lib/consumer/geo.ts).
+   */
+  lat: number | null
+  lng: number | null
+  /** ADDRESS(주소로) · NAME(공고명으로). 없으면 아직 못 찾은 것 */
+  geoSource: 'ADDRESS' | 'NAME' | 'REGION' | null
   dataOrigin: DataOrigin
 }
 

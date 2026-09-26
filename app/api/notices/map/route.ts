@@ -1,64 +1,36 @@
 import { listOfficialProperties } from '@/lib/consumer/official'
 import { isRental, provinceOf } from '@/lib/consumer/classify'
 import { resolveCoord } from '@/lib/consumer/geo'
-import { geocodeMany, geocodeByName, isGeocodingConfigured } from '@/lib/consumer/geocode'
 import { checkUrgency } from '@/lib/crm/services/scoring'
 
 export const dynamic = 'force-dynamic'
-/** 캐시가 빈 첫 호출은 지오코딩을 한 바퀴 돌아야 한다. 중간에 끊기면 지도가 빈다 */
-export const maxDuration = 60
 
 /**
  * 지도에 올릴 공고.
  *
- * 좌표는 서버가 정할 수 있는 데까지 정해서 내보낸다. 주소가 있으면 브라우저가
- * 지오코딩해 더 정확한 점으로 바꿔 놓는다 — 서버는 지오코딩 키를 쓰지 않는다.
+ * ── 여기서는 좌표를 찾지 않는다 ──
  *
- * 좌표를 못 정한 건은 버리지 않고 수를 세어 넘긴다. 지도에 안 보이는 공고가
- * 없는 공고처럼 읽히면, 지도를 믿고 목록을 안 보게 된다.
+ * 예전에는 이 길에서 주소와 공고명을 카카오에 물어 좌표로 바꿨다. 한 인스턴스가
+ * 사는 동안은 메모리에 남지만 서버리스에서는 인스턴스가 수시로 새로 뜨고,
+ * 그때마다 공고 예순 건에 백스무 번을 묻느라 첫 화면이 스무 초 넘게 비었다.
+ * 발표 도중에 그 한 번이 걸리면 지도가 없는 것과 같다.
+ *
+ * 좌표는 공고가 뜬 뒤 바뀌지 않으므로 읽을 때 찾을 이유가 없다. 수집 뒤에
+ * 따로 채워 두고(lib/services/geocode-fill.ts) 여기서는 저장된 값만 읽는다.
+ * 바깥으로 나가는 호출이 없으니 저장소를 읽는 시간이 전부다.
+ *
+ * 아직 못 찾은 공고는 버리지 않는다. 지역 기준점으로 물러서서 찍고, 그 수를
+ * 함께 넘긴다 — 지도에 안 보이는 공고가 없는 공고처럼 읽히면 지도를 믿고
+ * 목록을 안 보게 된다.
  */
 export async function GET() {
   try {
     const now = new Date()
     const all = await listOfficialProperties({ limit: 400 })
 
-    // 주소가 있는 건은 먼저 좌표로 바꿔둔다. 지오코딩 키가 없거나 못 찾으면
-    // 아래에서 지역 기준으로 물러선다 — 지도가 비는 일은 없다.
-    const geocoded = isGeocodingConfigured()
-      ? await geocodeMany(all.map(p => p.address)).catch(() => new Map())
-      : new Map()
-
-    /**
-     * 주소가 없는 공고는 이름으로 찾는다.
-     *
-     * LH 공고에는 주소 칸이 아예 없어, 지금까지 광역 기준점으로 물러서 도청
-     * 한 점에 수십 건이 겹쳤다. 지도가 "경기에 공고가 있다"까지만 말하고
-     * "어디"를 말하지 못했다.
-     *
-     * 이름에는 자리가 적혀 있다 — '평택고덕 A57-2블록'. 한 건마다 두 번씩
-     * 물어야 하므로 한꺼번에 몰아 보내지 않고 끊어 보낸다.
-     *
-     * 끊는 폭이 여섯일 때 첫 호출이 33초 걸렸다. 하루 캐시가 걸려 있어 그
-     * 뒤로는 2초지만, 그 한 번이 발표 중일 수 있다. 폭을 넓혀 줄인다 —
-     * 카카오 쪽 하루 한도에 견주면 이 정도 호출은 크지 않다.
-     */
-    const byName = new Map<string, { lat: number; lng: number }>()
-    if (isGeocodingConfigured()) {
-      const needy = all.filter(p => !(p.address ?? '').trim())
-      for (let i = 0; i < needy.length; i += 16) {
-        const slice = needy.slice(i, i + 16)
-        const hits = await Promise.all(
-          slice.map(p => geocodeByName(p.name, provinceOf(p)).catch(() => null)),
-        )
-        slice.forEach((p, n) => {
-          const hit = hits[n]
-          if (hit) byName.set(p.id, { lat: hit.lat, lng: hit.lng })
-        })
-      }
-    }
-
     const pins = []
     let noCoord = 0
+    let exact = 0
     const byProvince = new Map<string, number>()
 
     for (const p of all) {
@@ -68,8 +40,10 @@ export async function GET() {
       const province = provinceOf(p)
       byProvince.set(province, (byProvince.get(province) ?? 0) + 1)
 
+      // 저장해 둔 좌표가 있으면 그것이 가장 정확하다. 없으면 지역 기준점.
+      const stored = p.lat !== null && p.lng !== null ? { lat: p.lat, lng: p.lng } : null
       const coord = resolveCoord({
-        geocoded: geocoded.get((p.address ?? '').trim()) ?? byName.get(p.id) ?? null,
+        geocoded: stored,
         address: p.address,
         region: p.region,
         province,
@@ -78,6 +52,7 @@ export async function GET() {
         noCoord++
         continue
       }
+      if (stored) exact++
 
       pins.push({
         id: p.id,
@@ -104,8 +79,8 @@ export async function GET() {
       noCoord,
       /** 주소가 아예 없는 건 — LH 목록에는 주소 칸이 없다 */
       noAddress: pins.filter(p => !p.address).length,
-      /** 주소를 좌표로 바꿔 정확히 찍은 건 */
-      geocoded: pins.filter(p => p.coordSource === 'GEOCODED').length,
+      /** 미리 찾아 둔 좌표로 정확히 찍은 건. 나머지는 지역 기준점이다 */
+      geocoded: exact,
       provinces: [...byProvince.entries()]
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count),

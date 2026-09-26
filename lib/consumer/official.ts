@@ -72,6 +72,10 @@ function toProperty(row: OpportunityRow, today = new Date()): Property {
     sourceUrl: row.source_url,
     status: statusToday(row, today),
     competitionRate: row.competition_rate,
+    // 수집 뒤에 미리 찾아 둔 좌표. 없으면 지도가 지역 기준점으로 물러선다
+    lat: row.lat,
+    lng: row.lng,
+    geoSource: row.geo_source,
     dataOrigin: 'OFFICIAL',
   }
 }

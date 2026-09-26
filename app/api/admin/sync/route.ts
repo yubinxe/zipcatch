@@ -2,8 +2,15 @@ import { isAdminRequest } from '@/lib/admin/auth'
 import { fetchApplyhome, isApplyhomeConfigured } from '@/lib/adapters/applyhome'
 import { fetchLh, isLhConfigured } from '@/lib/adapters/lh'
 import * as repo from '@/lib/db/repo'
+import { fillCoordinates } from '@/lib/services/geocode-fill'
 
 export const dynamic = 'force-dynamic'
+/**
+ * 수집한 김에 좌표까지 채우므로 기본 제한으로는 모자란다.
+ * 지도 쪽에서 걷어낸 기다림이 여기로 옮겨 온 것이고, 그게 맞는 자리다 —
+ * 운영자가 한 번 누르는 일이지 사용자가 화면을 여는 일이 아니다.
+ */
+export const maxDuration = 120
 
 interface SourceReport {
   source: 'APPLYHOME' | 'LH'
@@ -63,6 +70,23 @@ export async function POST() {
     })
   }
 
+  /*
+   * 새로 들어온 공고의 좌표를 여기서 찾아 둔다.
+   *
+   * 지도를 열 때 찾으면 공고 예순 건에 백스무 번을 물어야 해서 첫 화면이
+   * 20초 넘게 빈다. 좌표는 공고가 뜬 뒤 바뀌지 않으니 수집한 김에 채운다.
+   * 실패해도 수집 결과를 되돌리지 않는다 — 좌표는 곁들이는 값이다.
+   */
+  const geo = await fillCoordinates({ limit: 120 }).catch(err => ({
+    ok: false as const,
+    reason: err instanceof Error ? err.message : String(err),
+    tried: 0,
+    byAddress: 0,
+    byName: 0,
+    missed: 0,
+    skipped: 0,
+  }))
+
   const sum = (pick: (s: SourceReport) => number) => sources.reduce((n, s) => n + pick(s), 0)
 
   return Response.json({
@@ -76,6 +100,8 @@ export async function POST() {
     updated: sum(s => s.updated),
     failed: sum(s => s.failed),
     errors: sources.flatMap(s => s.errors),
+    /** 지도 좌표를 몇 건 채웠는지. 실패해도 수집 자체는 성공으로 둔다 */
+    geo,
     storage: repo.storageMode(),
   })
 }
