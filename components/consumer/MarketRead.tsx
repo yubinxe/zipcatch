@@ -146,6 +146,7 @@ function Slice({ slice }: { slice: MarketSlice }) {
           </div>
         )}
 
+        <p className="cs-note cs-mk__swipe">표를 옆으로 밀면 공급세대 · 미달 · 마감이 이어집니다.</p>
         <div className="cs-card cs-mk__card">
           <table className="cs-table cs-mk__table">
             <thead>
@@ -282,6 +283,7 @@ function Slice({ slice }: { slice: MarketSlice }) {
             ))}
           </div>
 
+          <p className="cs-note cs-mk__swipe">표를 옆으로 밀면 미달 · 지역 평균 · 차이가 이어집니다.</p>
           <div className="cs-card cs-mk__card">
             <table className="cs-table cs-mk__table">
               <thead>

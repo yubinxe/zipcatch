@@ -17,9 +17,10 @@ export default function MapPage() {
       <h1 className="cs-page-title">지도로 보는 공고</h1>
       <p className="cs-lead" style={{ marginTop: 14, marginBottom: 6 }}>
         목록은 무엇이 있는지를, 달력은 언제인지를 답합니다. 지도는 <b>어디인지</b>를 답해요.
-        표시를 누르면 그 공고로 갑니다.
+        표시의 숫자는 접수 마감까지 남은 날이고, 붉은 쪽이 분양, 푸른 쪽이 임대입니다.
       </p>
-      <NoticeMap />
+      {/* 화면 제목이 이미 같은 말을 했다. 조각의 머리는 접는다 */}
+      <NoticeMap heading={false} />
     </div>
   )
 }

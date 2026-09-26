@@ -262,6 +262,10 @@
 .cs-section {
   padding-top: var(--section);
 }
+/* 제 머리를 접은 조각. 위 화면이 이미 말문을 열었으니 사이를 벌리지 않는다 */
+.cs-section--flush {
+  padding-top: 8px;
+}
 
 .cs-stack {
   display: grid;
@@ -6200,6 +6204,32 @@ html {
 .cs-mk__card {
   padding: 18px 20px 16px;
   overflow-x: auto;
+  /* 좁은 화면에서는 표가 옆으로 밀린다. 오른쪽 끝을 흐리게 지워 '더 있다'를
+     알린다 — 숫자가 한가운데서 뚝 끊기면 밀 수 있다는 생각 자체를 안 한다.
+     다 들어오면 흐림도 사라진다. */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent);
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.cs-mk__card::-webkit-scrollbar {
+  display: none;
+}
+@supports not (mask-image: linear-gradient(to right, #000, transparent)) {
+  .cs-mk__card {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+/* 흐림만으로는 못 알아채는 사람이 있다. 좁은 화면에서만 한 줄 적는다 */
+.cs-mk__swipe {
+  display: none;
+}
+@media (max-width: 720px) {
+  .cs-mk__swipe {
+    display: block;
+    margin: 0 0 8px;
+  }
 }
 .cs-mk__table {
   width: 100%;

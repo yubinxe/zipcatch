@@ -165,7 +165,19 @@ function labelKakaoChrome(box: HTMLElement | null) {
   }
 }
 
-export default function NoticeMap() {
+export default function NoticeMap({
+  /**
+   * 조각이 제 머리(제목·설명)를 들고 나올지.
+   *
+   * 이 조각은 두 곳에 놓인다. /notices 에서는 목록 아래에 끼어들어 가므로
+   * 스스로 "여기부터 지도"라고 밝혀야 하지만, /map 에서는 화면 자체가
+   * 지도라 이미 같은 제목이 붙어 있다. 그대로 두었더니 "지도로 보는 공고"가
+   * 한 화면에 두 번 나왔다.
+   */
+  heading = true,
+}: {
+  heading?: boolean
+} = {}) {
   const host = useRef<HTMLDivElement>(null)
   const mapRef = useRef<KakaoNS>(null)
   /** 마지막으로 화면을 맞춘 범위. 같은 범위로 두 번 움직이지 않으려고 둔다 */
@@ -397,14 +409,16 @@ export default function NoticeMap() {
     // 앵커(id)를 여기 두지 않는다. 이 조각은 /notices 와 /map 두 곳에 놓이는데,
     // /notices 에서는 바깥 감싸개가 이미 id="map" 을 들고 있어 한 화면에 같은
     // id 가 둘이 된다. 감싸개가 앵커를 맡고 조각은 모양만 맡는다.
-    <section className="cs-wrap cs-section">
-      <header>
-        <h2 className="cs-section-title">지도로 보는 공고</h2>
-        <p className="cs-sub" style={{ marginTop: 12, marginBottom: 22 }}>
-          공고가 있는 곳부터 보여 드려요. 표시의 숫자는 접수 마감까지 남은 날이고, 붉은 쪽이 분양,
-          푸른 쪽이 임대입니다. 지도를 움직이면 옆 목록이 보이는 범위의 공고로 바뀝니다.
-        </p>
-      </header>
+    <section className={heading ? 'cs-wrap cs-section' : 'cs-wrap cs-section cs-section--flush'}>
+      {heading && (
+        <header>
+          <h2 className="cs-section-title">지도로 보는 공고</h2>
+          <p className="cs-sub" style={{ marginTop: 12, marginBottom: 22 }}>
+            공고가 있는 곳부터 보여 드려요. 표시의 숫자는 접수 마감까지 남은 날이고, 붉은 쪽이 분양,
+            푸른 쪽이 임대입니다. 지도를 움직이면 옆 목록이 보이는 범위의 공고로 바뀝니다.
+          </p>
+        </header>
+      )}
 
       <div className="cs-map__bar">
         <PillChoice

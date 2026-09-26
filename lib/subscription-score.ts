@@ -96,6 +96,29 @@ export function compareToReference(
     }
   }
 
+  /*
+   * 아직 아무것도 입력하지 않은 상태.
+   *
+   * 0점으로도 비교식은 돌아간다 — "평균 48.3점이 내 가점 0점보다 48.3점
+   * 높습니다". 틀린 말은 아니지만, 화면을 연 사람이 가장 먼저 읽는 문장이
+   * "당신은 평균보다 낮습니다"가 된다. 아무것도 하지 않았는데 나쁜 소식을
+   * 먼저 듣는 셈이라, 입력 전에는 비교하지 않고 기준값만 놓는다.
+   */
+  if (userScore <= 0) {
+    return {
+      band: 'insufficient',
+      dataSufficient: true,
+      headline: '세 항목을 움직여 보세요',
+      insight: `${
+        complexName ? `「${complexName}」` : `${ref.regionName} 최근 당첨 통계`
+      } 기준 평균 당첨가점은 ${ref.avg.toFixed(1)}점, 최저 당첨가점은 ${ref.min.toFixed(1)}점입니다.`,
+      detail: '왼쪽에서 무주택 기간·부양가족·통장 가입기간을 맞추면 내 점수가 어디쯤인지 함께 보여드려요.',
+      gapToAverage: null,
+      gapToCutline: null,
+      reference: ref,
+    }
+  }
+
   const gapToAverage = Math.round((userScore - ref.avg) * 10) / 10
   const gapToCutline = Math.round((userScore - ref.min) * 10) / 10
   const absAvg = Math.abs(gapToAverage)
