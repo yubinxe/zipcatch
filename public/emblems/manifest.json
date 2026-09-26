@@ -1,6 +1,6 @@
 {
   "source": "Wikimedia Commons",
-  "fetchedAt": "2026-09-22T23:49:03.665Z",
+  "fetchedAt": "2026-09-26T03:31:41.764Z",
   "items": {
     "서울": {
       "file": "seoul.svg",
@@ -267,6 +267,83 @@
       "license": "Public domain",
       "artist": "Seongnam City Government",
       "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Seongnam.svg"
+    },
+    "순천시": {
+      "file": "suncheon.svg",
+      "title": "Flag of Suncheon.svg",
+      "license": "Public domain",
+      "artist": "Suncheon City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Suncheon.svg"
+    },
+    "인천시": {
+      "file": "incheon.svg",
+      "title": "Emblem of Incheon.svg",
+      "license": "Public domain",
+      "artist": "Incheon Metropolitan City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20Incheon.svg"
+    },
+    "김해시": {
+      "file": "gimhae.svg",
+      "title": "Flag of Gimhae.svg",
+      "license": "Public domain",
+      "artist": "Gimhae City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Gimhae.svg"
+    },
+    "밀양시": {
+      "file": "miryang.svg",
+      "title": "Flag of Miryang.svg",
+      "license": "Public domain",
+      "artist": "Miryang City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Miryang.svg"
+    },
+    "괴산군": {
+      "file": "goesan.svg",
+      "title": "Flag of Goesan.svg",
+      "license": "Public domain",
+      "artist": "Goesan County Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Goesan.svg"
+    },
+    "울산광역시": {
+      "file": "ulsan.svg",
+      "title": "Emblem of Ulsan.svg",
+      "license": "Public domain",
+      "artist": "Ulsan Metropolitan City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20Ulsan.svg"
+    },
+    "김천시": {
+      "file": "gimcheon.svg",
+      "title": "Flag of Gimcheon.svg",
+      "license": "Public domain",
+      "artist": "Gimcheon City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Gimcheon.svg"
+    },
+    "의성군": {
+      "file": "uiseong.svg",
+      "title": "Flag of Uiseong.svg",
+      "license": "Public domain",
+      "artist": "Uiseong County Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Uiseong.svg"
+    },
+    "전주시": {
+      "file": "jeonju.svg",
+      "title": "Flag of Jeonju.svg",
+      "license": "Public domain",
+      "artist": "Jeonju City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Jeonju.svg"
+    },
+    "완주군": {
+      "file": "wanju.svg",
+      "title": "Flag of Wanju.svg",
+      "license": "Public domain",
+      "artist": "Wanju County Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Wanju.svg"
+    },
+    "구미시": {
+      "file": "gumi.svg",
+      "title": "Flag of Gumi.svg",
+      "license": "Public domain",
+      "artist": "Gumi City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Flag%20of%20Gumi.svg"
     }
   },
   "note": "한국 지자체 상징은 공공저작물(저작권법 제24조의2). Public domain 으로 공표된 파일만 받는다."

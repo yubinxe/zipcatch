@@ -16,6 +16,7 @@
  *  5) 겹친 id, 빈 링크, alt 없는 이미지      — 접근성
  *  6) 너무 작은 누름 자리                    — 손가락으로 못 누른다
  *  7) '준비 중'·'TODO' 같은 미완 문구        — 출품 화면에 남아 있으면 안 된다
+ *  8) 글자와 바탕의 대비                      — 박람회 조명 아래서는 더 안 보인다
  *
  * ── 이미지 깨짐을 어떻게 재나 ──
  *
@@ -78,6 +79,7 @@ function inspect() {
     emptyLinks: [],
     noAlt: [],
     smallTargets: [],
+    lowContrast: [],
     h1: document.querySelectorAll('h1').length,
     main: !!document.querySelector('main'),
     title: document.title,
@@ -142,6 +144,74 @@ function inspect() {
     }
     out.smallTargets = [...new Set(out.smallTargets)].slice(0, 8)
   }
+
+  /*
+   * 글자와 바탕의 대비.
+   *
+   * 종이 톤 위에 회색 글씨를 얹으면 화면에서는 멀끔해 보여도, 박람회장
+   * 조명 아래 노트북에서는 읽히지 않는다. WCAG 기준으로 재 둔다 —
+   * 본문은 4.5:1, 큰 글씨(24px 이상 또는 18.7px 이상 굵게)는 3:1.
+   *
+   * 바탕색은 제 것이 투명하면 위로 거슬러 올라가 찾는다. 이미지나 그러데이션
+   * 위의 글자는 한 색으로 잴 수 없으므로 건너뛴다 — 억지로 재면 틀린 숫자가
+   * 나오고, 틀린 숫자는 없느니만 못하다.
+   */
+  const rgb = v => {
+    const m = String(v).match(/[\d.]+/g)
+    return m && m.length >= 3 ? m.slice(0, 3).map(Number).concat(m[3] === undefined ? 1 : Number(m[3])) : null
+  }
+  const lum = ([r, g, b]) =>
+    0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+  function ch(v) {
+    const x = v / 255
+    return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)
+  }
+  const ratio = (a, b) => {
+    const [hi, lo] = lum(a) > lum(b) ? [lum(a), lum(b)] : [lum(b), lum(a)]
+    return (hi + 0.05) / (lo + 0.05)
+  }
+  function backdrop(el) {
+    for (let p = el; p; p = p.parentElement) {
+      const cs = getComputedStyle(p)
+      if (cs.backgroundImage && cs.backgroundImage !== 'none') return null
+      const c = rgb(cs.backgroundColor)
+      if (c && c[3] > 0.95) return c
+    }
+    return [255, 255, 255, 1]
+  }
+  const seenPairs = new Set()
+  for (const el of document.querySelectorAll('body *')) {
+    // 제 글자를 직접 가진 요소만 — 부모까지 세면 같은 글자를 여러 번 잰다
+    const own = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1)
+    if (!own) continue
+    const r = el.getBoundingClientRect()
+    if (r.width === 0 || r.height === 0) continue
+    const cs = getComputedStyle(el)
+    if (cs.visibility === 'hidden' || Number(cs.opacity) < 0.6) continue
+    // 화면 밖으로 숨겨 읽는 기계에만 주는 글자(.cs-sr 같은)는 잴 대상이 아니다.
+    // 크기가 1px 이거나 잘라낸 상자면 건너뛴다.
+    if (r.width < 4 || r.height < 4) continue
+    if (cs.clip !== 'auto' || (cs.clipPath && cs.clipPath !== 'none')) continue
+    const fg = rgb(cs.color)
+    const bg = backdrop(el)
+    if (!fg || !bg || fg[3] < 0.95) continue
+
+    const size = parseFloat(cs.fontSize)
+    const weight = Number(cs.fontWeight) || 400
+    const large = size >= 24 || (size >= 18.66 && weight >= 700)
+    const need = large ? 3 : 4.5
+    const got = ratio(fg, bg)
+    if (got + 0.05 >= need) continue
+
+    const label = `${el.tagName.toLowerCase()}.${String(el.className || '').split(' ')[0]}`
+    const key = `${label}|${cs.color}|${Math.round(size)}`
+    if (seenPairs.has(key)) continue
+    seenPairs.add(key)
+    out.lowContrast.push(
+      `${label} ${Math.round(size)}px ${got.toFixed(2)}:1 (${need} 필요) "${(el.textContent || '').trim().slice(0, 16)}"`,
+    )
+  }
+  out.lowContrast = out.lowContrast.slice(0, 8)
 
   const body = document.body.innerText
   for (const m of body.matchAll(/\b(TODO|FIXME|undefined|NaN|\[object Object\])\b/g)) {
@@ -268,6 +338,10 @@ async function main() {
         if (r.smallTargets.length) {
           note(where, `누르기 작은 자리 — ${r.smallTargets.join(', ')}`)
           marks.push('작은버튼')
+        }
+        if (r.lowContrast.length) {
+          note(where, `대비 모자람 — ${r.lowContrast.join(' · ')}`)
+          marks.push('대비')
         }
         if (r.textFlags.length) {
           note(where, `화면에 남은 말 — ${r.textFlags.join(', ')}`)

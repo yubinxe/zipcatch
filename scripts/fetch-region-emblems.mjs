@@ -70,18 +70,102 @@ async function wiki(host, params) {
   throw new Error('rate limited')
 }
 
-/** 실재하는 지자체인지 묻고 영문명을 받는다. 없으면 null — 그게 필터다 */
-async function englishName(korean) {
+/**
+ * 따라가면 안 되는 갈래.
+ *
+ * 북한 행정구역은 같은 이름이 많지만 우리가 찾는 곳이 아니다. 다른 나라도
+ * 마찬가지다 — '군산구' 를 따라가다 중국 웨양시 쥔산구(Junshan, Yueyang)가
+ * 나왔다. 이름이 겹친다는 이유로 엉뚱한 나라 상징을 다는 것은 틀린 정보를
+ * 그럴듯하게 보여주는 일이다.
+ */
+const NOT_OURS = /평안|함경|황해|자강|양강|개성|남포|라선|중국|일본|대만|타이완|베트남|미국|러시아|강원도\s*\(조선/
+
+/** '전남·광주' → ['전남','광주'] · '경기' → ['경기'] */
+function provinceTokens(province) {
+  return String(province ?? '')
+    .split(/[^가-힣]+/)
+    .filter(t => t.length >= 2)
+}
+
+/**
+ * 영문 문서 이름에서 찾을 만한 후보를 만든다.
+ *
+ * 위키백과 제목에는 구별용 꼬리가 붙는다 — 'Gumi, South Korea',
+ * 'Suncheon (Jeollanam-do)'. 그대로 'Flag of Gumi, South Korea.svg' 를 찾으면
+ * 그런 파일은 없다. 꼬리를 뗀 이름도 같이 들고 다닌다.
+ */
+function names(en) {
+  const bare = en
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .replace(/,\s*(South Korea|Korea|Republic of Korea)\s*$/i, '')
+    .trim()
+  return {
+    full: en,
+    short: bare.replace(/\s+(District|County|City|Province)$/i, '') || bare,
+  }
+}
+
+async function langlink(title) {
   const j = await wiki('ko.wikipedia.org', {
     action: 'query',
     prop: 'langlinks',
     lllang: 'en',
+    redirects: '1',
+    titles: title,
+  })
+  const page = Object.values(j.query?.pages ?? {})[0]
+  return page?.langlinks?.[0]?.['*'] ?? null
+}
+
+/**
+ * 실재하는 지자체인지 묻고 영문명을 받는다. 없으면 null — 그게 필터다.
+ *
+ * ── 동음이의 문서라는 함정 ──
+ *
+ * '순천시' 를 물으면 영문 문서가 없다고 나온다. 순천이 없어서가 아니라
+ * 그 제목이 **동음이의 문서**이기 때문이다 — 전라남도 순천시와 평안남도
+ * 순천시가 갈라져 있다. 이름만으로 판정하면 실재하는 지자체가 '없는 지명'
+ * 으로 탈락한다. 실제로 순천이 그렇게 빠져 있었다.
+ *
+ * 그래서 이름으로 못 찾으면 그 문서가 가리키는 갈래를 따라간다. 괄호 안이
+ * 공고의 광역과 맞는 것을 먼저 본다 — '순천시 (전라남도)'. 북한 행정구역은
+ * 건너뛴다. 갈래 이름을 우리가 지어내지 않고 문서에 적힌 것을 그대로 쓰므로,
+ * 행정구역 표기가 바뀌어도 따라간다.
+ */
+async function englishName(korean, province) {
+  const direct = await langlink(korean)
+  if (direct) return names(direct)
+
+  // 동음이의 문서가 가리키는 갈래들
+  const j = await wiki('ko.wikipedia.org', {
+    action: 'query',
+    prop: 'links',
+    plnamespace: '0',
+    pllimit: '50',
     titles: korean,
   })
   const page = Object.values(j.query?.pages ?? {})[0]
-  const en = page?.langlinks?.[0]?.['*']
-  if (!en) return null
-  return { full: en, short: en.replace(/\s+(District|County|City|Province)$/i, '') }
+  const branches = (page?.links ?? [])
+    .map(l => l.title)
+    .filter(t => t.startsWith(`${korean} (`) && !NOT_OURS.test(t))
+  if (branches.length === 0) return null
+
+  // 공고의 광역과 괄호 안이 겹치는 것부터
+  const tokens = provinceTokens(province)
+  branches.sort((a, b) => {
+    const score = t => (tokens.some(k => t.includes(k)) ? 0 : 1)
+    return score(a) - score(b)
+  })
+
+  for (const title of branches.slice(0, 4)) {
+    await sleep(600)
+    const en = await langlink(title)
+    if (en) {
+      console.log(`    (${korean} — 동음이의라 「${title}」 로 따라감)`)
+      return names(en)
+    }
+  }
+  return null
 }
 
 /**
@@ -176,13 +260,16 @@ async function mineRegions() {
   }).then(r => r.json())
   const notices = data.notices ?? []
 
+  // 이름만 모으지 않고 **어느 광역 공고에서 나왔는지**를 함께 들고 있는다.
+  // 동음이의 문서를 만났을 때 어느 갈래를 따라갈지 고르는 단서가 된다.
   const locals = new Map()
   for (const n of notices) {
     const p = n.property ?? {}
+    const province = String(p.district || p.region || '').trim()
     for (const src of [p.region, p.district, p.name]) {
       if (!src) continue
       for (const m of String(src).matchAll(/([가-힣]{2,5}(?:시|군|구))/g)) {
-        locals.set(m[1], (locals.get(m[1]) ?? 0) + 1)
+        if (!locals.has(m[1])) locals.set(m[1], province)
       }
     }
   }
@@ -196,17 +283,17 @@ async function mineRegions() {
   const guTable = JSON.parse(
     await readFile(join(process.cwd(), 'lib', 'consumer', 'gu-in-city.json'), 'utf8'),
   )
-  const parents = new Set()
+  const parents = new Map()
   for (const name of locals.keys()) {
     const hit = guTable[name]
-    if (hit && !locals.has(hit.city)) parents.add(hit.city)
+    if (hit && !locals.has(hit.city)) parents.set(hit.city, hit.province)
   }
 
   console.log(
     `공고 ${notices.length}건에서 시·군·구 후보 ${locals.size}개를 캤다` +
-      (parents.size ? ` (일반구가 속한 시 ${parents.size}곳을 더한다: ${[...parents].join(', ')})` : ''),
+      (parents.size ? ` (일반구가 속한 시 ${parents.size}곳을 더한다: ${[...parents.keys()].join(', ')})` : ''),
   )
-  return [...locals.keys(), ...parents]
+  return [...locals, ...parents].map(([region, province]) => ({ region, province }))
 }
 
 async function main() {
@@ -224,7 +311,7 @@ async function main() {
       region: k,
       en: { full: PROVINCES[k], short: PROVINCES[k] },
     })),
-    ...locals.map(region => ({ region, en: null })),
+    ...locals.map(({ region, province }) => ({ region, province, en: null })),
   ]
 
   let got = 0
@@ -239,7 +326,7 @@ async function main() {
 
     let en = t.en
     if (!en) {
-      en = await englishName(t.region)
+      en = await englishName(t.region, t.province)
       await sleep(900)
       if (!en) {
         rejected.push(t.region)
