@@ -120,6 +120,12 @@ export default function ConsumerShell({ children }: { children: ReactNode }) {
             <br />
             공고·통계 출처: 공공데이터포털 청약홈 OpenAPI · LH 청약플러스 · 한국부동산원.
           </p>
+          <p className="cs-footer__maker">
+            기획·개발{' '}
+            <a href="https://yubinxe.github.io/Portfolio/" target="_blank" rel="author noopener">
+              김유빈 Yubin Kim · 포트폴리오 ↗
+            </a>
+          </p>
         </div>
       </footer>
     </div>
