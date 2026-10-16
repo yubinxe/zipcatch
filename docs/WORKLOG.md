@@ -44,7 +44,7 @@
 
 | # | 브랜치 | 요약 | 리뷰 상태 |
 |---|--------|------|-----------|
-| - | `chore/cloud-continuity` → `main` | 클라우드 작업 연속성: CLAUDE.md · WORKLOG · 세션 훅 | Open · 검토 대기 |
+| 3 | `chore/cloud-continuity` → `main` | 클라우드 작업 연속성: CLAUDE.md · WORKLOG · 세션 훅 | Open · 검토 대기 |
 
 (참고: #1 `credit/maker-attribution` 은 Closed — 운영본+제작자 표기 CLI 배포용, #2 는 Merged)
 
