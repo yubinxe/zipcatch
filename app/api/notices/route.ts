@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
     const decorate = (property: Property): Row => ({ property, urgency: checkUrgency(property, now) })
     const open = (row: Row) => row.urgency.level !== 'CLOSED'
 
-    const officialAll = (await listOfficialProperties({ limit: 200 })).map(decorate).filter(open)
+    const officialAll = (await listOfficialProperties({ openOnly: true, limit: 300 })).map(decorate).filter(open)
     const sampleAll = includeSample
       ? getState()
           .properties.filter(p => p.status !== 'CLOSED' && p.status !== 'CANCELLED')

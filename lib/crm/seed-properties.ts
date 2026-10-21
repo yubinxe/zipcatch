@@ -150,6 +150,7 @@ export function generateProperties(count = 50, seed = 990911, now = new Date()):
       lat: null,
       lng: null,
       geoSource: null,
+      collectedAt: null,
       dataOrigin: 'SYNTHETIC',
     })
   }

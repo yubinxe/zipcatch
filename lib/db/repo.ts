@@ -249,11 +249,22 @@ export interface OpportunityFilter {
   housingType?: string
   includeDemo?: boolean
   onlyOpen?: boolean
+  /**
+   * 접수 마감이 이 날짜(YYYY-MM-DD) 이후인 것만. 마감일이 없는 상시모집도 포함한다.
+   *
+   * 예전에는 마감 지난 공고까지 전부 가져온 뒤 앱에서 걸렀다. 저장한 공고가
+   * 340건으로 늘자 **마감일 오름차순 + limit** 이 앞쪽의 지난 공고로 다 채워져
+   * 소비자 목록이 0건이 됐다. 거를 것은 가져오기 전에 건다.
+   *
+   * status 로 거르지 않는 이유는 그 값이 수집 시점에 굳은 값이기 때문이다.
+   * 날짜는 거짓말을 하지 않는다.
+   */
+  endsAfter?: string
   limit?: number
 }
 
 export async function listOpportunities(f: OpportunityFilter = {}): Promise<OpportunityRow[]> {
-  const { region, housingType, includeDemo = true, onlyOpen = false, limit = 100 } = f
+  const { region, housingType, includeDemo = true, onlyOpen = false, endsAfter, limit = 100 } = f
   const sb = getSupabase()
 
   if (!sb) {
@@ -262,6 +273,7 @@ export async function listOpportunities(f: OpportunityFilter = {}): Promise<Oppo
       .filter(o => (housingType ? o.housing_type === housingType : true))
       .filter(o => (includeDemo ? true : !o.is_demo))
       .filter(o => (onlyOpen ? o.status === 'OPEN' || o.status === 'UPCOMING' : true))
+      .filter(o => (endsAfter ? o.application_end === null || o.application_end >= endsAfter : true))
       .sort((a, b) => (a.application_end ?? '9999').localeCompare(b.application_end ?? '9999'))
       .slice(0, limit)
   }
@@ -271,6 +283,8 @@ export async function listOpportunities(f: OpportunityFilter = {}): Promise<Oppo
   if (housingType) q = q.eq('housing_type', housingType)
   if (!includeDemo) q = q.eq('is_demo', false)
   if (onlyOpen) q = q.in('status', ['OPEN', 'UPCOMING'])
+  // 상시모집은 마감일이 없다. 날짜로 거르면서 그것까지 떨어뜨리면 안 된다.
+  if (endsAfter) q = q.or(`application_end.is.null,application_end.gte.${endsAfter}`)
   return must(
     await q.order('application_end', { ascending: true, nullsFirst: false }).limit(limit),
     'listOpportunities',

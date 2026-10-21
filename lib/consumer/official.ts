@@ -76,11 +76,20 @@ function toProperty(row: OpportunityRow, today = new Date()): Property {
     lat: row.lat,
     lng: row.lng,
     geoSource: row.geo_source,
+    collectedAt: row.updated_at ?? row.created_at ?? null,
     dataOrigin: 'OFFICIAL',
   }
 }
 
 export interface OfficialQuery {
+  /**
+   * 접수가 아직 안 끝난 것만 가져온다.
+   *
+   * 소비자 화면은 전부 '지금 넣을 수 있는 것'을 묻는다. 지난 공고까지 끌어온
+   * 뒤 앱에서 거르면, 저장분이 늘었을 때 limit 이 지난 공고로 다 차 버린다.
+   * 실제로 340건이 되자 목록이 0건으로 비었다.
+   */
+  openOnly?: boolean
   region?: string
   /** 공고 표기 기준. 선택지 이름과 정확히 같지 않을 수 있어 부분일치로 본다 */
   housingType?: string
@@ -93,12 +102,14 @@ export interface OfficialQuery {
  */
 export async function listOfficialProperties(q: OfficialQuery = {}): Promise<Property[]> {
   try {
+    const today = new Date()
+    const ymd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
     const rows = await repo.listOpportunities({
       region: q.region,
       includeDemo: false,
+      endsAfter: q.openOnly ? ymd : undefined,
       limit: q.limit ?? 100,
     })
-    const today = new Date()
     const out = rows.map(row => toProperty(row, today))
     if (!q.housingType) return out
     return out.filter(p => p.housingType.includes(q.housingType!) || q.housingType!.includes(p.housingType))

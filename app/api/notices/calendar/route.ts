@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     const startKey = ymd(today)
     const endKey = ymd(last)
 
-    const all = await listOfficialProperties({ limit: 400 })
+    const all = await listOfficialProperties({ openOnly: true, limit: 400 })
     const inRegion = (p: Property) => !region || provinceOf(p) === region
 
     // 달력 칸을 먼저 전부 만든다. 공고가 없는 날도 자리를 지켜야

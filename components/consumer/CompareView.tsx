@@ -1,0 +1,290 @@
+'use client'
+
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import type { Candidate, UrgencyInfo } from '@/lib/crm/services/scoring'
+import { formatMan } from '@/lib/crm/services/scoring'
+import type { Property } from '@/lib/crm/types'
+import type { SpecialRead } from '@/lib/adapters/applyhome-special'
+import SaveButton from './SaveButton'
+
+/**
+ * 공고 비교.
+ *
+ * ── 왜 비교가 따로 있어야 하나 ──
+ *
+ * 목록은 "무엇이 있나"에 답하고 상세는 "이 공고가 어떤가"에 답한다. 그런데
+ * 사람이 실제로 막히는 자리는 그 사이다 — **둘 중 어느 쪽인가.** 지금까지는
+ * 상세를 두 번 열어 머릿속에서 맞춰 봐야 했고, 그러면 기억이 비교를 한다.
+ *
+ * ── 다른 값만 본다 ──
+ *
+ * 열두 줄을 나란히 세우면 같은 값이 대부분이라 눈이 미끄러진다. 결정을
+ * 바꾸는 것은 **다른 줄**이므로, 같은 줄을 접을 수 있게 둔다.
+ *
+ * ── 없는 값을 채우지 않는다 ──
+ *
+ * 우리가 받는 공고는 열에 아홉이 금액을 주지 않는다. 비교표는 빈칸을 특히
+ * 못 견디게 생긴 화면이지만, 그렇다고 0원이나 평균을 넣으면 비교 자체가
+ * 거짓이 된다. 없는 것은 '공고문 확인'으로 적고 그 자리를 비워 둔다.
+ */
+
+interface Detail {
+  property: Property
+  urgency: UrgencyInfo
+  candidate: Candidate | null
+  supplyModels?: { exclusiveArea: number | null; topAmount: number | null }[]
+  special?: SpecialRead | null
+}
+
+/** 한 줄 — 제목과 공고별 값. `same` 이면 '다른 값만 보기'에서 접힌다 */
+interface Line {
+  label: string
+  values: { text: string; dim?: boolean }[]
+  note?: string
+}
+
+function fmtDate(v: string | null) {
+  return v ? v.replace(/-/g, '. ') : '공고문 확인'
+}
+
+function areaRange(d: Detail): string {
+  const xs = (d.supplyModels ?? [])
+    .map(m => m.exclusiveArea)
+    .filter((n): n is number => n !== null)
+  if (xs.length === 0) {
+    return d.property.area !== null ? `전용 ${d.property.area}㎡` : '공고문 확인'
+  }
+  const lo = Math.min(...xs)
+  const hi = Math.max(...xs)
+  return lo === hi ? `전용 ${lo}㎡` : `전용 ${lo} ~ ${hi}㎡`
+}
+
+function priceCell(d: Detail): string {
+  const amounts = (d.supplyModels ?? [])
+    .map(m => m.topAmount)
+    .filter((n): n is number => n !== null)
+  if (amounts.length > 0) {
+    const lo = Math.min(...amounts)
+    const hi = Math.max(...amounts)
+    return lo === hi ? formatMan(lo) : `${formatMan(lo)} ~ ${formatMan(hi)}`
+  }
+  const { deposit, monthlyRent } = d.property
+  if (deposit === null && monthlyRent === null) return '공고문 확인'
+  const bits = []
+  if (deposit !== null) bits.push(`보증금 ${formatMan(deposit)}`)
+  if (monthlyRent !== null) bits.push(`월 ${monthlyRent.toLocaleString()}만원`)
+  return bits.join(' · ')
+}
+
+function specialCell(d: Detail): string {
+  const s = d.special
+  if (!s || !s.hasData || s.supply <= 0) return '아직 공개 전'
+  const left = Math.max(0, s.supply - s.applied)
+  return left > 0
+    ? `${left.toLocaleString()}세대 남고 마감`
+    : `${Math.round((s.applied / s.supply) * 100) / 100}배 마감`
+}
+
+function buildLines(items: Detail[]): Line[] {
+  const col = <T,>(f: (d: Detail) => T) => items.map(f)
+
+  const lines: Line[] = [
+    { label: '지역', values: col(d => ({ text: [d.property.district, d.property.region].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(' ') || '—' })) },
+    { label: '유형', values: col(d => ({ text: d.property.housingType || '—' })) },
+    { label: '공급 세대', values: col(d => ({ text: d.property.supplyCount > 0 ? `${d.property.supplyCount.toLocaleString()}세대` : '공고문 확인', dim: d.property.supplyCount === 0 })) },
+    { label: '면적', values: col(d => ({ text: areaRange(d), dim: areaRange(d) === '공고문 확인' })) },
+    { label: '금액', values: col(d => ({ text: priceCell(d), dim: priceCell(d) === '공고문 확인' })), note: '분양은 주택형별 최고가 범위, 임대는 공고에 적힌 보증금·월세입니다.' },
+    { label: '접수 시작', values: col(d => ({ text: fmtDate(d.property.applicationStart), dim: !d.property.applicationStart })) },
+    { label: '접수 마감', values: col(d => ({ text: fmtDate(d.property.applicationEnd), dim: !d.property.applicationEnd })) },
+    { label: '남은 날', values: col(d => ({ text: d.urgency.label })) },
+    { label: '당첨자 발표', values: col(d => ({ text: fmtDate(d.property.resultDate), dim: !d.property.resultDate })) },
+    { label: '계약 시작', values: col(d => ({ text: fmtDate(d.property.contractStart), dim: !d.property.contractStart })) },
+    {
+      label: '특별공급 결과',
+      values: col(d => ({ text: specialCell(d), dim: specialCell(d) === '아직 공개 전' })),
+      note: '특별공급은 1·2순위보다 하루 먼저 접수하고 결과가 그 사이에 공개됩니다. 일반공급 결과가 아닙니다.',
+    },
+    { label: '출처', values: col(d => ({ text: d.property.source })) },
+    {
+      label: '받아온 때',
+      values: col(d => ({
+        text: d.property.collectedAt
+          ? new Date(d.property.collectedAt).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })
+          : '—',
+        dim: true,
+      })),
+      note: '공고는 정정·취소될 수 있습니다. 결정 전에 원문을 한 번 더 확인해 주세요.',
+    },
+  ]
+  return lines
+}
+
+/** 그 줄의 값이 전부 같은가 */
+function allSame(line: Line) {
+  return line.values.every(v => v.text === line.values[0].text)
+}
+
+export default function CompareView() {
+  const params = useSearchParams()
+  const ids = (params.get('ids') ?? '').split(',').map(s => s.trim()).filter(Boolean).slice(0, 3)
+
+  const [got, setGot] = useState<{ key: string; items: Detail[] }>({ key: '', items: [] })
+  const [onlyDiff, setOnlyDiff] = useState(false)
+  const key = ids.join(',')
+  const loading = key !== '' && got.key !== key
+
+  useEffect(() => {
+    if (!key) return
+    let alive = true
+    Promise.all(
+      key.split(',').map(id =>
+        fetch(`/api/notices/${id}`, { cache: 'no-store' })
+          .then(r => (r.ok ? r.json() : null))
+          .catch(() => null),
+      ),
+    ).then(res => {
+      if (alive) setGot({ key, items: res.filter(Boolean) as Detail[] })
+    })
+    return () => {
+      alive = false
+    }
+  }, [key])
+
+  if (ids.length === 0) {
+    return (
+      <div className="cs-cmp__empty">
+        <h1 className="cs-page-title">공고 비교</h1>
+        <p className="cs-sub" style={{ marginTop: 14 }}>
+          비교할 공고를 고르지 않았습니다. 관심공고에서 둘 이상을 고르면 나란히 놓고 볼 수 있어요.
+        </p>
+        <Link href="/saved" className="cs-btn cs-btn--primary" style={{ marginTop: 24 }}>
+          관심공고로 가기
+        </Link>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="cs-cmp__empty">
+        <h1 className="cs-page-title">공고 비교</h1>
+        <p className="cs-note" style={{ marginTop: 14 }}>공고 {ids.length}건을 불러오는 중입니다.</p>
+      </div>
+    )
+  }
+
+  const items = got.items
+  if (items.length === 0) {
+    return (
+      <div className="cs-cmp__empty">
+        <h1 className="cs-page-title">공고 비교</h1>
+        <p className="cs-sub" style={{ marginTop: 14 }}>
+          고르신 공고를 찾지 못했습니다. 접수가 끝나 목록에서 내려갔을 수 있어요.
+        </p>
+        <Link href="/notices" className="cs-btn cs-btn--primary" style={{ marginTop: 24 }}>
+          공고 찾기
+        </Link>
+      </div>
+    )
+  }
+
+  const lines = buildLines(items)
+  const diffCount = lines.filter(l => !allSame(l)).length
+  const shown = onlyDiff ? lines.filter(l => !allSame(l)) : lines
+
+  return (
+    <div className="cs-cmp">
+      <header className="cs-cmp__head">
+        <h1 className="cs-page-title">공고 비교</h1>
+        <p className="cs-sub cs-cmp__lead">
+          {items.length}건을 나란히 놓았습니다. <b>{diffCount}줄이 서로 다릅니다.</b> 결정을 바꾸는
+          것은 같은 줄이 아니라 다른 줄입니다.
+        </p>
+        <div className="cs-cmp__tools">
+          <button
+            type="button"
+            className="cs-cmp__toggle"
+            data-active={onlyDiff ? 'true' : 'false'}
+            onClick={() => setOnlyDiff(v => !v)}
+            aria-pressed={onlyDiff}
+          >
+            다른 값만 보기
+          </button>
+          <Link href="/saved" className="cs-cmp__back">관심공고에서 다시 고르기</Link>
+        </div>
+      </header>
+
+      <div className="cs-card cs-cmp__card">
+        <table className="cs-table cs-cmp__table">
+          <thead>
+            <tr>
+              <th scope="col" className="cs-cmp__rowhead">항목</th>
+              {items.map(d => (
+                <th key={d.property.id} scope="col" className="cs-cmp__col">
+                  <Link href={`/notices/${d.property.id}`} className="cs-cmp__name">
+                    {d.property.name}
+                  </Link>
+                  <span className="cs-cmp__sub">{d.property.region}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map(line => (
+              <tr key={line.label} data-diff={allSame(line) ? 'false' : 'true'}>
+                <th scope="row" className="cs-cmp__rowhead">
+                  {line.label}
+                  {line.note && <sup className="cs-cmp__mark">*</sup>}
+                </th>
+                {line.values.map((v, i) => (
+                  <td key={items[i].property.id} className="cs-cmp__cell" data-dim={v.dim ? 'true' : 'false'}>
+                    {v.text}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row" className="cs-cmp__rowhead">원문</th>
+              {items.map(d => (
+                <td key={d.property.id} className="cs-cmp__cell">
+                  <div className="cs-cmp__acts">
+                    {d.property.sourceUrl ? (
+                      <a href={d.property.sourceUrl} target="_blank" rel="noopener noreferrer" className="cs-cmp__link">
+                        모집공고문 열기
+                      </a>
+                    ) : (
+                      <span className="cs-cmp__cell" data-dim="true">원문 링크 없음</span>
+                    )}
+                    <SaveButton propertyId={d.property.id} />
+                  </div>
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {/* 주석을 행 안에 두면 그 줄만 네 겹으로 부풀어 표가 울퉁불퉁해진다.
+          별표만 남기고 설명은 여기로 모은다. */}
+      <dl className="cs-cmp__notes">
+        {shown.filter(l => l.note).map(l => (
+          <div key={l.label}>
+            <dt>
+              <span className="cs-cmp__mark">*</span> {l.label}
+            </dt>
+            <dd>{l.note}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <p className="cs-note cs-cmp__warn">
+        자격 요건(무주택 기간·소득·자산·거주기간)은 공고마다 다르고, 이 표로는 판정하지 않습니다.
+        금액·면적·일정도 공고문 원문이 기준입니다. 비교표는 어디를 더 볼지 고르는 데까지만 쓰세요.
+      </p>
+    </div>
+  )
+}

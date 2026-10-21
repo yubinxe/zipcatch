@@ -40,6 +40,18 @@ function neutral(propertyId: string, urgency: UrgencyInfo) {
 export default function SavedView() {
   const { savedIds, alerts, user, profile, loading: meLoading, refresh } = useConsumer()
   const [result, setResult] = useState<{ key: string; rows: Row[] } | null>(null)
+  /**
+   * 비교에 담은 공고.
+   *
+   * 저장과는 다른 목록이다. 저장은 "나중에 볼 것"이고 비교는 "지금 둘 중
+   * 고를 것"이라, 하나를 둘로 쓰면 비교하려고 저장을 풀게 된다.
+   * 셋을 넘기면 한 화면에서 읽히지 않으므로 거기서 막는다.
+   */
+  const [picked, setPicked] = useState<string[]>([])
+  const togglePick = (id: string) =>
+    setPicked(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : prev.length >= 3 ? prev : [...prev, id],
+    )
 
   const key = savedIds.join(',')
   const loading = result?.key !== key
@@ -223,6 +235,12 @@ export default function SavedView() {
         <h2 className="cs-section-title" style={{ fontSize: 22 }}>
           저장한 공고 {rows.length}건
         </h2>
+        {!loading && rows.length > 1 && (
+          <p className="cs-note" style={{ marginTop: 10 }}>
+            카드의 <b>비교</b>를 눌러 둘 이상 고르면 금액·면적·일정을 나란히 놓고 볼 수 있어요.
+            셋까지 담깁니다.
+          </p>
+        )}
 
         {/* 예시 공고를 걷어내기 전에 저장해 둔 항목은 이제 열리지 않는다.
             숫자만 줄어들면 사용자는 자기 기록이 사라졌다고 읽는다. */}
@@ -257,17 +275,46 @@ export default function SavedView() {
         ) : (
           <div className="cs-notice-grid" style={{ marginTop: 20 }}>
             {rows.map((row, i) => (
-              <NoticeCard
-                key={row.property.id}
-                index={i}
-                property={row.property}
-                candidate={neutral(row.property.id, row.urgency)}
-                showReasons={false}
-              />
+              <div key={row.property.id} className="cs-pick" data-on={picked.includes(row.property.id)}>
+                <NoticeCard
+                  index={i}
+                  property={row.property}
+                  candidate={neutral(row.property.id, row.urgency)}
+                  showReasons={false}
+                />
+                {/* 카드 전체가 상세로 가는 링크라, 비교 선택은 그 위에 따로 얹는다 */}
+                <label className="cs-pick__box">
+                  <input
+                    type="checkbox"
+                    checked={picked.includes(row.property.id)}
+                    onChange={() => togglePick(row.property.id)}
+                    disabled={!picked.includes(row.property.id) && picked.length >= 3}
+                  />
+                  <span>비교</span>
+                </label>
+              </div>
             ))}
           </div>
         )}
       </section>
+
+      {/* 고른 것이 있을 때만 뜨는 막대. 화면 아래에 붙여 두면 목록을 내리면서
+          담다가 바로 넘어갈 수 있다. */}
+      {picked.length > 0 && (
+        <div className="cs-pickbar" role="region" aria-label="비교 담은 공고">
+          <span className="cs-pickbar__n">{picked.length}건 담음</span>
+          <button type="button" className="cs-pickbar__clear" onClick={() => setPicked([])}>
+            비우기
+          </button>
+          {picked.length >= 2 ? (
+            <Link href={`/compare?ids=${picked.join(',')}`} className="cs-btn cs-btn--sm cs-btn--primary">
+              나란히 비교하기
+            </Link>
+          ) : (
+            <span className="cs-pickbar__hint">하나 더 고르면 비교할 수 있어요</span>
+          )}
+        </div>
+      )}
 
       {!user && savedIds.length > 0 && (
         <div className="cs-card" style={{ marginTop: 32 }}>

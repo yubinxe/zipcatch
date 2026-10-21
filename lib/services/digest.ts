@@ -116,7 +116,7 @@ export async function sendConditionDigest(input: {
     preferredHousingTypes: profile.housingTypes,
   }
 
-  const official = await listOfficialProperties({ limit: 200 }).catch(() => [])
+  const official = await listOfficialProperties({ openOnly: true, limit: 300 }).catch(() => [])
   // 예시를 걸러내기 전에 잘리면 예시가 자리를 차지하고 실제 공고가 밀려난다.
   // 넉넉히 받아 두고, 아래에서 공식 공고만 남긴 뒤에 자른다.
   const outcome = findCandidatesForCustomer(searcher, [...official, ...getState().properties], {

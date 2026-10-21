@@ -6670,3 +6670,313 @@ html {
 .cs-footer__maker a:hover {
   border-bottom-color: currentColor;
 }
+
+/* ── 공고 비교 ────────────────────────────────────────────────────────
+   목록은 "무엇이 있나", 상세는 "이 공고가 어떤가"에 답한다. 사람이 막히는
+   자리는 그 사이 — "둘 중 어느 쪽인가" 다. 그 한 줄을 위한 화면이다. */
+.cs-cmp__head {
+  margin-bottom: 22px;
+}
+.cs-cmp__lead {
+  margin-top: 12px;
+  max-width: 62ch;
+}
+.cs-cmp__lead b {
+  color: var(--title);
+  font-weight: 700;
+}
+.cs-cmp__tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.cs-cmp__toggle {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 16px;
+  min-height: 38px;
+  cursor: pointer;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.cs-cmp__toggle[data-active='true'] {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--paper);
+}
+.cs-cmp__back {
+  font-size: 14px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  padding: 8px 0;
+}
+.cs-cmp__back:hover {
+  color: var(--title);
+}
+
+.cs-cmp__card {
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent);
+}
+.cs-cmp__card::-webkit-scrollbar {
+  display: none;
+}
+@supports not (mask-image: linear-gradient(to right, #000, transparent)) {
+  .cs-cmp__card {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+.cs-cmp__table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  /* 열을 고르게 나눈다. 긴 공고명 하나가 제 열을 끝까지 늘려 나머지를
+     화면 밖으로 밀어내던 것을 막는다 — 비교는 폭이 같아야 비교가 된다. */
+  table-layout: fixed;
+}
+.cs-cmp__table th,
+.cs-cmp__table td {
+  overflow-wrap: anywhere;
+}
+.cs-cmp__table th,
+.cs-cmp__table td {
+  padding: 14px 18px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+.cs-cmp__table tbody tr:hover td {
+  background: var(--paper);
+}
+/* 다른 값이 있는 줄만 왼쪽에 표시를 둔다. 결정을 바꾸는 것은 이 줄이다 */
+.cs-cmp__table tbody tr[data-diff='true'] .cs-cmp__rowhead {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.cs-cmp__rowhead {
+  /* 고정 레이아웃에서 첫 칸만 폭을 못 박고 나머지는 균등하게 나뉜다 */
+  width: 112px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--paper-2);
+  white-space: nowrap;
+}
+.cs-cmp__mark {
+  color: var(--accent);
+  font-weight: 700;
+  margin-left: 2px;
+}
+.cs-cmp__notes {
+  margin: 16px 0 0;
+  display: grid;
+  gap: 8px;
+}
+.cs-cmp__notes div {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cs-cmp__notes dt {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--body);
+  white-space: nowrap;
+}
+.cs-cmp__notes dd {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  flex: 1 1 280px;
+}
+
+.cs-cmp__col {
+  /* 폭은 table-layout: fixed 가 고르게 나눈다. 여기서 min-width 를 다시
+     주면 둘이 싸워 셀이 옆 칸을 침범한다 — 실제로 공고명이 겹쳐 나왔다. */
+  width: auto;
+}
+.cs-cmp__name {
+  display: block;
+  /* 표 공통 규칙이 nowrap 을 걸어 둬서 긴 공고명이 옆 칸을 덮었다.
+     열 폭은 이미 고르게 나뉘어 있으니 여기서는 줄바꿈만 풀어 주면 된다. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--title);
+  text-decoration: none;
+}
+.cs-cmp__name:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cs-cmp__sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.cs-cmp__cell {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--body);
+  font-variant-numeric: tabular-nums;
+}
+/* 공고가 주지 않은 값. 흐리게 두되 지우지 않는다 — 없다는 것도 정보다 */
+.cs-cmp__cell[data-dim='true'] {
+  color: var(--muted);
+}
+.cs-cmp__acts {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cs-cmp__link {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cs-cmp__warn {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  max-width: 76ch;
+}
+.cs-cmp__empty {
+  padding: 40px 0 80px;
+}
+
+/* ── 비교 담기 ──────────────────────────────────────────────────── */
+.cs-pick {
+  position: relative;
+}
+.cs-pick[data-on='true'] .cs-notice {
+  border-color: var(--title);
+}
+.cs-pick__box {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+.cs-pick__box:hover {
+  border-color: var(--line-ink);
+  color: var(--title);
+}
+.cs-pick[data-on='true'] .cs-pick__box {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--paper);
+}
+.cs-pick__box input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.cs-pick__box input:disabled {
+  cursor: not-allowed;
+}
+
+/* 고른 것이 있을 때만 뜨는 막대. 목록을 내리면서 담다가 바로 넘어간다 */
+.cs-pickbar {
+  position: sticky;
+  bottom: 18px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 28px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--paper);
+  box-shadow: 0 18px 40px -22px rgba(11, 15, 25, 0.6);
+}
+.cs-pickbar__n {
+  font-family: var(--font-brand), var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+}
+.cs-pickbar__clear {
+  font: inherit;
+  font-size: 13px;
+  color: var(--paper);
+  opacity: 0.75;
+  background: transparent;
+  border: 0;
+  padding: 8px 2px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.cs-pickbar__clear:hover {
+  opacity: 1;
+}
+.cs-pickbar__hint {
+  font-size: 13.5px;
+  opacity: 0.8;
+  margin-left: auto;
+}
+.cs-pickbar .cs-btn {
+  margin-left: auto;
+  background: var(--paper);
+  color: var(--title);
+  border-color: var(--paper);
+}
+
+@media (max-width: 640px) {
+  .cs-cmp__table th,
+  .cs-cmp__table td {
+    padding: 12px 13px;
+  }
+  .cs-cmp__rowhead {
+    width: 96px;
+    min-width: 96px;
+    font-size: 12.5px;
+  }
+  .cs-cmp__note {
+    max-width: 90px;
+  }
+  .cs-pickbar {
+    border-radius: var(--r-inner);
+  }
+}
+
+/* 만든 사람 링크 — 휴대폰에서 높이가 17px 밖에 안 돼 손끝에 안 닿았다 */
+.cs-footer__maker a {
+  display: inline-block;
+  padding: 5px 0;
+  min-height: 24px;
+}

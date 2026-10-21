@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     // 실제 공고만 평가한다. 예시는 화면 구성을 보여주려고 만든 것이라
     // 후보로 내놓으면 지원할 수 없는 공고를 권하는 셈이 된다.
     // 맞는 공고가 없으면 없다고 말한다 — 예시로 자리를 메우지 않는다.
-    const official = await listOfficialProperties({ limit: 200 })
+    const official = await listOfficialProperties({ openOnly: true, limit: 300 })
     const outcome = findCandidatesForCustomer(searcher, official, { now })
     const officialInResult =
       outcome.primary.filter(r => r.property.dataOrigin === 'OFFICIAL').length +

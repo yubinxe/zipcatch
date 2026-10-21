@@ -26,7 +26,7 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const now = new Date()
-    const all = await listOfficialProperties({ limit: 400 })
+    const all = await listOfficialProperties({ openOnly: true, limit: 400 })
 
     const pins = []
     let noCoord = 0

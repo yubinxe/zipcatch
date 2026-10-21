@@ -99,6 +99,14 @@ export interface Property {
   lng: number | null
   /** ADDRESS(주소로) · NAME(공고명으로). 없으면 아직 못 찾은 것 */
   geoSource: 'ADDRESS' | 'NAME' | 'REGION' | null
+  /**
+   * 이 공고를 우리가 마지막으로 가져온 시각 (ISO).
+   *
+   * 출처와 원문 링크만으로는 "지금도 맞는 값인가"에 답하지 못한다. 공고는
+   * 취소·정정되고, 우리 수집이 멈춰 있을 수도 있다. 언제 받아온 값인지를
+   * 함께 적어야 보는 사람이 스스로 판단할 수 있다.
+   */
+  collectedAt: string | null
   dataOrigin: DataOrigin
 }
 
