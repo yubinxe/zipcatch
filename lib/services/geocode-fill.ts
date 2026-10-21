@@ -79,9 +79,19 @@ export async function fillCoordinates(
   const now = new Date()
   const limit = opts.limit ?? 60
 
+  /*
+   * 아직 접수가 남은 공고부터 채운다.
+   *
+   * 예전에는 저장된 전부를 마감일 순으로 훑었다. 그 순서는 **지난 공고가
+   * 앞**이라, 지도에 뜨지도 않는 공고에 카카오 호출을 다 쓰고 정작 열려
+   * 있는 공고는 좌표 없이 지역 기준점에 모여 있었다. 실제로 배포본에서
+   * 좌표 85건을 채우고도 지도의 정확좌표는 0이었다.
+   */
+  const ymd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
   let rows: OpportunityRow[]
   try {
-    rows = await repo.listOpportunities({ includeDemo: false, limit: 400 })
+    rows = await repo.listOpportunities({ includeDemo: false, endsAfter: ymd, limit: 400 })
   } catch (err) {
     return {
       ...NONE,
