@@ -3,6 +3,7 @@ import HomeNoticeStrip from '@/components/consumer/HomeNoticeStrip'
 import DeadlineTicker from '@/components/consumer/DeadlineTicker'
 import DeadlineCalendar from '@/components/consumer/DeadlineCalendar'
 import Reveal from '@/components/consumer/Reveal'
+import TiltCard from '@/components/consumer/TiltCard'
 
 const STEPS = [
   {
@@ -98,15 +99,30 @@ export default function ConsumerHome() {
     <>
       {/* ── 첫 화면 ─────────────────────────────────────── */}
       <section className="cs-wrap cs-hero">
+        {/* 빛과 결. 글을 가리지 않는 자리에만 깔린다 */}
+        <div className="cs-lux-aura" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+        <div className="cs-lux-grid" aria-hidden="true" />
+
         <div>
           <span className="cs-eyebrow">청약부터 공공임대까지</span>
 
+          {/* 줄마다 차례로 올라온다. 쓸어 올리려면 줄이 각자 틀을 가져야 한다 */}
           <h1 className="cs-hero-title">
-            나에게 맞는 집,
-            <br />
-            <em>내집마련 기회</em>를
-            <br />
-            사로잡아 보세요.
+            <span className="cs-lux-line">
+              <span>나에게 맞는 집,</span>
+            </span>
+            <span className="cs-lux-line">
+              <span>
+                <em>내집마련 기회</em>를
+              </span>
+            </span>
+            <span className="cs-lux-line">
+              <span>사로잡아 보세요.</span>
+            </span>
           </h1>
 
           <p className="cs-lead" style={{ marginTop: 26, maxWidth: 520 }}>
@@ -173,10 +189,15 @@ export default function ConsumerHome() {
           <p className="cs-note" style={{ marginTop: 20 }}>
             가입 없이 먼저 확인하세요 · 청약홈·LH 실제 모집공고
           </p>
+
+          <span className="cs-lux-scroll" aria-hidden="true">
+            <i />
+            아래로 내려 공고 보기
+          </span>
         </div>
 
         {/* 결과 미리보기 — 실제 성과가 아니라 화면 예시임을 카드 안에 밝힌다 */}
-        <div className="cs-preview">
+        <TiltCard className="cs-preview cs-lux-tilt">
           <div className="cs-card cs-card--lift">
             <span className="cs-preview__label">나에게 맞는 집은 이런 모습</span>
 
@@ -240,8 +261,19 @@ export default function ConsumerHome() {
               <div className="cs-mini__sub">공식 일정과 준비 권장일을 구분해요</div>
             </div>
           </div>
-        </div>
+        </TiltCard>
       </section>
+
+      {/* ── 어디서 온 정보인지 ──────────────────────────── */}
+      {/* 꾸밈이 아니라 신뢰다. 첫 화면 바로 아래, 가장 얌전한 모습으로 둔다 */}
+      <div className="cs-wrap">
+        <div className="cs-lux-sources">
+          <b>Data Source</b>
+          <span>청약홈 OpenAPI</span>
+          <span>LH 청약플러스</span>
+          <span>공공데이터포털</span>
+        </div>
+      </div>
 
       {/* ── 지금 살펴볼 공고 ────────────────────────────── */}
       <HomeNoticeStrip />
@@ -258,7 +290,8 @@ export default function ConsumerHome() {
         />
         <div className="cs-steps3">
           {STEPS.map((s, i) => (
-            <div key={s.title} className="cs-card">
+            // 번호를 카드 바닥에 유령처럼 한 번 더 깐다 — 세 장이 한 줄로 읽힌다
+            <div key={s.title} className="cs-card" data-ghost={String(i + 1).padStart(2, '0')}>
               <span className="cs-step-card__num">STEP {String(i + 1).padStart(2, '0')}</span>
               <div className="cs-step-card__title">{s.title}</div>
               <p className="cs-step-card__desc">{s.desc}</p>

@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { gmarket, jalnan, pretendard } from './fonts'
 import './globals.css'
 import './consumer.css'
+/* 한지·먹·주묵 체계 위에 빛과 깊이만 얹는 층. 반드시 consumer.css 뒤에 온다 */
+import './consumer-lux.css'
 import './crm.css'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zipcatch.vercel.app').replace(/\/$/, '')

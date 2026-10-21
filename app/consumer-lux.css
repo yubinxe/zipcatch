@@ -1,0 +1,1111 @@
+/* ============================================================
+   집캐치 — Lux 레이어
+   ------------------------------------------------------------
+   consumer.css 의 한지·먹·주묵 체계는 그대로 둔 채, 그 위에 빛과
+   깊이와 움직임만 얹는다. 색을 새로 만들지 않는다 — 있는 색에
+   광택과 그림자와 시간을 준다.
+
+   읽는 사람을 먼저 세운다. 화려함이 가독을 깎으면 그 화려함은
+   실패다. 그래서 이 레이어는 글자를 키우고, 대비를 올리고,
+   누를 자리를 넓히는 일부터 한다. 장식은 그다음이다.
+
+   모든 움직임은 prefers-reduced-motion 에서 즉시 멈춘다.
+   ============================================================ */
+
+/* ─────────────────────────────────────────────────────────
+   0. 토큰 — 빛·그림자·시간
+   ───────────────────────────────────────────────────────── */
+.cs,
+.cs-chat-fab,
+.cs-chat {
+  /* 금박. 주묵과 같은 온도의 따뜻한 금으로, 괘선과 섬광에만 쓴다 */
+  --gold: #B08D4F;
+  --gold-soft: #E8D9B8;
+  --gold-line: color-mix(in srgb, var(--gold) 42%, transparent);
+
+  /* 깊이 — 한 장짜리 그림자는 스티커처럼 보인다. 가까운 그림자와
+     먼 그림자를 겹쳐 종이의 두께를 만든다 */
+  --lift-1: 0 1px 2px rgba(20, 17, 12, 0.04), 0 2px 8px -2px rgba(20, 17, 12, 0.06);
+  --lift-2:
+    0 2px 4px rgba(20, 17, 12, 0.04), 0 12px 24px -10px rgba(20, 17, 12, 0.14),
+    0 40px 72px -44px rgba(20, 17, 12, 0.42);
+  --lift-3:
+    0 3px 6px rgba(20, 17, 12, 0.05), 0 22px 42px -16px rgba(20, 17, 12, 0.2),
+    0 64px 110px -56px rgba(20, 17, 12, 0.5);
+
+  --ease-lux: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.33, 0.1, 0.2, 1);
+
+  /* 종이결. 한 장을 만들어 여러 면이 같은 결을 쓴다 */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+}
+
+/* ─────────────────────────────────────────────────────────
+   1. 읽는 사람 먼저 — 글자·대비·누를 자리
+   눈이 편한 쪽이 결국 오래 머문다. 화려함의 전제 조건이다.
+   ───────────────────────────────────────────────────────── */
+.cs {
+  font-size: 18px;
+  line-height: 1.68;
+  letter-spacing: -0.003em;
+}
+@media (max-width: 760px) {
+  .cs {
+    font-size: 17px;
+    line-height: 1.66;
+  }
+}
+
+/* 본문 계열을 한 단 올린다 — 17px 이하는 노안에서 획이 뭉친다 */
+.cs-lead {
+  font-size: clamp(19px, 1.45vw, 22px);
+  line-height: 1.7;
+}
+.cs-sub {
+  font-size: clamp(17px, 1.15vw, 19px);
+  line-height: 1.72;
+}
+.cs-step-card__desc,
+.cs-faq__a p {
+  font-size: 17.5px;
+  line-height: 1.75;
+}
+.cs-note {
+  font-size: 15.5px;
+}
+
+/* 초점은 보여야 쓸 수 있다. 키보드로 다니는 사람에게 금박 테를 두른다 */
+.cs a:focus-visible,
+.cs button:focus-visible,
+.cs summary:focus-visible,
+.cs [tabindex]:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   2. 지면 — 한지의 결과 빛
+   ───────────────────────────────────────────────────────── */
+.cs {
+  position: relative;
+  isolation: isolate;
+}
+/* 종이결. 전면에 아주 옅게 깔아 평평한 색면을 없앤다 */
+/* `.cs` 가 isolation: isolate 이므로 음수 z-index 는 이 지면 안에만 머문다 —
+   바탕보다는 앞, 내용보다는 뒤. 자식에게 position 을 강제하면 안 된다.
+   `.cs > *` 로 묶어 position: relative 를 주면 sticky 머리글이 그 자리에서
+   풀려 스크롤에 떨어져 나간다. */
+.cs::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--grain);
+  opacity: 0.2;
+  mix-blend-mode: multiply;
+}
+
+/* 읽은 만큼 차오르는 금박 실선 — 길이를 알려주는 가장 조용한 방법 */
+.cs-lux-progress {
+  position: fixed;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 3px;
+  z-index: 90;
+  transform-origin: 0 50%;
+  transform: scaleX(var(--p, 0));
+  background: linear-gradient(90deg, var(--accent), var(--gold) 72%, var(--gold-soft));
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* ─────────────────────────────────────────────────────────
+   3. 첫 화면 — 빛이 도는 한 장
+   ───────────────────────────────────────────────────────── */
+.cs-hero {
+  position: relative;
+  padding-top: clamp(64px, 7vw, 108px);
+  padding-bottom: clamp(40px, 5vw, 72px);
+  align-items: center;
+  /* 빛은 지면 밖까지 번지지만 가로 스크롤까지 번지면 안 된다.
+     자르는 일은 넘치는 당사자에게 맡긴다 — `.cs` 에 걸면 그 안의
+     sticky 머리글이 함께 잘려 스크롤에 떨어져 나간다.
+     clip-margin 으로 카드 그림자가 숨 쉴 틈만 남긴다. */
+  overflow: clip;
+}
+
+/* 오로라. 주묵·금박·쪽빛을 아주 옅게 풀어 아주 느리게 돌린다.
+   blur 로 경계를 지워 '색 덩어리'가 아니라 '빛'으로 읽히게 한다 */
+.cs-lux-aura {
+  position: absolute;
+  inset: -14% -2% -22%;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 48px;
+}
+.cs-lux-aura span {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  filter: blur(68px);
+  opacity: 0.5;
+  will-change: transform;
+}
+.cs-lux-aura span:nth-child(1) {
+  width: 46vw;
+  height: 46vw;
+  left: -8%;
+  top: -18%;
+  background: radial-gradient(circle at 50% 50%, rgba(168, 58, 32, 0.22), transparent 68%);
+  animation: luxDrift1 26s var(--ease-soft) infinite alternate;
+}
+.cs-lux-aura span:nth-child(2) {
+  width: 40vw;
+  height: 40vw;
+  right: -6%;
+  top: -10%;
+  background: radial-gradient(circle at 50% 50%, rgba(176, 141, 79, 0.3), transparent 66%);
+  animation: luxDrift2 32s var(--ease-soft) infinite alternate;
+}
+.cs-lux-aura span:nth-child(3) {
+  width: 52vw;
+  height: 40vw;
+  left: 26%;
+  bottom: -30%;
+  background: radial-gradient(circle at 50% 50%, rgba(61, 95, 67, 0.16), transparent 70%);
+  animation: luxDrift3 38s var(--ease-soft) infinite alternate;
+}
+@keyframes luxDrift1 {
+  to {
+    transform: translate3d(7%, 9%, 0) scale(1.18);
+  }
+}
+@keyframes luxDrift2 {
+  to {
+    transform: translate3d(-9%, 12%, 0) scale(1.12);
+  }
+}
+@keyframes luxDrift3 {
+  to {
+    transform: translate3d(5%, -11%, 0) scale(1.14);
+  }
+}
+
+/* 괘선 격자. 한지 위에 접은 자국 하나 — 있는 줄도 모르게 깔린다 */
+.cs-lux-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      color-mix(in srgb, var(--line-ink) 5%, transparent) 0 1px,
+      transparent 1px 25%
+    );
+  mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 62%, transparent);
+}
+
+/* 어깨 문구 — 인장처럼. 괘선 위에 점 하나를 찍어 격을 올린다 */
+.cs-eyebrow {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-top-width: 2px;
+  padding-top: 11px;
+}
+.cs-eyebrow::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
+  flex: none;
+}
+
+/* 제목 — 줄마다 차례로 올라온다. 아래에서 쓸어 올리듯 */
+.cs-lux-line {
+  display: block;
+  overflow: hidden;
+}
+.cs-lux-line > span {
+  display: block;
+  animation: luxLineUp 1.05s var(--ease-lux) both;
+}
+.cs-lux-line:nth-child(1) > span {
+  animation-delay: 0.05s;
+}
+.cs-lux-line:nth-child(2) > span {
+  animation-delay: 0.17s;
+}
+.cs-lux-line:nth-child(3) > span {
+  animation-delay: 0.29s;
+}
+@keyframes luxLineUp {
+  from {
+    transform: translate3d(0, 112%, 0);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* 주묵으로 놓인 강조에 금박 밑줄을 그어 올린다 */
+.cs-hero-title em {
+  position: relative;
+  background-image: linear-gradient(90deg, var(--accent) 0%, var(--gold) 55%, var(--accent) 100%);
+  background-repeat: no-repeat;
+  background-position: 0 96%;
+  background-size: 0 0.1em;
+  animation: luxUnderline 1.1s var(--ease-lux) 0.95s both;
+}
+@keyframes luxUnderline {
+  to {
+    background-size: 100% 0.1em;
+  }
+}
+
+/* 본문·버튼·단서는 제목 뒤를 따라 들어온다 */
+.cs-hero .cs-lead,
+.cs-hero .cs-hero__cta,
+.cs-hero .cs-note {
+  animation: luxFadeUp 0.9s var(--ease-lux) both;
+}
+.cs-hero .cs-lead {
+  animation-delay: 0.42s;
+}
+.cs-hero .cs-hero__cta {
+  animation-delay: 0.54s;
+}
+.cs-hero .cs-note {
+  animation-delay: 0.66s;
+}
+@keyframes luxFadeUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   4. 버튼 — 먹판 위를 지나가는 섬광
+   ───────────────────────────────────────────────────────── */
+.cs-btn {
+  min-height: 56px;
+  padding: 16px 28px;
+  font-size: 17.5px;
+  letter-spacing: -0.005em;
+  transition:
+    transform 0.4s var(--ease-lux),
+    box-shadow 0.4s var(--ease-lux),
+    background-color 0.25s var(--ease-soft),
+    color 0.25s var(--ease-soft);
+}
+.cs-btn--sm {
+  min-height: 44px;
+  padding: 10px 18px;
+  font-size: 15.5px;
+}
+
+.cs-btn--primary {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: var(--lift-1);
+}
+/* 섬광. 누르기 전에 한 번 지나가며 '이게 버튼'임을 알린다 */
+.cs-btn--primary::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -60%;
+  width: 45%;
+  z-index: -1;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    color-mix(in srgb, var(--gold-soft) 52%, transparent),
+    transparent
+  );
+  transform: skewX(-18deg);
+  animation: luxSheen 4.6s var(--ease-soft) 1.6s infinite;
+}
+@keyframes luxSheen {
+  0% {
+    left: -60%;
+  }
+  38%,
+  100% {
+    left: 130%;
+  }
+}
+.cs-btn--primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--lift-2);
+}
+.cs-btn--primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+.cs-btn--primary svg {
+  transition: transform 0.4s var(--ease-lux);
+}
+.cs-btn--primary:hover svg {
+  transform: translateX(4px);
+}
+
+/* 글자 버튼은 밑줄이 자라난다 */
+.cs-btn--text {
+  position: relative;
+  min-height: 48px;
+}
+.cs-btn--text::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  height: 1.5px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 0.45s var(--ease-lux);
+  opacity: 0.45;
+}
+.cs-btn--text:hover::after {
+  transform: scaleX(1);
+}
+
+/* ─────────────────────────────────────────────────────────
+   5. 미리보기 — 손끝을 따라 기우는 한 장
+   ───────────────────────────────────────────────────────── */
+.cs-preview {
+  position: relative;
+  padding: clamp(20px, 2.4vw, 30px);
+  border-radius: 34px;
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.72), rgba(234, 228, 217, 0.5)),
+    var(--paper-2);
+  border: 1px solid color-mix(in srgb, var(--gold) 20%, transparent);
+  box-shadow: var(--lift-1);
+  perspective: 1200px;
+}
+.cs-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image: var(--grain);
+  opacity: 0.14;
+  mix-blend-mode: multiply;
+}
+
+.cs-lux-tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.5s var(--ease-lux);
+  will-change: transform;
+}
+.cs-lux-tilt[data-tilting='1'] {
+  transition: transform 0.12s linear;
+}
+
+.cs-preview .cs-card--lift {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(140deg, var(--gold-line), var(--line) 42%, var(--gold-line)) border-box;
+  box-shadow: var(--lift-3);
+}
+/* 손끝이 지나가는 자리에 반사광 — 유리 한 장을 덮은 것처럼 */
+.cs-preview .cs-card--lift::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    380px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(255, 255, 255, 0.85),
+    rgba(255, 255, 255, 0) 62%
+  );
+  opacity: 0;
+  transition: opacity 0.45s var(--ease-soft);
+  mix-blend-mode: soft-light;
+}
+.cs-preview:hover .cs-card--lift::before {
+  opacity: 1;
+}
+
+.cs-preview__label {
+  letter-spacing: 0.1em;
+  color: var(--gold);
+}
+
+/* 일정 칩은 아주 느리게 숨을 쉰다 */
+.cs-mini {
+  background: rgba(255, 255, 255, 0.84);
+  backdrop-filter: blur(8px);
+  border-color: color-mix(in srgb, var(--gold) 22%, transparent);
+  box-shadow: var(--lift-1);
+  animation: luxFloat 7s var(--ease-soft) infinite alternate;
+}
+@keyframes luxFloat {
+  to {
+    transform: translateY(-7px);
+  }
+}
+.cs-mini__icon {
+  background: linear-gradient(140deg, var(--brand-soft), #fff);
+  border: 1px solid var(--gold-line);
+  border-radius: 10px;
+}
+
+/* 스크롤 안내 — 아래가 더 있다는 사실을 조용히 */
+.cs-lux-scroll {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 30px;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  animation: luxFadeUp 0.9s var(--ease-lux) 0.8s both;
+}
+.cs-lux-scroll i {
+  display: block;
+  width: 1px;
+  height: 34px;
+  background: linear-gradient(var(--gold), transparent);
+  animation: luxScrollLine 2.4s var(--ease-soft) infinite;
+  transform-origin: 50% 0;
+}
+@keyframes luxScrollLine {
+  0% {
+    transform: scaleY(0.15);
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 0;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   6. 출처 띠 — 어디서 온 정보인지 첫 화면 바로 밑에 적는다
+   꾸밈이 아니라 신뢰다. 그래서 가장 얌전하게 둔다.
+   ───────────────────────────────────────────────────────── */
+.cs-lux-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 30px;
+  padding: 22px 0 0;
+  margin-top: clamp(30px, 4vw, 52px);
+  border-top: 1px solid var(--line);
+}
+.cs-lux-sources b {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+.cs-lux-sources span {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--body);
+}
+.cs-lux-sources span::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+  flex: none;
+}
+
+/* ─────────────────────────────────────────────────────────
+   7. 섹션 머리 — 번호를 크게, 괘선을 그어 올리며
+   ───────────────────────────────────────────────────────── */
+.cs-sec-head {
+  position: relative;
+  padding-top: 26px;
+}
+/* 번호 뒤에 깔리는 금박 괘선. 섹션이 보이면 왼쪽에서 그어진다 */
+.cs-sec-head::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), var(--gold) 28%, var(--line) 72%, transparent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 1.1s var(--ease-lux);
+}
+[data-reveal='in'] .cs-sec-head::before,
+.cs-sec-head.is-in::before {
+  transform: scaleX(1);
+}
+.cs-sec-index {
+  font-size: clamp(30px, 3vw, 40px);
+  line-height: 1;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+}
+.cs-section-title {
+  letter-spacing: -0.018em;
+}
+
+/* ─────────────────────────────────────────────────────────
+   8. 카드 — 테두리에 금박 한 줄, 들어 올리면 빛이 돈다
+   ───────────────────────────────────────────────────────── */
+.cs-card {
+  position: relative;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(145deg, var(--gold-line), var(--line) 48%, transparent) border-box;
+  box-shadow: var(--lift-1);
+  transition:
+    transform 0.55s var(--ease-lux),
+    box-shadow 0.55s var(--ease-lux);
+}
+.cs-steps3 > .cs-card:hover,
+.cs-card--lift:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--lift-2);
+}
+
+/* 준비 순서 — 번호를 유령처럼 크게 깔고 그 위에 글을 얹는다 */
+.cs-steps3 > .cs-card {
+  overflow: hidden;
+  padding-top: calc(var(--pad-card) + 6px);
+}
+.cs-steps3 > .cs-card::after {
+  content: '';
+  position: absolute;
+  inset: auto -18px -26px auto;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--gold) 13%, transparent), transparent 66%);
+  pointer-events: none;
+  transition: transform 0.7s var(--ease-lux);
+}
+.cs-steps3 > .cs-card:hover::after {
+  transform: scale(1.4);
+}
+.cs-step-card__num {
+  color: var(--gold);
+  letter-spacing: 0.16em;
+}
+.cs-step-card__title {
+  font-size: 21px;
+  letter-spacing: -0.012em;
+}
+
+/* ─────────────────────────────────────────────────────────
+   9. 저장 권유 — 먹판에 금박 테, 그리고 숨 쉬는 빛
+   ───────────────────────────────────────────────────────── */
+.cs-keep {
+  position: relative;
+  overflow: hidden;
+  border-color: transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, var(--gold-line), var(--line) 50%, var(--gold-line)) border-box;
+  box-shadow: var(--lift-1);
+}
+.cs-keep::before {
+  content: '';
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  right: -140px;
+  top: -200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 9%, transparent), transparent 68%);
+  pointer-events: none;
+}
+.cs-keep__cta {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: var(--lift-2);
+  transition:
+    transform 0.5s var(--ease-lux),
+    box-shadow 0.5s var(--ease-lux);
+}
+.cs-keep__cta::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -60%;
+  width: 42%;
+  z-index: -1;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    color-mix(in srgb, var(--gold-soft) 40%, transparent),
+    transparent
+  );
+  transform: skewX(-18deg);
+  animation: luxSheen 5.4s var(--ease-soft) 2.4s infinite;
+}
+.cs-keep__cta:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--lift-3);
+}
+
+/* ───────────────────────────────────────────────────────── */
+/* 10. FAQ — 여닫이가 미끄러지듯                             */
+/* ───────────────────────────────────────────────────────── */
+.cs-faq__item {
+  border-radius: var(--r-inner);
+  transition: background-color 0.4s var(--ease-soft);
+}
+.cs-faq__item:hover {
+  background: color-mix(in srgb, var(--paper-2) 42%, transparent);
+}
+.cs-faq__q {
+  font-size: 19px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: -0.012em;
+}
+.cs-faq__item[open] .cs-faq__q {
+  color: var(--accent);
+}
+/* 내용이 높이를 따라 펼쳐진다. 지원하지 않는 브라우저는 그냥 즉시 열린다 */
+@supports selector(details::details-content) {
+  .cs-faq__item::details-content {
+    block-size: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition:
+      block-size 0.5s var(--ease-lux),
+      opacity 0.4s var(--ease-soft),
+      content-visibility 0.5s allow-discrete;
+    transition-behavior: allow-discrete;
+  }
+  .cs-faq__item[open]::details-content {
+    block-size: auto;
+    opacity: 1;
+  }
+}
+.cs-faq__mark {
+  color: var(--gold);
+}
+
+/* ─────────────────────────────────────────────────────────
+   11. 마지막 먹판 — 지면에서 가장 깊은 자리
+   ───────────────────────────────────────────────────────── */
+.cs-cta-band {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: clamp(64px, 8vw, 104px) 24px;
+  background:
+    radial-gradient(120% 120% at 50% -10%, #241f17 0%, var(--title) 58%);
+  box-shadow: var(--lift-3);
+}
+.cs-cta-band::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 22% 24%, rgba(168, 58, 32, 0.34), transparent 54%),
+    radial-gradient(circle at 78% 72%, rgba(176, 141, 79, 0.26), transparent 56%);
+  filter: blur(42px);
+  animation: luxBandDrift 24s var(--ease-soft) infinite alternate;
+}
+@keyframes luxBandDrift {
+  to {
+    transform: translate3d(4%, -4%, 0) scale(1.1);
+  }
+}
+.cs-cta-band::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--grain);
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+.cs-cta-band h2,
+.cs-cta-band .cs-section-title {
+  font-size: clamp(30px, 3.4vw, 46px);
+  line-height: 1.34;
+}
+/* 금박 괘선 하나를 제목 위에 — 인장을 찍듯 */
+.cs-cta-band h2::before {
+  content: '';
+  display: block;
+  width: 56px;
+  height: 2px;
+  margin: 0 auto 26px;
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+}
+.cs-cta-band .cs-btn--primary {
+  background: linear-gradient(140deg, #fff, var(--paper));
+  color: var(--title);
+  min-height: 60px;
+  padding: 18px 36px;
+  font-size: 18px;
+}
+.cs-cta-band .cs-btn--primary:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.6);
+}
+
+/* ─────────────────────────────────────────────────────────
+   12. 등장 — 올라오며 나타나던 것을, 쓸어 올리며
+   ───────────────────────────────────────────────────────── */
+[data-reveal='out'] {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0);
+  filter: blur(3px);
+}
+[data-reveal='in'] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition:
+    opacity 0.9s var(--ease-lux),
+    transform 0.9s var(--ease-lux),
+    filter 0.9s var(--ease-lux);
+}
+
+/* ─────────────────────────────────────────────────────────
+   13. 좁은 화면 — 장식을 덜어내되 격은 남긴다
+   ───────────────────────────────────────────────────────── */
+@media (max-width: 1000px) {
+  .cs-lux-aura span {
+    filter: blur(52px);
+    opacity: 0.4;
+  }
+  .cs-lux-grid {
+    display: none;
+  }
+  .cs-preview {
+    border-radius: 26px;
+  }
+}
+@media (max-width: 760px) {
+  .cs-btn {
+    min-height: 54px;
+    font-size: 17px;
+  }
+  .cs-hero-title {
+    line-height: 1.26;
+  }
+  .cs-lux-sources {
+    gap: 12px 20px;
+  }
+  .cs-cta-band h2::before {
+    margin-bottom: 20px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   14. 움직임을 원치 않는 사용자 — 전부 멈춘다
+   장식은 선택이지만 읽을 수 있는 것은 선택이 아니다.
+   ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cs *,
+  .cs *::before,
+  .cs *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+  .cs-lux-line > span,
+  .cs-hero .cs-lead,
+  .cs-hero .cs-hero__cta,
+  .cs-hero .cs-note,
+  .cs-lux-scroll {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .cs-hero-title em {
+    background-size: 100% 0.1em;
+  }
+  .cs-sec-head::before {
+    transform: scaleX(1);
+  }
+  .cs-lux-aura {
+    display: none;
+  }
+  [data-reveal='out'] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* 대비를 더 원하는 사용자 — 금박을 걷고 선을 세운다 */
+@media (prefers-contrast: more) {
+  .cs {
+    --line: #B9B0A0;
+    --muted: #4A4438;
+  }
+  .cs-card,
+  .cs-keep,
+  .cs-preview .cs-card--lift {
+    border-color: var(--line-ink);
+    background-image: none;
+    background-color: var(--surface);
+  }
+  .cs-lux-aura {
+    display: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════
+   15. 머리글 — 유리 한 장. 내려갈수록 또렷해진다
+   ═════════════════════════════════════════════════════════ */
+.cs-header {
+  background: color-mix(in srgb, var(--paper) 72%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  border-bottom: 1px solid transparent;
+  transition:
+    background-color 0.4s var(--ease-soft),
+    box-shadow 0.4s var(--ease-soft),
+    border-color 0.4s var(--ease-soft);
+}
+/* 머리글 아래에 금박 실선 한 줄 — 지면과 머리글을 갈라 놓는다 */
+.cs-header::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--gold-line) 18%,
+    var(--line) 50%,
+    var(--gold-line) 82%,
+    transparent
+  );
+}
+.cs-nav__link {
+  font-size: 16.5px;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+}
+.cs-nav__link::after {
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+  height: 2px;
+}
+.cs-header__right .cs-btn--primary {
+  min-height: 46px;
+  padding: 0 20px;
+}
+
+/* ═════════════════════════════════════════════════════════
+   16. 빈자리 — 비어 있다는 사실도 품위 있게 적는다
+   값을 지어내지 않는 것이 이 서비스의 약속이므로, 빈 화면은
+   실패가 아니라 약속이 지켜진 증거다. 그렇게 보이도록 꾸민다.
+   ═════════════════════════════════════════════════════════ */
+.cs-empty {
+  position: relative;
+  padding: clamp(44px, 6vw, 72px) 28px;
+  border-radius: var(--r-card);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(145deg, var(--gold-line), var(--line) 50%, transparent) border-box;
+  box-shadow: var(--lift-1);
+  overflow: hidden;
+}
+.cs-empty::before {
+  content: '';
+  position: absolute;
+  inset: -50% 30% auto -20%;
+  height: 340px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--gold) 12%, transparent), transparent 66%);
+  pointer-events: none;
+}
+.cs-empty__title {
+  font-size: clamp(20px, 2vw, 25px);
+  letter-spacing: -0.015em;
+}
+.cs-empty__desc {
+  font-size: 17px;
+}
+
+/* ═════════════════════════════════════════════════════════
+   17. 섹션 머리 — 번호를 지면의 인장처럼
+   ═════════════════════════════════════════════════════════ */
+.cs-sec-head {
+  align-items: baseline;
+}
+.cs-sec-index {
+  position: relative;
+  font-variant-numeric: tabular-nums;
+}
+/* 번호 뒤에 아주 옅은 후광 하나 */
+.cs-sec-index::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 92px;
+  height: 92px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 10%, transparent), transparent 64%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ═════════════════════════════════════════════════════════
+   18. 신뢰 카드 — 머리에 금박 괘선 한 줄씩
+   ═════════════════════════════════════════════════════════ */
+.cs-steps3 > .cs-card .cs-step-card__title {
+  position: relative;
+  padding-top: 20px;
+}
+.cs-steps3 > .cs-card .cs-step-card__title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 32px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+  transition: width 0.6s var(--ease-lux);
+}
+.cs-steps3 > .cs-card:hover .cs-step-card__title::before {
+  width: 64px;
+}
+/* STEP 라벨이 있는 카드는 라벨이 이미 머리 노릇을 한다 */
+.cs-step-card__num + .cs-step-card__title {
+  padding-top: 10px;
+}
+.cs-step-card__num + .cs-step-card__title::before {
+  display: none;
+}
+
+/* ═════════════════════════════════════════════════════════
+   19. FAQ — 묻는 자리를 넓히고, 표시를 또렷하게
+   ═════════════════════════════════════════════════════════ */
+.cs-faq__q::before {
+  color: var(--gold) !important;
+  transition: transform 0.45s var(--ease-lux);
+}
+.cs-faq__item[open] .cs-faq__q::before {
+  transform: rotate(45deg);
+}
+.cs-faq__a {
+  padding-bottom: 8px;
+}
+
+/* ═════════════════════════════════════════════════════════
+   20. 첫 화면 아래 여백 — 빛이 끝나는 자리를 좁힌다
+   ═════════════════════════════════════════════════════════ */
+@media (min-width: 1001px) {
+  .cs-hero {
+    padding-bottom: clamp(28px, 3vw, 48px);
+  }
+}
+
+/* ═════════════════════════════════════════════════════════
+   21. 되돌린 호흡 — 장식보다 먼저 지켜야 하는 것
+   18~20 절에서 좁혀 놓은 자리를 다시 넓힌다. 노안에는 줄 간격이
+   글자 크기보다 더 크게 작용한다.
+   ═════════════════════════════════════════════════════════ */
+.cs-faq__item {
+  /* 지면 밖으로 번지게 하면 괘선이 섹션 괘선과 어긋난다 — 안쪽에서만 넓힌다 */
+  padding: 26px 0;
+}
+.cs-faq__q {
+  margin-bottom: 0;
+}
+.cs-faq__item[open] .cs-faq__q {
+  margin-bottom: 14px;
+}
+.cs-faq__a {
+  padding-left: 30px;
+  padding-bottom: 4px;
+}
+
+/* 준비 순서 — 번호를 유령처럼 크게 깔아 세 장이 한 줄로 읽히게 한다 */
+.cs-steps3 > .cs-card {
+  min-height: 236px;
+  padding-bottom: calc(var(--pad-card) + 4px);
+}
+.cs-steps3 > .cs-card::before {
+  content: attr(data-ghost);
+  position: absolute;
+  right: 18px;
+  bottom: -14px;
+  font-family: var(--font-display), var(--font-brand), var(--font-sans);
+  font-size: 108px;
+  line-height: 1;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--title) 5%, transparent);
+  pointer-events: none;
+  transition:
+    transform 0.7s var(--ease-lux),
+    color 0.7s var(--ease-soft);
+}
+.cs-steps3 > .cs-card:hover::before {
+  transform: translateY(-6px);
+  color: color-mix(in srgb, var(--accent) 11%, transparent);
+}
+.cs-step-card__title {
+  font-size: 22px;
+}
+.cs-step-card__num {
+  font-size: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom-color: var(--gold-line);
+}
+
+/* 첫 화면과 출처 띠 사이 — 빛이 끝나는 자리를 붙인다 */
+.cs-lux-sources {
+  margin-top: clamp(16px, 2vw, 26px);
+}
+
+/* 스크롤 안내는 넓은 화면에서만. 좁은 화면에서는 손가락이 이미 안다 */
+@media (max-width: 1000px) {
+  .cs-lux-scroll {
+    display: none;
+  }
+}
+.cs-lux-scroll {
+  color: var(--body);
+  font-weight: 600;
+}
+
+/* STEP 라벨이 이미 머리 노릇을 한다 — 괘선을 두 번 긋지 않는다.
+   18절의 선택자가 더 구체적이라, 지우려면 같은 길이로 맞춰야 한다. */
+.cs-steps3 > .cs-card .cs-step-card__num + .cs-step-card__title::before {
+  display: none;
+}
