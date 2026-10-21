@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import ScrollChrome from './ScrollChrome'
+import LuxBackdrop from './LuxBackdrop'
+import ScrollProgress from './ScrollProgress'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { useConsumer } from './ConsumerProvider'
@@ -46,6 +48,10 @@ export default function ConsumerShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="cs">
+      {/* 배경과 진행선은 `.cs` 안에 둔다 — 색 토큰(--paper · --gold …)이
+          여기에만 선언돼 있어서, 밖에 두면 var() 가 풀리지 않는다 */}
+      <LuxBackdrop />
+      <ScrollProgress />
       <ScrollChrome />
       <a href="#consumer-main" className="cs-skip">본문으로 건너뛰기</a>
       <header className="cs-header">
