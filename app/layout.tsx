@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
-import { gmarket, jalnan, pretendard } from './fonts'
+import { pretendard } from './fonts'
 import './globals.css'
 import './consumer.css'
 /* 한지·먹·주묵 체계 위에 빛과 깊이만 얹는 층. 반드시 consumer.css 뒤에 온다 */
 import './consumer-lux.css'
 /* 첫 화면 지도 · 네 장면 · 주거비 환산. 같은 토큰을 쓰므로 lux 뒤에 둔다 */
 import './consumer-atlas.css'
+/* 밤 — 2.1 디자인. 토큰과 첫 화면·섹션 머리·띠를 다시 그린다. 반드시 맨 뒤 */
+import './consumer-night.css'
 import './crm.css'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zipcatch.vercel.app').replace(/\/$/, '')
@@ -64,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="ko"
       data-theme="light"
       data-density="regular"
-      className={`${jalnan.variable} ${gmarket.variable} ${pretendard.variable}`}
+      className={pretendard.variable}
       suppressHydrationWarning
     >
       <body>

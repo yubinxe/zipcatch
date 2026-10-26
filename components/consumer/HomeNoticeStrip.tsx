@@ -73,8 +73,11 @@ export default function HomeNoticeStrip() {
     <section className="cs-wrap cs-section">
       {/* 홈 섹션은 01부터 번호가 이어진다 */}
       <div className="cs-sec-head">
-        <span className="cs-sec-index">01</span>
+        <span className="cs-sec-index" aria-hidden="true">
+          01
+        </span>
         <div className="cs-sec-head__body">
+          <span className="cs-sec-eyebrow">Open Now</span>
           <h2 className="cs-section-title">지금 살펴볼 모집공고</h2>
           <p className="cs-sub" style={{ marginTop: 12 }}>
             분양을 먼저, 그 안에서 접수 마감이 가까운 순으로 보여드려요.
