@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { ViewTransition } from 'react'
 import type { Candidate } from '@/lib/crm/services/scoring'
 import type { Property } from '@/lib/crm/types'
 import { formatManOr } from '@/lib/crm/services/scoring'
@@ -113,7 +114,10 @@ export default function NoticeCard({
       {/* 오른쪽 여백에 지역 마크. 단지명·지역이 왼쪽에만 몰려 있던 자리를 받는다 */}
       <RegionMark region={property.region} district={property.district} title={property.name} />
 
-      <h3 className="cs-notice__name">{property.name}</h3>
+      {/* 상세로 넘어가면 이 제목이 상세의 제목 자리로 이어서 펼쳐진다 */}
+      <ViewTransition name={`notice-title-${property.id}`} share="morph">
+        <h3 className="cs-notice__name">{property.name}</h3>
+      </ViewTransition>
       <p className="cs-notice__where">
         {/* 광역이 없거나 지역과 같으면 한 번만 적는다 */}
         {property.district && property.district !== property.region

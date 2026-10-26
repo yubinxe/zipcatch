@@ -10,7 +10,7 @@
  * 지도는 화면의 지도와 같은 @svg-maps/south-korea 경로를 쓴다.
  */
 import { createRequire } from 'node:module'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -20,6 +20,15 @@ const puppeteer = require('puppeteer-core')
 const mapMod = require('@svg-maps/south-korea')
 const map = mapMod.default ?? mapMod
 const { svgPathBbox } = require('svg-path-bbox')
+
+/** components/consumer/BrandMark.tsx 와 같은 마크. square 면 모서리를 깎지 않는다(iOS 가 깎는다) */
+const mark = (size, { square = false } = {}) => `<svg width="${size}" height="${size}" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="mg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF9248"/><stop offset="1" stop-color="#C2410C"/></linearGradient>
+  <linearGradient id="mh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
+  <rect width="32" height="32" rx="${square ? 0 : 9}" fill="url(#mg)"/><rect width="32" height="32" rx="${square ? 0 : 9}" fill="url(#mh)"/>
+  <ellipse cx="16" cy="25.2" rx="8.2" ry="2.3" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.5"/>
+  <path d="M16 5.2c-4.2 0-7.5 3.2-7.5 7.3 0 5.2 6 11 6.9 11.8.35.32.85.32 1.2 0 .9-.8 6.9-6.6 6.9-11.8 0-4.1-3.3-7.3-7.5-7.3Z" fill="#fff"/>
+  <circle cx="16" cy="12.5" r="2.9" fill="#C2410C"/></svg>`
 
 const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const font = readFileSync(join(ROOT, 'app/fonts/PretendardVariable.woff2')).toString('base64')
@@ -115,8 +124,8 @@ body { font-family: P, sans-serif; color: #fff; position: relative; -webkit-font
 
 .copy { position: absolute; left: 76px; top: 0; bottom: 0; width: 640px; display: flex; flex-direction: column; justify-content: center; }
 .brand { display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 800; letter-spacing: -.03em; }
-.mark { width: 42px; height: 42px; border-radius: 11px; background: #C2410C; display: grid; place-items: center;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.12) inset, 0 10px 30px -8px rgba(255,110,40,.8); }
+.mark { display: block; width: 46px; height: 46px; border-radius: 12px; box-shadow: 0 12px 32px -10px rgba(255,110,40,.85); }
+.mark svg { display: block; }
 .eyebrow { margin-top: 46px; font-size: 15px; font-weight: 700; letter-spacing: .22em; color: rgba(255,255,255,.5); }
 h1 { margin-top: 16px; font-size: 74px; line-height: 1.1; font-weight: 800; letter-spacing: -.045em; }
 h1 em { font-style: normal; color: #FFB27A; text-shadow: 0 0 34px rgba(255,138,61,.55); }
@@ -145,7 +154,7 @@ h1 em { font-style: normal; color: #FFB27A; text-shadow: 0 0 34px rgba(255,138,6
 <div class="veil"></div>
 
 <div class="copy">
-  <div class="brand"><span class="mark"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9.5h14V10"/></svg></span>집캐치</div>
+  <div class="brand"><span class="mark">${mark(46)}</span>집캐치</div>
   <div class="eyebrow">청약 · 공공임대 · ZIPCATCH</div>
   <h1>내 첫 집,<br>감이 아니라 <em>근거</em>로.</h1>
   <p class="sub">청약홈·LH 실제 모집공고를<br>지도와 숫자로, 내 조건에 맞게.</p>
@@ -189,5 +198,32 @@ await page.evaluate(() => {
 })
 const bg = join(ROOT, 'app/og-night.jpg')
 await page.screenshot({ path: bg, type: 'jpeg', quality: 86 })
+// iOS 홈 화면 아이콘 — 애플은 SVG 를 받지 않는다. 같은 마크를 PNG 로 굽는다
+await page.setViewport({ width: 180, height: 180, deviceScaleFactor: 1 })
+await page.setContent(`<html><body style="margin:0;width:180px;height:180px">${mark(180, { square: true })}</body></html>`)
+const apple = join(ROOT, 'app/apple-icon.png')
+await page.screenshot({ path: apple, type: 'png', clip: { x: 0, y: 0, width: 180, height: 180 } })
+
+// 탭 아이콘(favicon.ico) — 16·32·48 PNG 를 ICO 한 통에 담는다. 사파리·구형 브라우저가 이것을 먼저 찾는다
+const pngs = []
+for (const px of [16, 32, 48]) {
+  await page.setViewport({ width: px, height: px, deviceScaleFactor: 1 })
+  await page.setContent(`<html><body style="margin:0;width:${px}px;height:${px}px;background:transparent">${mark(px)}</body></html>`)
+  pngs.push({ px, data: await page.screenshot({ type: 'png', omitBackground: true, clip: { x: 0, y: 0, width: px, height: px } }) })
+}
+const head = Buffer.alloc(6 + 16 * pngs.length)
+head.writeUInt16LE(0, 0); head.writeUInt16LE(1, 2); head.writeUInt16LE(pngs.length, 4)
+let offset = head.length
+pngs.forEach(({ px, data }, i) => {
+  const o = 6 + 16 * i
+  head.writeUInt8(px, o); head.writeUInt8(px, o + 1); head.writeUInt8(0, o + 2); head.writeUInt8(0, o + 3)
+  head.writeUInt16LE(1, o + 4); head.writeUInt16LE(32, o + 6)
+  head.writeUInt32LE(data.length, o + 8); head.writeUInt32LE(offset, o + 12)
+  offset += data.length
+})
+writeFileSync(join(ROOT, 'app/favicon.ico'), Buffer.concat([head, ...pngs.map(p => Buffer.from(p.data))]))
+
+// 공고별 미리보기(satori)에 얹을 마크 — satori 가 그레이디언트 SVG 를 그대로 읽도록 파일로 둔다
+writeFileSync(join(ROOT, 'app/og-mark.svg'), mark(64))
+console.log('wrote', out, bg, apple)
 await browser.close()
-console.log('wrote', out, bg)

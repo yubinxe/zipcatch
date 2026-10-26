@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, ViewTransition } from 'react'
 import type { Candidate, UrgencyInfo } from '@/lib/crm/services/scoring'
 import { formatMan } from '@/lib/crm/services/scoring'
 import type { Property, Task } from '@/lib/crm/types'
@@ -252,7 +252,9 @@ export default function NoticeDetail({ id }: { id: string }) {
 
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <h1 className="cs-page-title">{property.name}</h1>
+          <ViewTransition name={`notice-title-${property.id}`} share="morph">
+            <h1 className="cs-page-title">{property.name}</h1>
+          </ViewTransition>
           <p className="cs-sub" style={{ marginTop: 10 }}>
             {property.address}
           </p>
