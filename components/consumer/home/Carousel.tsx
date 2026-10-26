@@ -57,6 +57,8 @@ export default function Carousel({ children, label }: { children: ReactNode; lab
     }
     const onMove = (e: PointerEvent) => {
       if (!down) return
+      // 트랙 밖에서 단추를 놓았다면 pointerup 이 오지 않는다. 눌린 단추가 없으면 끝낸다
+      if ((e.buttons & 1) === 0) return onUp()
       const dx = e.clientX - x0
       if (!moved && Math.abs(dx) > 6) {
         moved = true
@@ -66,8 +68,10 @@ export default function Carousel({ children, label }: { children: ReactNode; lab
       if (moved) el.scrollLeft = s0 - dx
     }
     const onUp = () => {
+      if (!down) return
       down = false
       if (!moved) return
+      moved = false
       delete el.dataset.drag
       const swallow = (ev: MouseEvent) => {
         ev.preventDefault()
@@ -76,15 +80,19 @@ export default function Carousel({ children, label }: { children: ReactNode; lab
       el.addEventListener('click', swallow, { capture: true, once: true })
       setTimeout(() => el.removeEventListener('click', swallow, { capture: true }), 0)
     }
+    // 카드는 통째로 링크라, 끌면 브라우저가 링크 끌기를 시작하고 포인터를 거둬 간다
+    const noNativeDrag = (e: DragEvent) => e.preventDefault()
     el.addEventListener('pointerdown', onDown)
     el.addEventListener('pointermove', onMove)
-    el.addEventListener('pointerup', onUp)
-    el.addEventListener('pointercancel', onUp)
+    el.addEventListener('dragstart', noNativeDrag, { capture: true })
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
     return () => {
       el.removeEventListener('pointerdown', onDown)
       el.removeEventListener('pointermove', onMove)
-      el.removeEventListener('pointerup', onUp)
-      el.removeEventListener('pointercancel', onUp)
+      el.removeEventListener('dragstart', noNativeDrag, { capture: true })
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
     }
   }, [])
 
@@ -98,12 +106,12 @@ export default function Carousel({ children, label }: { children: ReactNode; lab
           <i style={{ transform: `scaleX(${Math.max(0.08, edge.p)})` }} />
         </div>
         <div className="cs-carousel__nav">
-          <button type="button" className="cs-carousel__btn" onClick={() => step(-1)} disabled={edge.start} aria-label="이전 공고">
+          <button type="button" className="cs-carousel__btn" onClick={() => !edge.start && step(-1)} aria-disabled={edge.start} aria-label="이전 공고">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M15 6l-6 6 6 6" />
             </svg>
           </button>
-          <button type="button" className="cs-carousel__btn" onClick={() => step(1)} disabled={edge.end} aria-label="다음 공고">
+          <button type="button" className="cs-carousel__btn" onClick={() => !edge.end && step(1)} aria-disabled={edge.end} aria-label="다음 공고">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M9 6l6 6-6 6" />
             </svg>

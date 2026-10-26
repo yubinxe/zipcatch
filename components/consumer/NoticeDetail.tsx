@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState, ViewTransition } from 'react'
+import { useEffect, useState } from 'react'
 import type { Candidate, UrgencyInfo } from '@/lib/crm/services/scoring'
 import { formatMan } from '@/lib/crm/services/scoring'
 import type { Property, Task } from '@/lib/crm/types'
@@ -232,7 +232,8 @@ export default function NoticeDetail({ id }: { id: string }) {
   const recommended = schedule.filter(t => t.source === 'RECOMMENDED')
 
   return (
-    <div className="cs-wrap" style={{ paddingTop: 32, maxWidth: 860 }}>
+    // 카드 한 장이 펼쳐지듯 열린다 (consumer-immersive.css · cs-open-in)
+    <div className="cs-wrap cs-open-in" style={{ paddingTop: 32, maxWidth: 860 }}>
       <Link href="/results" className="cs-btn cs-btn--text" style={{ paddingLeft: 0, marginBottom: 12 }}>
         ← 후보 목록으로
       </Link>
@@ -252,9 +253,7 @@ export default function NoticeDetail({ id }: { id: string }) {
 
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <ViewTransition name={`notice-title-${property.id}`} share="morph">
-            <h1 className="cs-page-title">{property.name}</h1>
-          </ViewTransition>
+          <h1 className="cs-page-title">{property.name}</h1>
           <p className="cs-sub" style={{ marginTop: 10 }}>
             {property.address}
           </p>

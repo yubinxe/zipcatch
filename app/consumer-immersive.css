@@ -28,6 +28,10 @@
   --glass: linear-gradient(160deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.02));
   color: var(--body);
   background: var(--night);
+  /* 캐러셀이 화면 끝까지 흘러나가는데, 100vw 는 세로 스크롤바 폭까지 센다.
+     스크롤바가 늘 보이는 환경에서 그만큼 옆으로 밀리지 않게 자른다.
+     hidden 이 아니라 clip — 스크롤 상자를 만들지 않아 붙는 장면(sticky)이 산다 */
+  overflow-x: clip;
 }
 /* 지면 전체(머리글 아래·바닥글 위 틈까지) */
 .cs:has(.cs-home) {
@@ -167,6 +171,10 @@
 .cs-carousel__track > * {
   scroll-snap-align: start;
 }
+.cs-carousel__track a,
+.cs-carousel__track img {
+  -webkit-user-drag: none;
+}
 .cs-carousel__track[data-drag] {
   cursor: grabbing;
   scroll-snap-type: none;
@@ -220,12 +228,12 @@
   color: var(--title);
   transition: background 0.2s, border-color 0.2s, opacity 0.2s;
 }
-.cs-carousel__btn:hover:not(:disabled) {
+.cs-carousel__btn:hover:not([aria-disabled='true']) {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
 }
-.cs-carousel__btn:disabled {
+.cs-carousel__btn[aria-disabled='true'] {
   opacity: 0.3;
   cursor: default;
 }
@@ -508,6 +516,32 @@
   align-self: flex-start;
   margin-top: clamp(24px, 5vh, 44px);
   opacity: clamp(0, calc((var(--p) - 0.86) * 10), 1);
+}
+/* 키보드로 들어오면 장면이 덜 열렸어도 몸을 다 보여준다 — 보이지 않는 곳에 초점이 앉지 않게 */
+.cs-open__body:focus-within,
+.cs-open__body:focus-within .cs-open__fact,
+.cs-open__go:focus-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── 공고 상세 — 카드 한 장이 펼쳐지듯 열린다 ─────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .cs-open-in {
+    animation: csOpenIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+@keyframes csOpenIn {
+  from {
+    opacity: 0;
+    clip-path: inset(6% 5% 30% 5% round 28px);
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 0);
+    transform: none;
+  }
 }
 
 /* ── 좁은 화면 ──────────────────────────────────────────── */
