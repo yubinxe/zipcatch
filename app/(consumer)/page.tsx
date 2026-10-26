@@ -239,37 +239,55 @@ export default function ConsumerHome() {
       {/* ── 알림 ────────────────────────────────────────── */}
       <Reveal as="section" className="cs-wrap cs-section">
         <SectionHead index="05" title="다음에도, 처음부터 찾지 않도록" />
-        <div className="cs-keep">
-          <div className="cs-keep__copy">
-            <p>살고 싶은 동네와 주거비를 저장해두세요.</p>
-            <p>다음 방문에도 같은 조건으로 후보를 바로 확인할 수 있어요.</p>
-            <p>
-              알림에 동의하시면 그 자리에서 조건에 맞는 공고를 한 통 보내드리고, 새 공고와 마감이
-              생길 때마다 이어서 알려드립니다.
+        {/*
+          저장 권유. 버튼은 버튼의 키(56px)로 둔다 — 지면 높이만큼 늘린 먹판은
+          누르는 곳이 아니라 벽처럼 보였다. 설명은 세 번 되풀이하지 않고, 저장하면
+          실제로 달라지는 것 셋을 한 줄씩 적는다.
+        */}
+        <div className="cs-remember">
+          <div className="cs-remember__top">
+            {/* 쉼표에서만 끊긴다 — 좁은 화면에서 "한 / 번만" 처럼 말 중간이 갈리지 않게 */}
+            <p className="cs-remember__lead">
+              <span>지역과 주거비,</span> <span>한 번만 적어 두세요.</span>
             </p>
+            <div className="cs-remember__act">
+              <Link href="/analyze" className="cs-btn cs-btn--primary cs-remember__btn">
+                내 조건 저장하기
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </Link>
+              <span className="cs-remember__hint">가입 없이 먼저 저장할 수 있어요</span>
+            </div>
           </div>
 
-          {/* 저장은 이 지면에서 가장 중요한 행동이다. 글자 버튼으로 두면
-              문단 끝에 딸린 각주처럼 읽혀 아무도 누르지 않는다. */}
-          <Link href="/analyze" className="cs-keep__cta">
-            <span className="cs-keep__cta-main">
-              내 조건 저장하기
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </span>
-            <span className="cs-keep__cta-sub">1분이면 끝나요 · 가입 없이 먼저</span>
-          </Link>
+          <ol className="cs-remember__list">
+            <li>
+              <span className="cs-remember__no cs-num">01</span>
+              <b>다음 방문에 바로</b>
+              <span>같은 조건의 후보가 먼저 열립니다. 처음부터 다시 고르지 않아도 돼요.</span>
+            </li>
+            <li>
+              <span className="cs-remember__no cs-num">02</span>
+              <b>새 공고 알림</b>
+              <span>알림을 켜 두면 조건에 맞는 공고가 열릴 때마다 메일로 알려 드려요.</span>
+            </li>
+            <li>
+              <span className="cs-remember__no cs-num">03</span>
+              <b>언제든 해제</b>
+              <span>받기 싫어지면 관심공고 화면에서 바로 끌 수 있어요.</span>
+            </li>
+          </ol>
         </div>
       </Reveal>
 
