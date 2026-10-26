@@ -1,9 +1,16 @@
 import localFont from 'next/font/local'
 
+/*
+ * 글꼴은 원본(TTF·OTF)이 아니라 줄인 WOFF2 를 싣는다 — scripts/subset-fonts.py.
+ * 원본 다섯 벌이 10MB 가까이 되어 휴대폰 첫 방문에서 다른 모든 것보다 먼저
+ * 회선을 차지했다. 완성형 한글 2,350자와 기호만 남겨 0.9MB 로 줄였다.
+ * 빠진 드문 음절은 대체 글꼴로 그려진다.
+ */
+
 export const pretendard = localFont({
   src: [
-    { path: './fonts/Pretendard-Regular.otf', weight: '400 500', style: 'normal' },
-    { path: './fonts/Pretendard-Bold.otf', weight: '600 900', style: 'normal' },
+    { path: './fonts/Pretendard-Regular.woff2', weight: '400 500', style: 'normal' },
+    { path: './fonts/Pretendard-Bold.woff2', weight: '600 900', style: 'normal' },
   ],
   variable: '--font-pretendard',
   display: 'swap',
@@ -15,7 +22,7 @@ export const pretendard = localFont({
  * 굵고 인상이 강해 짧은 후킹 문구에만 쓰고, 본문·입력·상세정보에는 쓰지 않는다.
  */
 export const jalnan = localFont({
-  src: [{ path: './fonts/JalnanGothicTTF.ttf', weight: '400 700', style: 'normal' }],
+  src: [{ path: './fonts/JalnanGothicTTF.woff2', weight: '400 700', style: 'normal' }],
   variable: '--font-display',
   display: 'swap',
   fallback: ['Pretendard Variable', 'Pretendard', 'system-ui', 'sans-serif'],
@@ -28,8 +35,8 @@ export const jalnan = localFont({
  */
 export const gmarket = localFont({
   src: [
-    { path: './fonts/GmarketSansTTFMedium.ttf', weight: '500', style: 'normal' },
-    { path: './fonts/GmarketSansTTFBold.ttf', weight: '700', style: 'normal' },
+    { path: './fonts/GmarketSansTTFMedium.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/GmarketSansTTFBold.woff2', weight: '700', style: 'normal' },
   ],
   variable: '--font-brand',
   display: 'swap',

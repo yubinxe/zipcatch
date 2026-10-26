@@ -1,8 +1,9 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useConsumer } from './ConsumerProvider'
+import YouthDiscoveryLoader from './YouthDiscoveryLoader'
 import type { SearchProfile } from '@/lib/crm/types'
 import { HOUSING_TYPES, type Homeownership, type HousingType } from '@/lib/crm/types'
 
@@ -96,6 +97,9 @@ function WizardForm({ initial }: { initial: SearchProfile | null }) {
   const [touchedQual, setTouchedQual] = useState(false)
 
   const [busy, setBusy] = useState(false)
+  /** 지금 실제로 하고 있는 단계 — 기다림 카드에 그대로 적는다 */
+  const [stage, setStage] = useState('')
+  const abortRef = useRef<AbortController | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   /** 지금 모집 중인 공고의 지역별 건수. 못 받아오면 그냥 건수를 안 적는다 */
@@ -156,10 +160,16 @@ function WizardForm({ initial }: { initial: SearchProfile | null }) {
   const markUnknown = (field: string) => setUnknown(prev => ({ ...prev, [field]: !prev[field] }))
 
   const submit = async () => {
+    // 두 번 눌러도 요청은 하나 — 앞의 것을 거둔다
+    abortRef.current?.abort()
+    const ctl = new AbortController()
+    abortRef.current = ctl
     setBusy(true)
     setError(null)
+    setStage('조건에 맞는 공고를 대조하고 있어요')
     try {
       const res = await fetch('/api/search', {
+        signal: ctl.signal,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -181,13 +191,25 @@ function WizardForm({ initial }: { initial: SearchProfile | null }) {
       })
       const json = await res.json().catch(() => null)
       if (!res.ok) throw new Error(json?.error ?? '후보를 찾지 못했어요.')
+      if (ctl.signal.aborted) return
+      setStage('저장한 조건을 불러오고 있어요')
       sessionStorage.removeItem('ci-search-draft')
       await refresh()
+      if (ctl.signal.aborted) return
+      setStage('결과 화면으로 넘어가고 있어요')
       router.push('/results')
     } catch (err) {
+      // 사용자가 거둔 요청은 오류가 아니다. 입력은 그대로 남아 있다
+      if (ctl.signal.aborted) return
       setError(err instanceof Error ? err.message : '후보를 찾지 못했어요.')
       setBusy(false)
     }
+  }
+
+  const cancel = () => {
+    abortRef.current?.abort()
+    abortRef.current = null
+    setBusy(false)
   }
 
   const recap = useMemo(() => {
@@ -567,7 +589,8 @@ function WizardForm({ initial }: { initial: SearchProfile | null }) {
                 <button className="cs-btn cs-btn--text" onClick={() => setStep(2)}>
                   이전
                 </button>
-                <button className="cs-btn cs-btn--primary" onClick={submit} disabled={busy}>
+                <button className="cs-btn cs-btn--primary" onClick={submit} disabled={busy} aria-busy={busy}>
+                  {busy && <i className="cs-btn__spin" aria-hidden="true" />}
                   {busy ? '찾는 중…' : '내 후보 확인하기'}
                 </button>
               </div>
@@ -589,6 +612,8 @@ function WizardForm({ initial }: { initial: SearchProfile | null }) {
           소득·자산 같은 공식 자격요건은 이 단계에서 묻지 않습니다. 결과를 보신 뒤 필요할 때 확인해요.
         </p>
       </div>
+
+      <YouthDiscoveryLoader active={busy} stage={stage} onCancel={cancel} onRetry={submit} />
     </div>
   )
 }

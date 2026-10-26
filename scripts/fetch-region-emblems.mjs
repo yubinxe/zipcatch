@@ -231,6 +231,12 @@ async function findEmblem(names) {
     const cats = (page.categories ?? []).map(c => c.title).join(' ')
     const desc = (meta.ImageDescription?.value ?? '').replace(/<[^>]+>/g, '')
     const haystack = `${cats} ${desc} ${title}`
+    // 일제강점기 부(府) 휘장 — "Emblem of Daegu-bu.svg" 같은 것. 이름이 같아 걸려 오지만
+    // 지금의 시 상징이 아니다. 대구 공고에 대구부 휘장이 그대로 나가 있었다.
+    if (/-bu\.svg$|-bu\b|Government-General|Keijō|Keijo|Japanese/i.test(`${title} ${desc}`)) {
+      console.log(`    (${title} — 옛 부(府) 휘장이라 건너뜀)`)
+      continue
+    }
     const foreign = /Japan|Chiba|China|Taiwan|Prefecture/i.test(haystack)
     const korean = /Korea|한국|[가-힣]/.test(haystack)
     if (foreign && !korean) {

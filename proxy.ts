@@ -46,7 +46,8 @@ const LIMIT_DEFAULT = 400
 /** 집계를 통째로 주는 자리는 좀 더 좁게 */
 const LIMIT_HEAVY = 100
 
-const HEAVY = ['/api/competition', '/api/winners', '/api/notices/map', '/api/prediction']
+// progress · stores 는 부를 때마다 바깥 공공 API 를 쓴다(일일 호출 한도가 있는 키). 좁게 둔다
+const HEAVY = ['/api/competition', '/api/winners', '/api/notices/map', '/api/prediction', '/api/progress', '/api/stores']
 
 type Hit = { n: number; until: number }
 const hits = new Map<string, Hit>()

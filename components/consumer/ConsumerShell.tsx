@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import ScrollChrome from './ScrollChrome'
+import { warmKakao } from './kakao-sdk'
 import LuxBackdrop from './LuxBackdrop'
 import ScrollProgress from './ScrollProgress'
 import { usePathname } from 'next/navigation'
@@ -34,6 +35,8 @@ const NAV = [
   { href: '/biz', label: '사업성' },
   // 뉴스는 읽고 나가는 자리다. 공고·조건·통계를 먼저 세우고 맨 끝에 둔다.
   { href: '/news', label: '뉴스' },
+  // 무엇이 무료이고 무엇이 아닌지는 숨기지 않는다. 메뉴 끝에 둔다
+  { href: '/pricing', label: '요금제' },
 ]
 
 export default function ConsumerShell({ children }: { children: ReactNode }) {
@@ -82,6 +85,8 @@ export default function ConsumerShell({ children }: { children: ReactNode }) {
                 href={l.href}
                 className="cs-nav__link"
                 data-active={pathname.startsWith(l.href) ? 'true' : 'false'}
+                // 지도로 갈 손이면 SDK 를 미리 받기 시작한다 (누르기 전 수백 ms)
+                {...(l.href === '/map' ? { onPointerEnter: warmKakao, onFocus: warmKakao, onTouchStart: warmKakao } : {})}
               >
                 {l.label}
                 {l.href === '/saved' && savedCount > 0 && (

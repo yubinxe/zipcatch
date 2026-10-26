@@ -787,7 +787,7 @@
   line-height: 1.55;
 }
 
-/* 공고 카드의 찜 버튼. 랜딩 03 의 조건 저장 블록은 `.cs-keep` 이다 —
+/* 공고 카드의 찜 버튼. 랜딩의 조건 저장 블록은 `.cs-remember` 다 —
    한때 둘 다 `.cs-save` 였고, 이 46px 사각형이 랜딩 블록에 그대로 먹어
    글자가 한 줄에 한 자씩 세로로 흘렀다. 이름을 겹치지 말 것. */
 .cs-save {
@@ -4218,137 +4218,6 @@ a.cs-pin:hover {
   color: var(--cal-rent);
 }
 
-/* ═════════════════════════════════════════════════════════
-   03 조건 저장 — 설명과 행동을 나란히
-
-   이 지면에서 가장 중요한 행동이다. 설명 아래에 글자 버튼을 두면 문단의
-   각주처럼 읽혀 아무도 누르지 않는다. 본문을 키워 읽히게 하고, 버튼은
-   먹으로 채워 지면에서 가장 무거운 것으로 만든다.
-
-   앞뒤 섹션이 모두 카드인데 여기만 맨 글자로 두면, 가장 중요한 자리가
-   가장 가벼워 보인다. 한 장의 지면으로 받쳐 준다.
-
-   클래스 이름은 `.cs-keep` 이다. `.cs-save` 는 공고 카드의 46px 찜 버튼이고,
-   한때 둘이 같은 이름이라 그 사각형이 여기에 먹어 글자가 한 줄에 한 자씩
-   세로로 흘렀다.
-   ═════════════════════════════════════════════════════════ */
-.cs-keep {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
-  gap: clamp(28px, 4.5vw, 56px);
-  /* 가운데 맞춤이 아니라 늘림 — 오른쪽 먹판이 지면 높이를 다 쓰게 한다 */
-  align-items: stretch;
-  padding: clamp(26px, 3.4vw, 40px);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-}
-
-.cs-keep__copy {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-width: 0;
-}
-
-.cs-keep__copy p {
-  margin: 0;
-  font-size: 21px;
-  line-height: 1.7;
-  font-weight: 500;
-  color: var(--body);
-  max-width: 32ch;
-  /* 두세 줄짜리 짧은 문단이다. pretty 는 마지막 줄에 한 마디만 남는 것을
-     막을 뿐이라 "확인할 / 수 있어요" 같은 끊김이 그대로 남는다.
-     balance 는 줄 길이를 고르게 나눠 뜻 단위로 끊기게 한다. */
-  text-wrap: balance;
-  word-break: keep-all;
-}
-
-/* 첫 줄이 약속이다. 여기만 한 단 올려 나머지가 그 설명으로 읽히게 한다 */
-.cs-keep__copy p:first-child {
-  font-size: clamp(23px, 1.9vw, 27px);
-  line-height: 1.5;
-  font-weight: 700;
-  color: var(--title);
-  letter-spacing: -0.01em;
-  max-width: 24ch;
-}
-
-.cs-keep__copy p + p {
-  margin-top: 0.9em;
-}
-
-/* 마지막은 조건이 붙는 단서다. 본문과 같은 무게로 두면 세 번째 약속처럼
-   읽힌다. 괘선을 왼쪽에 세워 앞 문장에 딸린 말임을 보인다. */
-.cs-keep__copy p:last-child {
-  margin-top: 1.3em;
-  padding-left: 16px;
-  border-left: 2px solid var(--line);
-  font-size: 17px;
-  line-height: 1.68;
-  font-weight: 400;
-  color: var(--muted);
-  max-width: 36ch;
-  text-wrap: balance;
-}
-
-.cs-keep__cta {
-  display: grid;
-  align-content: center;
-  gap: 10px;
-  padding: 30px 32px;
-  border-radius: var(--r-inner);
-  background: var(--brand);
-  color: #fff;
-  text-decoration: none;
-  transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease);
-}
-.cs-keep__cta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 30px rgba(20, 17, 12, 0.22);
-}
-.cs-keep__cta:active {
-  transform: translateY(0);
-}
-
-.cs-keep__cta-main {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  font-size: clamp(20px, 1.6vw, 23px);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  word-break: keep-all;
-}
-.cs-keep__cta:hover .cs-keep__cta-main svg {
-  transform: translateX(4px);
-}
-.cs-keep__cta-main svg {
-  flex-shrink: 0;
-  transition: transform 0.16s var(--ease);
-}
-
-.cs-keep__cta-sub {
-  font-size: 14px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.72);
-  word-break: keep-all;
-}
-
-@media (max-width: 900px) {
-  .cs-keep {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 26px;
-  }
-  .cs-keep__copy p {
-    font-size: 19px;
-  }
-  .cs-keep__copy p:first-child {
-    font-size: 22px;
-  }
-}
 
 /* 섹션 번호와 제목은 같은 무게로 선다 — 번호만 굵으면 제목이 딸린 설명처럼
    읽힌다. 01·02·03 과 그 옆 제목을 한 덩어리로 본다. */
@@ -5587,40 +5456,6 @@ a.cs-pin:hover {
   margin-top: 3px;
 }
 
-/* ── 03 섹션 — 이 지면에서 가장 중요한 권유다 ─────────────
-   저장은 이 화면의 핵심 행동인데 글자가 본문 크기라 그냥 설명으로 읽혔다.
-   한 단계씩 올려 문단이 말을 걸게 한다.                          */
-.cs-keep__copy p:first-child {
-  font-size: clamp(28px, 2.5vw, 36px);
-  line-height: 1.42;
-  letter-spacing: -0.022em;
-  max-width: 22ch;
-}
-.cs-keep__copy p {
-  font-size: clamp(19px, 1.6vw, 23px);
-  line-height: 1.68;
-  max-width: 30ch;
-}
-.cs-keep__copy p:last-child {
-  font-size: 18px;
-  line-height: 1.7;
-  max-width: 38ch;
-}
-.cs-keep__cta-main {
-  font-size: clamp(20px, 1.7vw, 24px);
-}
-
-@media (max-width: 760px) {
-  .cs-keep__copy p:first-child {
-    font-size: 26px;
-  }
-  .cs-keep__copy p {
-    font-size: 18px;
-  }
-  .cs-keep__copy p:last-child {
-    font-size: 17px;
-  }
-}
 
 /* 가이드 — "여기서 막혀요" 는 설명이 아니라 경고에 가깝다. 따로 세운다 */
 .cs-guide__watch {

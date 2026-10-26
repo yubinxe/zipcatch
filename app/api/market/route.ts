@@ -10,6 +10,11 @@ import { readMarket } from '@/lib/services/market-read'
  * 지난 공고는 바뀌지 않으므로 바깥 호출은 여섯 시간 캐시다(applyhome-bulk).
  */
 export const dynamic = 'force-dynamic'
+/*
+ * 표 셋을 통째로 받는다. 플랫폼 기본 제한 시간이 짧으면 처음 한 번은 끝나기 전에
+ * 잘려 화면에 '불러오지 못했습니다'만 남는다. 공급 판독(/api/pro/read)과 같게 둔다.
+ */
+export const maxDuration = 60
 
 export async function GET() {
   try {

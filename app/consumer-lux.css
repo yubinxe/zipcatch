@@ -623,58 +623,6 @@
   letter-spacing: -0.012em;
 }
 
-/* ─────────────────────────────────────────────────────────
-   9. 저장 권유 — 먹판에 금박 테, 그리고 숨 쉬는 빛
-   ───────────────────────────────────────────────────────── */
-.cs-keep {
-  position: relative;
-  overflow: hidden;
-  border-color: transparent;
-  background:
-    linear-gradient(var(--surface), var(--surface)) padding-box,
-    linear-gradient(135deg, var(--gold-line), var(--line) 50%, var(--gold-line)) border-box;
-  box-shadow: var(--lift-1);
-}
-.cs-keep::before {
-  content: '';
-  position: absolute;
-  width: 420px;
-  height: 420px;
-  right: -140px;
-  top: -200px;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 9%, transparent), transparent 68%);
-  pointer-events: none;
-}
-.cs-keep__cta {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  box-shadow: var(--lift-2);
-  transition:
-    transform 0.5s var(--ease-lux),
-    box-shadow 0.5s var(--ease-lux);
-}
-.cs-keep__cta::after {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 -60%;
-  width: 42%;
-  z-index: -1;
-  background: linear-gradient(
-    100deg,
-    transparent,
-    color-mix(in srgb, var(--gold-soft) 40%, transparent),
-    transparent
-  );
-  transform: skewX(-18deg);
-  animation: luxSheen 5.4s var(--ease-soft) 2.4s infinite;
-}
-.cs-keep__cta:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--lift-3);
-}
-
 /* ───────────────────────────────────────────────────────── */
 /* 10. FAQ — 여닫이가 미끄러지듯                             */
 /* ───────────────────────────────────────────────────────── */
@@ -872,7 +820,6 @@
     --muted: #4A4438;
   }
   .cs-card,
-  .cs-keep,
   .cs-preview .cs-card--lift {
     border-color: var(--line-ink);
     background-image: none;

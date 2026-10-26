@@ -3,22 +3,10 @@ import HomeNoticeStrip from '@/components/consumer/HomeNoticeStrip'
 import DeadlineTicker from '@/components/consumer/DeadlineTicker'
 import DeadlineCalendar from '@/components/consumer/DeadlineCalendar'
 import Reveal from '@/components/consumer/Reveal'
-import TiltCard from '@/components/consumer/TiltCard'
-
-const STEPS = [
-  {
-    title: '내 조건 확인하기',
-    desc: '살고 싶은 동네와 감당할 수 있는 주거비. 딱 그 정도면 됩니다.',
-  },
-  {
-    title: '관심공고 저장하기',
-    desc: '마음에 드는 공고를 한곳에. 다음 방문에도 이어서 비교하세요.',
-  },
-  {
-    title: '일정 챙기기',
-    desc: '접수 마감과 서류 준비일을 공고 기준으로 정리해 드립니다.',
-  },
-]
+import HeroAtlas from '@/components/consumer/HeroAtlas'
+import Journey from '@/components/consumer/Journey'
+import CostSimulator from '@/components/consumer/CostSimulator'
+import BuildProgress from '@/components/consumer/BuildProgress'
 
 /**
  * 자주 묻는 것.
@@ -113,21 +101,21 @@ export default function ConsumerHome() {
           {/* 줄마다 차례로 올라온다. 쓸어 올리려면 줄이 각자 틀을 가져야 한다 */}
           <h1 className="cs-hero-title">
             <span className="cs-lux-line">
-              <span>나에게 맞는 집,</span>
+              <span>내 첫 집,</span>
+            </span>
+            <span className="cs-lux-line">
+              <span>감이 아니라</span>
             </span>
             <span className="cs-lux-line">
               <span>
-                <em>내집마련 기회</em>를
+                <em>근거</em>로.
               </span>
-            </span>
-            <span className="cs-lux-line">
-              <span>사로잡아 보세요.</span>
             </span>
           </h1>
 
           <p className="cs-lead" style={{ marginTop: 26, maxWidth: 520 }}>
-            청약부터 공공임대까지, 지역·보증금·월 임대료·면적 기준으로
-            <br className="cs-mobile-break" /> 내 조건에 맞는 후보부터 확인해 보세요.
+            청약부터 공공임대까지, 열려 있는 공고를 지도와 숫자로.
+            <br className="cs-mobile-break" /> 내 조건에 맞는 후보부터 마감 일정까지 이어서 챙깁니다.
           </p>
 
           <div className="cs-hero__cta">
@@ -196,72 +184,8 @@ export default function ConsumerHome() {
           </span>
         </div>
 
-        {/* 결과 미리보기 — 실제 성과가 아니라 화면 예시임을 카드 안에 밝힌다 */}
-        <TiltCard className="cs-preview cs-lux-tilt">
-          <div className="cs-card cs-card--lift">
-            <span className="cs-preview__label">나에게 맞는 집은 이런 모습</span>
-
-            <div className="cs-badge-row" style={{ marginBottom: 16 }}>
-              <span className="cs-badge cs-badge--brand">청년매입임대</span>
-              <span className="cs-badge cs-badge--ok">
-                <span className="cs-badge__dot" />
-                예산 범위 내
-              </span>
-              <span className="cs-sample">화면 예시</span>
-            </div>
-
-            <div className="cs-notice__name" style={{ minHeight: 'auto' }}>
-              동작구 청년 매입임대
-            </div>
-            <p className="cs-notice__where">서울 동작구 · 전용 29㎡</p>
-
-            <div className="cs-price-grid">
-              <div>
-                <div className="cs-price-label">보증금</div>
-                <div className="cs-notice__deposit cs-num">6,500만원</div>
-              </div>
-              <div>
-                <div className="cs-price-label">월 임대료</div>
-                <div className="cs-notice__deposit cs-num">32만원</div>
-              </div>
-            </div>
-
-            <div className="cs-reason-block">
-              <div className="cs-price-label">추천 이유</div>
-              <ul className="cs-notice__reasons">
-                <li>희망 1순위 지역</li>
-                <li>예산 범위 충족</li>
-                <li>희망면적 충족</li>
-              </ul>
-            </div>
-
-            <div className="cs-notice__caution">
-              소득·자산 등 <strong>자격요건 체크 요망</strong>
-            </div>
-          </div>
-
-          <div className="cs-mini">
-            <span className="cs-mini__icon" aria-hidden="true">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.9"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="4" y="5" width="16" height="15" rx="1" />
-                <path d="M8 3v4M16 3v4M4 10h16" />
-              </svg>
-            </span>
-            <div>
-              <div className="cs-mini__title">관심공고의 일정을 한눈에</div>
-              <div className="cs-mini__sub">공식 일정과 준비 권장일을 구분해요</div>
-            </div>
-          </div>
-        </TiltCard>
+        {/* 예시 카드 대신 실제 집계. 지금 어디에 공고가 열려 있는지가 첫 화면의 주인공이다 */}
+        <HeroAtlas />
       </section>
 
       {/* ── 어디서 온 정보인지 ──────────────────────────── */}
@@ -282,65 +206,95 @@ export default function ConsumerHome() {
       <DeadlineCalendar />
 
       {/* ── 준비 순서 ───────────────────────────────────── */}
-      <Reveal as="section" className="cs-wrap cs-section">
+      <section className="cs-wrap cs-section">
         <SectionHead
           index="02"
-          title="복잡한 청약, 이 순서로 준비하세요"
-          sub="한 번에 다 알아보지 않으셔도 괜찮아요."
+          title="집 하나를 고르기까지"
+          sub="고르고, 견주고, 확인하고, 챙기는 네 장면. 장면마다 실제로 쓰는 화면이 하나씩 있습니다."
         />
-        <div className="cs-steps3">
-          {STEPS.map((s, i) => (
-            // 번호를 카드 바닥에 유령처럼 한 번 더 깐다 — 세 장이 한 줄로 읽힌다
-            <div key={s.title} className="cs-card" data-ghost={String(i + 1).padStart(2, '0')}>
-              <span className="cs-step-card__num">STEP {String(i + 1).padStart(2, '0')}</span>
-              <div className="cs-step-card__title">{s.title}</div>
-              <p className="cs-step-card__desc">{s.desc}</p>
-            </div>
-          ))}
-        </div>
+        <Journey />
+      </section>
+
+      {/* ── 주거비 환산 ─────────────────────────────────── */}
+      <Reveal as="section" id="cost" className="cs-wrap cs-section">
+        <SectionHead
+          index="03"
+          title="보증금도 매달 비용입니다"
+          sub="보증금과 월 임대료를 한 달 단위로 옮겨, 서로 다른 공고를 같은 잣대로 봅니다."
+        />
+        <CostSimulator />
+      </Reveal>
+
+      {/* ── 지금 짓고 있는 집 ───────────────────────────── */}
+      {/* 당첨 뒤에도 기다림은 이어진다. 지역마다 공사가 얼마나 남았는지 */}
+      <Reveal as="section" className="cs-wrap cs-section">
+        <SectionHead
+          index="04"
+          title="지금 짓고 있는 집"
+          sub="분양받은 뒤의 시간 — 지역별로 공사가 어디까지 왔는지 주택도시보증공사 집계로 봅니다."
+        />
+        <BuildProgress />
       </Reveal>
 
       {/* ── 알림 ────────────────────────────────────────── */}
       <Reveal as="section" className="cs-wrap cs-section">
-        <SectionHead index="03" title="다음에도, 처음부터 찾지 않도록" />
-        <div className="cs-keep">
-          <div className="cs-keep__copy">
-            <p>살고 싶은 동네와 주거비를 저장해두세요.</p>
-            <p>다음 방문에도 같은 조건으로 후보를 바로 확인할 수 있어요.</p>
-            <p>
-              알림에 동의하시면 그 자리에서 조건에 맞는 공고를 한 통 보내드리고, 새 공고와 마감이
-              생길 때마다 이어서 알려드립니다.
+        <SectionHead index="05" title="다음에도, 처음부터 찾지 않도록" />
+        {/*
+          저장 권유. 버튼은 버튼의 키(56px)로 둔다 — 지면 높이만큼 늘린 먹판은
+          누르는 곳이 아니라 벽처럼 보였다. 설명은 세 번 되풀이하지 않고, 저장하면
+          실제로 달라지는 것 셋을 한 줄씩 적는다.
+        */}
+        <div className="cs-remember">
+          <div className="cs-remember__top">
+            {/* 쉼표에서만 끊긴다 — 좁은 화면에서 "한 / 번만" 처럼 말 중간이 갈리지 않게 */}
+            <p className="cs-remember__lead">
+              <span>지역과 주거비,</span> <span>한 번만 적어 두세요.</span>
             </p>
+            <div className="cs-remember__act">
+              <Link href="/analyze" className="cs-btn cs-btn--primary cs-remember__btn">
+                내 조건 저장하기
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </Link>
+              <span className="cs-remember__hint">가입 없이 먼저 저장할 수 있어요</span>
+            </div>
           </div>
 
-          {/* 저장은 이 지면에서 가장 중요한 행동이다. 글자 버튼으로 두면
-              문단 끝에 딸린 각주처럼 읽혀 아무도 누르지 않는다. */}
-          <Link href="/analyze" className="cs-keep__cta">
-            <span className="cs-keep__cta-main">
-              내 조건 저장하기
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </span>
-            <span className="cs-keep__cta-sub">1분이면 끝나요 · 가입 없이 먼저</span>
-          </Link>
+          <ol className="cs-remember__list">
+            <li>
+              <span className="cs-remember__no cs-num">01</span>
+              <b>다음 방문에 바로</b>
+              <span>같은 조건의 후보가 먼저 열립니다. 처음부터 다시 고르지 않아도 돼요.</span>
+            </li>
+            <li>
+              <span className="cs-remember__no cs-num">02</span>
+              <b>새 공고 알림</b>
+              <span>알림을 켜 두면 조건에 맞는 공고가 열릴 때마다 메일로 알려 드려요.</span>
+            </li>
+            <li>
+              <span className="cs-remember__no cs-num">03</span>
+              <b>언제든 해제</b>
+              <span>받기 싫어지면 관심공고 화면에서 바로 끌 수 있어요.</span>
+            </li>
+          </ol>
         </div>
       </Reveal>
 
       {/* ── 신뢰 ────────────────────────────────────────── */}
       <Reveal as="section" className="cs-wrap cs-section">
         <SectionHead
-          index="04"
+          index="06"
           title="확인하고, 구분해서 보여드려요"
           sub="어디서 온 정보인지, 무엇을 아직 확인하지 않았는지 함께 적어둡니다."
         />
@@ -371,7 +325,7 @@ export default function ConsumerHome() {
 
       {/* ── FAQ ─────────────────────────────────────────── */}
       <Reveal as="section" className="cs-wrap cs-section">
-        <SectionHead index="05" title="처음이라 궁금하신 것들" />
+        <SectionHead index="07" title="처음이라 궁금하신 것들" />
         <div className="cs-faq">
           {FAQ.map(f => (
             <details key={f.q} className="cs-faq__item">
