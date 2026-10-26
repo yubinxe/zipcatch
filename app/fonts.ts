@@ -7,11 +7,14 @@ import localFont from 'next/font/local'
  * 빠진 드문 음절은 대체 글꼴로 그려진다.
  */
 
+/*
+ * Pretendard 는 가변 글꼴 한 벌로 싣는다 — 100~900 이 모두 실제 굵기로 그려진다.
+ * Regular·Bold 두 벌만 있을 때는 500 이 400 으로, 600 이 700 으로 뭉개져
+ * 본문·보조·강조의 위계가 둘로만 나뉘었다. 원본은 pretendard@1.3.9 의
+ * PretendardVariable.ttf, 같은 글자 집합(scripts/subset-fonts.py)으로 줄였다.
+ */
 export const pretendard = localFont({
-  src: [
-    { path: './fonts/Pretendard-Regular.woff2', weight: '400 500', style: 'normal' },
-    { path: './fonts/Pretendard-Bold.woff2', weight: '600 900', style: 'normal' },
-  ],
+  src: [{ path: './fonts/PretendardVariable.woff2', weight: '100 900', style: 'normal' }],
   variable: '--font-pretendard',
   display: 'swap',
   fallback: ['Arial', 'system-ui', 'sans-serif'],

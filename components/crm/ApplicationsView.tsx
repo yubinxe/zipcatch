@@ -126,7 +126,7 @@ export default function ApplicationsView() {
                           <div className="kanban__card-name">{c?.name ?? a.customerId}</div>
                           <div className="kanban__card-sub">{p?.name ?? a.propertyId}</div>
                           <div className="kanban__card-foot">
-                            <span style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>
+                            <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>
                               ~{shortDate(p?.applicationEnd ?? null)}
                             </span>
                             {a.preferenceScore !== undefined && <ScoreBadge score={a.preferenceScore} />}

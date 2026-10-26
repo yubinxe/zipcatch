@@ -56,7 +56,7 @@ export function CardHead({
       <div>
         <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--ink)' }}>{title}</div>
         {sub && (
-          <div style={{ fontSize: 13.5, color: 'var(--ink-3)', marginTop: 5, fontWeight: 450 }}>{sub}</div>
+          <div style={{ fontSize: 14.5, color: 'var(--ink-3)', marginTop: 5, fontWeight: 450 }}>{sub}</div>
         )}
       </div>
       {right && (
@@ -93,7 +93,7 @@ export function StatusPill({
         borderRadius: 99,
         background: s.soft,
         color: s.color,
-        fontSize: 12.5,
+        fontSize: 13.5,
         fontWeight: 650,
         whiteSpace: 'nowrap',
       }}

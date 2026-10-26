@@ -36,7 +36,7 @@
   /* 지면(#F4F1EB) 위에서는 4.90:1 로 넉넉했는데, 한 겹 어두운 종이
      (--paper-2) 위에서는 4.37:1 로 내려앉아 기준(4.5)에 못 미쳤다.
      박람회장 조명 아래 노트북에서는 그 차이가 더 벌어진다. 한 눈금 내린다. */
-  --muted: #6B6455;
+  --muted: #5A5345;
 
   /* 주 행동·링크·브랜드 마크 = 먹 */
   --brand: #14110C;
@@ -202,7 +202,7 @@
 }
 
 .cs-note {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--muted);
   margin: 0;
@@ -481,7 +481,7 @@
   gap: 6px;
   padding: 5px 10px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
   background: var(--paper-2);
@@ -526,7 +526,7 @@
   border-radius: 2px;
   border: 1px dashed var(--muted);
   background: transparent;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -540,7 +540,7 @@
   border-radius: 2px;
   border: 1px solid var(--brand);
   background: var(--brand-soft);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--brand);
   letter-spacing: -0.01em;
@@ -611,7 +611,7 @@
 }
 /* 건수는 보조 정보다. 이름보다 약하게 */
 .cs-chip__n {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -672,7 +672,7 @@
 .cs-notice__index {
   font-family: var(--font-brand), var(--font-sans);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.08em;
   color: var(--muted);
   margin-bottom: 16px;
@@ -769,7 +769,7 @@
   border-radius: var(--r-inner);
   background: var(--check-soft);
   color: var(--check);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.55;
 }
 
@@ -782,7 +782,7 @@
   gap: 12px;
 }
 .cs-notice__meta {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
   line-height: 1.55;
 }
@@ -910,7 +910,7 @@
 }
 .cs-choice__sub {
   display: block;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 400;
   color: var(--muted);
   margin-top: 5px;
@@ -928,7 +928,7 @@
   border-radius: 99px;
   background: var(--brand);
   color: #fff;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   display: grid;
   place-items: center;
@@ -1050,7 +1050,7 @@
 .cs-range-scale {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -1137,7 +1137,7 @@
   display: inline-block;
   margin-bottom: 14px;
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.08em;
   color: var(--accent);
 }
@@ -1177,7 +1177,7 @@
   display: inline-block;
   margin-bottom: 12px;
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.08em;
   color: var(--muted);
 }
@@ -1381,7 +1381,7 @@
 }
 .cs-check__sub {
   display: block;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--muted);
   font-weight: 400;
   margin-top: 4px;
@@ -1419,7 +1419,7 @@
   padding: 9px 0 0;
   border-top: 2px solid var(--title);
   color: var(--title);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.08em;
   margin-bottom: 28px;
@@ -1473,7 +1473,7 @@
   color: var(--title);
 }
 .cs-mini__sub {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -1575,7 +1575,7 @@
 }
 .cs-footer p {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.7;
   color: var(--muted);
 }
@@ -1629,10 +1629,10 @@
 .cs-faq summary::marker { color: var(--brand); }
 .cs-faq__a { margin-top: 12px; max-width: 850px; }
 .cs-field__row { flex-wrap: wrap; }
-.cs-choice[data-on='true']::after { content: '✓'; position: absolute; right: 10px; top: 8px; font-size: 14px; }
+.cs-choice[data-on='true']::after { content: '✓'; position: absolute; right: 10px; top: 8px; font-size: 15px; }
 .cs-skip { position: fixed; top: -100px; left: 20px; padding: 12px 20px; background: white; z-index: 100; }
 .cs-skip:focus { top: 10px; }
-.cs-mode-note { font-size: 14px; color: var(--body); background: var(--brand-soft); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+.cs-mode-note { font-size: 15px; color: var(--body); background: var(--brand-soft); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
 .cs-return { padding-top: 48px; }
 .cs-return__grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; margin-top: 28px; }
 @media (max-width: 1000px) {
@@ -1690,7 +1690,7 @@
   border-top: 1px solid var(--line);
 }
 .cs-price-label {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--muted);
   margin-bottom: 6px;
@@ -1942,11 +1942,11 @@
   text-overflow: ellipsis;
 }
 .cs-ticker__region {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--muted);
 }
 .cs-ticker__sample {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   border: 1px dashed var(--muted);
   border-radius: 2px;
@@ -1956,7 +1956,7 @@
 @media (max-width: 760px) {
   .cs-ticker__tag {
     padding: 0 12px;
-    font-size: 14px;
+    font-size: 15px;
   }
   .cs-ticker__item {
     padding: 0 16px;
@@ -2147,7 +2147,7 @@ body:has(.cs-ticker) .cs-chat {
   border-color: var(--urgent);
 }
 .cs-field__msg {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
   margin-top: 7px;
   color: var(--muted);
@@ -2350,7 +2350,7 @@ body:has(.cs-ticker) .cs-chat {
   color: var(--title);
 }
 .cs-chat__sub {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
   margin-top: 4px;
 }
@@ -2405,7 +2405,7 @@ body:has(.cs-ticker) .cs-chat {
   border: 1px solid var(--brand);
   color: var(--brand);
   background: transparent;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   text-decoration: none;
 }
@@ -2427,7 +2427,7 @@ body:has(.cs-ticker) .cs-chat {
   background: var(--surface);
   color: var(--body);
   font-family: inherit;
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
 }
 .cs-chat__chip:hover {
@@ -2478,7 +2478,7 @@ body:has(.cs-ticker) .cs-chat {
 .cs-chat__note {
   margin: 0;
   padding: 0 20px 14px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   line-height: 1.5;
 }
@@ -2513,7 +2513,7 @@ body:has(.cs-ticker) .cs-chat {
   color: var(--body);
 }
 .cs-note {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 /* 마지막 CTA — 지면의 끝이자 행동을 청하는 자리다. 가장 굵게 둔다 */
@@ -2646,7 +2646,7 @@ body:has(.cs-ticker) .cs-chat {
   color: var(--title);
 }
 .cs-score__of {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--muted);
 }
@@ -2668,7 +2668,7 @@ body:has(.cs-ticker) .cs-chat {
 }
 .cs-score__rule {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 
@@ -2686,7 +2686,7 @@ body:has(.cs-ticker) .cs-chat {
   color: var(--paper);
 }
 .cs-score__total-label {
-  font-size: 14px;
+  font-size: 15px;
   letter-spacing: 0.06em;
   color: color-mix(in srgb, var(--paper) 70%, transparent);
 }
@@ -2721,7 +2721,7 @@ body:has(.cs-ticker) .cs-chat {
 }
 .cs-score__split {
   margin: 14px 0 0;
-  font-size: 14px;
+  font-size: 15px;
   color: color-mix(in srgb, var(--paper) 72%, transparent);
 }
 
@@ -2745,7 +2745,7 @@ body:has(.cs-ticker) .cs-chat {
 }
 .cs-score__detail {
   margin: 8px 0 0;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.6;
   color: var(--muted);
 }
@@ -2758,7 +2758,7 @@ body:has(.cs-ticker) .cs-chat {
   border-top: 1px solid var(--line);
 }
 .cs-score__ref dt {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 .cs-score__ref dd {
@@ -2821,20 +2821,20 @@ body:has(.cs-ticker) .cs-chat {
   color: var(--title);
 }
 .cs-stat__unit {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--muted);
 }
 /* 미달은 경쟁률이 아니다. 숫자와 다른 무게로 적는다 */
 .cs-stat__under {
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--muted);
 }
 .cs-stat__meta {
   grid-column: 2 / -1;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 .cs-stat__row--pair .cs-stat__meta {
@@ -2903,7 +2903,7 @@ body:has(.cs-ticker) .cs-chat {
   padding: 5px 10px;
   border: 1px solid var(--accent);
   background: var(--accent-soft);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--accent);
   letter-spacing: -0.01em;
@@ -2964,7 +2964,7 @@ body:has(.cs-ticker) .cs-chat {
 }
 .cs-news__index {
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--muted);
   padding-top: 3px;
@@ -2987,7 +2987,7 @@ body:has(.cs-ticker) .cs-chat {
   align-items: center;
   gap: 7px;
   margin-top: 8px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 /* 매체명은 기사의 주인이다. 시각보다 진하게 둔다 */
@@ -3024,14 +3024,14 @@ body:has(.cs-ticker) .cs-chat {
 }
 .cs-choose__label {
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.07em;
   color: var(--muted);
 }
 .cs-choose__hint {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 
@@ -3095,7 +3095,7 @@ body:has(.cs-ticker) .cs-chat {
 /* 건수는 라벨에 딸린 값이다. 같은 무게로 두면 두 개를 읽게 된다 */
 .cs-pill__n {
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
@@ -3289,19 +3289,19 @@ body:has(.cs-ticker) .cs-chat {
 }
 .cs-choose__label,
 .cs-filter__label {
-  font-size: 14px;
+  font-size: 15px;
 }
 .cs-stat__name {
   font-size: 17px;
 }
 .cs-stat__meta {
-  font-size: 14px;
+  font-size: 15px;
 }
 .cs-score__label {
   font-size: 18px;
 }
 .cs-score__rule {
-  font-size: 14px;
+  font-size: 15px;
 }
 .cs-score__insight {
   font-size: 17px;
@@ -3317,7 +3317,7 @@ body:has(.cs-ticker) .cs-chat {
   font-size: 17px;
 }
 .cs-footer p {
-  font-size: 14px;
+  font-size: 15px;
 }
 .cs-notice__where {
   font-size: 16px;
@@ -3386,7 +3386,7 @@ body:has(.cs-ticker) .cs-chat {
 }
 .cs-news__rank {
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--muted);
 }
@@ -3395,7 +3395,7 @@ body:has(.cs-ticker) .cs-chat {
   line-height: 1.48;
 }
 .cs-news__meta {
-  font-size: 14px;
+  font-size: 15px;
   margin-top: 9px;
 }
 
@@ -3448,7 +3448,7 @@ body:has(.cs-ticker) .cs-chat {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--muted);
 }
 
@@ -3505,7 +3505,7 @@ body:has(.cs-ticker) .cs-chat {
 }
 .cs-cal__over {
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--muted);
 }
@@ -3519,7 +3519,7 @@ body:has(.cs-ticker) .cs-chat {
   border: 0;
   background: none;
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--accent);
   text-decoration: underline;
@@ -3541,13 +3541,13 @@ body:has(.cs-ticker) .cs-chat {
 }
 .cs-cal__d {
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--title);
   font-variant-numeric: tabular-nums;
 }
 .cs-cal__w {
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--muted);
 }
 .cs-cal__col[data-weekend='true'] .cs-cal__w,
@@ -3563,7 +3563,7 @@ body:has(.cs-ticker) .cs-chat {
   border-radius: 999px;
   background: var(--accent);
   color: var(--paper);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -3607,7 +3607,7 @@ body:has(.cs-ticker) .cs-chat {
   padding: 3px 0;
   border-radius: 3px;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   border: 1px solid var(--title);
 }
@@ -3625,7 +3625,7 @@ body:has(.cs-ticker) .cs-chat {
 }
 .cs-cal__meta {
   grid-column: 2;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--muted);
 }
 .cs-cal__foot {
@@ -3677,7 +3677,7 @@ body:has(.cs-ticker) .cs-chat {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--muted);
 }
 
@@ -3745,7 +3745,7 @@ body:has(.cs-ticker) .cs-chat {
 }
 .cs-map__dday {
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -3763,7 +3763,7 @@ body:has(.cs-ticker) .cs-chat {
 .cs-map__meta {
   grid-column: 2;
   margin-top: 4px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 
@@ -3780,7 +3780,7 @@ body:has(.cs-ticker) .cs-chat {
   background: var(--title);
   color: var(--paper);
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -3914,7 +3914,7 @@ a.cs-pin {
   border-radius: 999px;
   background: transparent;
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
@@ -3957,7 +3957,7 @@ a.cs-pin {
 
 /* 건수는 먹으로 적는다 — 색은 네모가 이미 말하고 있다 */
 .cs-cal__count {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--title);
   text-decoration-color: var(--line);
 }
@@ -3969,7 +3969,7 @@ a.cs-pin {
   font-size: 15px;
 }
 .cs-cal__w {
-  font-size: 12px;
+  font-size: 13px;
 }
 .cs-cal__axis {
   padding-top: 10px;
@@ -4155,7 +4155,7 @@ a.cs-pin {
   border: 2px solid #FFFFFF;
   border-radius: 999px;
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
@@ -4245,7 +4245,7 @@ a.cs-pin:hover {
 
 .cs-table th {
   text-align: left;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--muted);
@@ -4286,7 +4286,7 @@ a.cs-pin:hover {
 .cs-table__sub {
   display: block;
   margin-top: 3px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 
@@ -4347,7 +4347,7 @@ a.cs-pin:hover {
   word-break: keep-all;
 }
 .cs-protab__tag {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.45;
   color: var(--muted);
   word-break: keep-all;
@@ -4536,7 +4536,7 @@ a.cs-pin:hover {
   color: var(--line);
 }
 .cs-board__k {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
   word-break: keep-all;
 }
@@ -4556,7 +4556,7 @@ a.cs-pin:hover {
   transform: translateY(-2px);
 }
 .cs-board__next-k {
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.6);
 }
@@ -4567,7 +4567,7 @@ a.cs-pin:hover {
   word-break: keep-all;
 }
 .cs-board__next-d {
-  font-size: 14px;
+  font-size: 15px;
   color: rgba(255, 255, 255, 0.78);
 }
 
@@ -4575,7 +4575,7 @@ a.cs-pin:hover {
   margin-top: 22px;
 }
 .cs-board__strip-k {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
   margin-bottom: 10px;
 }
@@ -4629,7 +4629,7 @@ a.cs-pin:hover {
   font-variant-numeric: tabular-nums;
 }
 .cs-board__nm {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
   color: var(--body);
   /* 이름은 두 줄까지만. 칸 높이가 들쭉날쭉하면 띠로 읽히지 않는다 */
@@ -4683,7 +4683,7 @@ a.cs-pin:hover {
   margin-bottom: 14px;
 }
 .cs-trend__delta {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--body);
   font-variant-numeric: tabular-nums;
@@ -4714,7 +4714,7 @@ a.cs-pin:hover {
   border-radius: 3px 3px 0 0;
 }
 .cs-trend__m {
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -4724,7 +4724,7 @@ a.cs-pin:hover {
     height: 92px;
   }
   .cs-trend__m {
-    font-size: 10px;
+    font-size: 12px;
   }
 }
 
@@ -4804,7 +4804,7 @@ a.cs-pin:hover {
 }
 .cs-scores__n {
   margin-left: 6px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 
@@ -4837,7 +4837,7 @@ a.cs-pin:hover {
 }
 
 .cs-cal2__w {
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--muted);
   text-align: center;
@@ -4863,7 +4863,7 @@ a.cs-pin:hover {
 }
 
 .cs-cal2__d {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -4924,7 +4924,7 @@ a.cs-pin:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--muted);
 }
 .cs-cal2__dot {
@@ -5066,7 +5066,7 @@ a.cs-pin:hover {
   white-space: nowrap;
 }
 .cs-read__table thead th {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--muted);
   background: var(--paper);
@@ -5187,7 +5187,7 @@ a.cs-pin:hover {
 }
 .cs-read__nm {
   display: block;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--body);
   margin-top: 2px;
   max-width: 34ch;
@@ -5238,7 +5238,7 @@ a.cs-pin:hover {
 }
 .cs-heatcard__rank {
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -5309,7 +5309,7 @@ a.cs-pin:hover {
   background: var(--accent);
 }
 .cs-heatcard__label {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -5317,7 +5317,7 @@ a.cs-pin:hover {
   color: var(--accent);
 }
 .cs-heatcard__meta {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
   margin: 0;
   padding-top: 10px;
@@ -5392,7 +5392,7 @@ a.cs-pin:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 .cs-map__legend-dot {
@@ -5470,7 +5470,7 @@ a.cs-pin:hover {
 }
 .cs-guide__watch b {
   display: block;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--check);
   margin-bottom: 5px;
@@ -5511,7 +5511,7 @@ a.cs-pin:hover {
   line-height: 1;
 }
 .cs-regionmark__sub {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1;
   margin-top: 3px;
@@ -5688,7 +5688,7 @@ html {
 }
 .cs-emblem__name {
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -5709,7 +5709,7 @@ html {
     right: 14px;
   }
   .cs-emblem__img { width: 32px; height: 32px; }
-  .cs-emblem__name { font-size: 11px; }
+  .cs-emblem__name { font-size: 12.5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5841,7 +5841,7 @@ html {
   color: var(--d-easy);
 }
 .cs-spsply__meta {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -5850,7 +5850,7 @@ html {
 .cs-spsply__area,
 .cs-spsply__inst {
   margin: 14px 0 0;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.6;
   color: var(--muted);
 }
@@ -5896,11 +5896,11 @@ html {
   flex-wrap: wrap;
   gap: 4px 8px;
   margin: 0 0 8px;
-  font-size: 13.5px;
+  font-size: 14.5px;
   line-height: 1.5;
 }
 .cs-notice__sp-tag {
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--muted);
@@ -5920,7 +5920,7 @@ html {
   color: var(--d-easy);
 }
 .cs-notice__sp-meta {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -5934,7 +5934,7 @@ html {
 }
 .cs-mk__kicker {
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--accent);
@@ -5968,7 +5968,7 @@ html {
 }
 .cs-mk__tab {
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--muted);
   background: transparent;
@@ -6095,7 +6095,7 @@ html {
   white-space: nowrap;
 }
 .cs-mk__n {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--muted);
   margin-left: 7px;
@@ -6119,7 +6119,7 @@ html {
   display: flex;
   justify-content: space-between;
   margin-top: 5px;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -6160,7 +6160,7 @@ html {
   background: var(--accent);
 }
 .cs-mk__spread {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -6197,7 +6197,7 @@ html {
   border: 1px solid var(--line);
 }
 .cs-mk__size-label {
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -6208,7 +6208,7 @@ html {
   color: var(--title);
 }
 .cs-mk__size-sub {
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -6239,7 +6239,7 @@ html {
   gap: 8px;
   padding: 7px 0;
   border-top: 1px solid var(--line);
-  font-size: 13.5px;
+  font-size: 14.5px;
 }
 .cs-mk__split-label {
   color: var(--muted);
@@ -6272,7 +6272,7 @@ html {
   border-left: 3px solid var(--accent);
   background: var(--accent-soft);
   border-radius: 0 var(--r-inner) var(--r-inner) 0;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.7;
   color: var(--body);
 }
@@ -6282,7 +6282,7 @@ html {
 }
 
 .cs-mk__where {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--muted);
   white-space: nowrap;
 }
@@ -6338,12 +6338,12 @@ html {
 }
 .cs-mk__month b {
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   color: var(--title);
   font-variant-numeric: tabular-nums;
 }
 .cs-mk__month-label {
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -6402,7 +6402,7 @@ html {
 }
 .cs-404__code {
   font-family: var(--font-brand), var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--accent);
@@ -6452,12 +6452,12 @@ html {
   color: var(--title);
 }
 .cs-404__door-hint {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 .cs-404__home {
   display: inline-block;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--muted);
   text-decoration: underline;
@@ -6529,7 +6529,7 @@ html {
 }
 .cs-cmp__toggle {
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--muted);
   background: transparent;
@@ -6546,7 +6546,7 @@ html {
   color: var(--paper);
 }
 .cs-cmp__back {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--muted);
   text-decoration: underline;
   text-underline-offset: 4px;
@@ -6602,7 +6602,7 @@ html {
 .cs-cmp__rowhead {
   /* 고정 레이아웃에서 첫 칸만 폭을 못 박고 나머지는 균등하게 나뉜다 */
   width: 112px;
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 600;
   color: var(--muted);
   background: var(--paper-2);
@@ -6624,14 +6624,14 @@ html {
   flex-wrap: wrap;
 }
 .cs-cmp__notes dt {
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--body);
   white-space: nowrap;
 }
 .cs-cmp__notes dd {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.6;
   color: var(--muted);
   flex: 1 1 280px;
@@ -6661,7 +6661,7 @@ html {
 .cs-cmp__sub {
   display: block;
   margin-top: 4px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--muted);
 }
@@ -6683,7 +6683,7 @@ html {
   flex-wrap: wrap;
 }
 .cs-cmp__link {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--brand);
   text-decoration: underline;
@@ -6719,7 +6719,7 @@ html {
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
@@ -6766,7 +6766,7 @@ html {
 }
 .cs-pickbar__clear {
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--paper);
   opacity: 0.75;
   background: transparent;
@@ -6780,7 +6780,7 @@ html {
   opacity: 1;
 }
 .cs-pickbar__hint {
-  font-size: 13.5px;
+  font-size: 14.5px;
   opacity: 0.8;
   margin-left: auto;
 }
@@ -6799,7 +6799,7 @@ html {
   .cs-cmp__rowhead {
     width: 96px;
     min-width: 96px;
-    font-size: 12.5px;
+    font-size: 13.5px;
   }
   .cs-cmp__note {
     max-width: 90px;

@@ -28,7 +28,7 @@ const selectStyle: React.CSSProperties = {
   border: '1px solid var(--line)',
   background: 'var(--surface)',
   color: 'var(--ink)',
-  fontSize: 13.5,
+  fontSize: 14.5,
   fontFamily: 'inherit',
   outline: 'none',
   appearance: 'none',
@@ -57,7 +57,7 @@ function ScoreCard({ label, value, sub, accent }: { label: string; value: string
       borderRadius: 'var(--r-md)', padding: '20px 22px',
       boxShadow: 'var(--shadow)',
     }}>
-      <div style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 550 }}>{label}</div>
+      <div style={{ fontSize: 14, color: 'var(--ink-3)', fontWeight: 550 }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 10 }}>
         <span className="tnum" style={{
           fontSize: 38, fontWeight: 760, letterSpacing: '-0.04em', lineHeight: 1,
@@ -67,14 +67,14 @@ function ScoreCard({ label, value, sub, accent }: { label: string; value: string
         </span>
         <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink-3)' }}>점</span>
       </div>
-      {sub && <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 10, fontWeight: 450 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 13.5, color: 'var(--ink-3)', marginTop: 10, fontWeight: 450 }}>{sub}</div>}
     </div>
   )
 }
 
 const thStyle: React.CSSProperties = {
   padding: '13px 18px',
-  fontSize: 11.5,
+  fontSize: 13,
   fontWeight: 650,
   color: 'var(--ink-3)',
   letterSpacing: '0.02em',
@@ -224,7 +224,7 @@ export default function WinnersTab() {
             <>
               <div style={{
                 display: 'inline-flex', borderRadius: 10, overflow: 'hidden',
-                border: '1px solid var(--line)', fontSize: 13.5,
+                border: '1px solid var(--line)', fontSize: 14.5,
               }}>
                 {(['applicants', 'winners'] as const).map(mode => (
                   <button key={mode} onClick={() => setAgeMode(mode)} style={{
@@ -247,17 +247,17 @@ export default function WinnersTab() {
           }
         />
         {ageLoading ? <Skeleton h={220} /> : ageChartData.length === 0 ? (
-          <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', fontSize: 14 }}>데이터 없음</div>
+          <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', fontSize: 15 }}>데이터 없음</div>
         ) : (
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={ageChartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-              <XAxis dataKey="name" tick={{ fontSize: 13, fill: 'var(--ink-3)' }} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--ink-3)' }} tickFormatter={v => v.toLocaleString()} />
+              <XAxis dataKey="name" tick={{ fontSize: 14, fill: 'var(--ink-3)' }} />
+              <YAxis tick={{ fontSize: 12.5, fill: 'var(--ink-3)' }} tickFormatter={v => v.toLocaleString()} />
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(v: any) => [Number(v).toLocaleString() + '명', ageMode === 'winners' ? '당첨자' : '신청자']}
-                contentStyle={{ borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 12, color: 'var(--ink)' }}
+                contentStyle={{ borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 13, color: 'var(--ink)' }}
               />
               <Bar dataKey="value" name={ageMode === 'winners' ? '당첨자' : '신청자'} fill="var(--accent)" radius={[6, 6, 0, 0]} />
             </BarChart>
@@ -279,19 +279,19 @@ export default function WinnersTab() {
           }
         />
         {regionLoading ? <Skeleton h={280} /> : regionChartData.length === 0 ? (
-          <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', fontSize: 14 }}>데이터 없음</div>
+          <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', fontSize: 15 }}>데이터 없음</div>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={regionChartData} margin={{ top: 4, right: 8, left: 0, bottom: 44 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--ink-3)' }} angle={-30} textAnchor="end" interval={0} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--ink-3)' }} tickFormatter={v => v.toLocaleString()} />
+              <XAxis dataKey="name" tick={{ fontSize: 12.5, fill: 'var(--ink-3)' }} angle={-30} textAnchor="end" interval={0} />
+              <YAxis tick={{ fontSize: 12.5, fill: 'var(--ink-3)' }} tickFormatter={v => v.toLocaleString()} />
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(v: any, name: any) => [Number(v).toLocaleString() + '명', name]}
-                contentStyle={{ borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 12, color: 'var(--ink)' }}
+                contentStyle={{ borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 13, color: 'var(--ink)' }}
               />
-              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8, color: 'var(--ink-2)' }} />
+              <Legend wrapperStyle={{ fontSize: 13, paddingTop: 8, color: 'var(--ink-2)' }} />
               <Bar dataKey="신청자" fill="var(--ink-3)" radius={[4, 4, 0, 0]} />
               <Bar dataKey="당첨자" fill="var(--accent)" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -350,19 +350,19 @@ export default function WinnersTab() {
                   <tbody>
                     {filteredScore.map((item, i) => (
                       <tr key={i} className="rowhover">
-                        <td style={{ padding: '13px 18px', fontSize: 13.5, fontWeight: 650, color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>{item.SUBSCRPT_AREA_CODE_NM}</td>
-                        <td style={{ padding: '13px 18px', fontSize: 13.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }}>{item.RESIDE_SECD_NM}</td>
-                        <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 14, fontWeight: 700, color: 'var(--accent)', borderBottom: '1px solid var(--line)' }} className="tnum">{item.AVRG_SCORE}점</td>
-                        <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 13.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }} className="tnum">{item.MED_SCORE}점</td>
-                        <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 13.5, color: 'var(--pos)', borderBottom: '1px solid var(--line)' }} className="tnum">{item.TOP_SCORE}점</td>
-                        <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 13.5, color: 'var(--ink-3)', borderBottom: '1px solid var(--line)' }} className="tnum">{item.LWET_SCORE}점</td>
+                        <td style={{ padding: '13px 18px', fontSize: 14.5, fontWeight: 650, color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>{item.SUBSCRPT_AREA_CODE_NM}</td>
+                        <td style={{ padding: '13px 18px', fontSize: 14.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }}>{item.RESIDE_SECD_NM}</td>
+                        <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 15, fontWeight: 700, color: 'var(--accent)', borderBottom: '1px solid var(--line)' }} className="tnum">{item.AVRG_SCORE}점</td>
+                        <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 14.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }} className="tnum">{item.MED_SCORE}점</td>
+                        <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 14.5, color: 'var(--pos)', borderBottom: '1px solid var(--line)' }} className="tnum">{item.TOP_SCORE}점</td>
+                        <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 14.5, color: 'var(--ink-3)', borderBottom: '1px solid var(--line)' }} className="tnum">{item.LWET_SCORE}점</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-3)', fontSize: 14 }}>
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-3)', fontSize: 15 }}>
                 해당 조건의 데이터가 없습니다
               </div>
             )}

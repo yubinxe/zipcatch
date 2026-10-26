@@ -125,7 +125,7 @@ export default function PropertiesView() {
                     <td className="muted">{p.id}</td>
                     <td style={{ fontWeight: 600, minWidth: 180 }}>
                       {p.name}
-                      <div className="muted" style={{ fontSize: 12, marginTop: 3, fontWeight: 400 }}>{p.source}</div>
+                      <div className="muted" style={{ fontSize: 13, marginTop: 3, fontWeight: 400 }}>{p.source}</div>
                     </td>
                     <td className="muted">{p.housingType}</td>
                     <td>{p.region}</td>

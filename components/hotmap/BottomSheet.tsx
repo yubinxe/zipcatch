@@ -136,13 +136,13 @@ export default function HotmapBottomSheet({
             {spot.address && (
               <div className="bottom-sheet-premium-row">
                 <span>위치</span>
-                <span style={{ fontSize: 13, color: 'var(--ink-2)', textAlign: 'right', maxWidth: '65%' }}>{spot.address}</span>
+                <span style={{ fontSize: 14, color: 'var(--ink-2)', textAlign: 'right', maxWidth: '65%' }}>{spot.address}</span>
               </div>
             )}
             {(spot.openDate || spot.closeDate) && (
               <div className="bottom-sheet-premium-row">
                 <span>청약접수</span>
-                <span className="tnum" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                <span className="tnum" style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
                   {spot.openDate ? formatDate(spot.openDate.replace(/-/g, '')) : '-'}
                   {' ~ '}
                   {spot.closeDate ? formatDate(spot.closeDate.replace(/-/g, '')) : '-'}
