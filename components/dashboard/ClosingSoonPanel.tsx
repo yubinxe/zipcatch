@@ -8,7 +8,7 @@ import { CLOSING_SOON_DAYS, type HeroAnnouncement } from '@/lib/announcement-hel
 function HeroStat({ label, value, hot }: { label: string; value: string; hot?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: 11.5, color: 'var(--ink-3)', fontWeight: 550, marginBottom: 5, whiteSpace: 'nowrap' }}>
+      <div style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 550, marginBottom: 5, whiteSpace: 'nowrap' }}>
         {label}
       </div>
       <div

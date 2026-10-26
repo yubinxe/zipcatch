@@ -38,7 +38,7 @@ const selectStyle: React.CSSProperties = {
   border: '1px solid var(--line)',
   background: 'var(--surface)',
   color: 'var(--ink)',
-  fontSize: 13.5,
+  fontSize: 14.5,
   fontFamily: 'inherit',
   outline: 'none',
   appearance: 'none',
@@ -61,7 +61,7 @@ function SelectWrap({ value, onChange, options }: { value: string; onChange: (v:
 
 const thStyle: React.CSSProperties = {
   padding: '13px 18px',
-  fontSize: 11.5,
+  fontSize: 13,
   fontWeight: 650,
   color: 'var(--ink-3)',
   letterSpacing: '0.02em',
@@ -148,21 +148,21 @@ export default function CompetitionTab() {
         {statsLoading ? (
           <div style={{ height: 280, borderRadius: 12, background: 'var(--track)' }} />
         ) : statsError ? (
-          <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--hot)', fontSize: 14 }}>{statsError}</div>
+          <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--hot)', fontSize: 15 }}>{statsError}</div>
         ) : chartData.length === 0 ? (
-          <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', fontSize: 14 }}>데이터가 없습니다</div>
+          <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', fontSize: 15 }}>데이터가 없습니다</div>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 44 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--ink-3)' }} angle={-30} textAnchor="end" interval={0} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--ink-3)' }} tickFormatter={v => `${v}:1`} />
+              <XAxis dataKey="name" tick={{ fontSize: 13, fill: 'var(--ink-3)' }} angle={-30} textAnchor="end" interval={0} />
+              <YAxis tick={{ fontSize: 12.5, fill: 'var(--ink-3)' }} tickFormatter={v => `${v}:1`} />
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(value: any) => [`${Number(value).toFixed(2)}:1`]}
-                contentStyle={{ borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 12, color: 'var(--ink)' }}
+                contentStyle={{ borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 13, color: 'var(--ink)' }}
               />
-              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8, color: 'var(--ink-2)' }} />
+              <Legend wrapperStyle={{ fontSize: 13, paddingTop: 8, color: 'var(--ink-2)' }} />
               <Bar dataKey="특별공급" fill="var(--accent)" radius={[5, 5, 0, 0]} />
               <Bar dataKey="일반공급" fill="var(--pos)" radius={[5, 5, 0, 0]} />
             </BarChart>
@@ -189,7 +189,7 @@ export default function CompetitionTab() {
                 width: '100%', padding: '10px 14px 10px 38px',
                 borderRadius: 'var(--r-sm)', border: '1px solid var(--line)',
                 background: 'var(--surface)', color: 'var(--ink)',
-                fontSize: 13.5, fontFamily: 'inherit', outline: 'none',
+                fontSize: 14.5, fontFamily: 'inherit', outline: 'none',
               }}
             />
           </div>
@@ -209,14 +209,14 @@ export default function CompetitionTab() {
           </button>
         </div>
 
-        {searchError && <p style={{ color: 'var(--hot)', fontSize: 13.5, marginBottom: 16 }}>{searchError}</p>}
+        {searchError && <p style={{ color: 'var(--hot)', fontSize: 14.5, marginBottom: 16 }}>{searchError}</p>}
 
         {pblancNo && !searchLoading && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* 경쟁률 */}
             {compData.length > 0 && (
               <div>
-                <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--ink-2)', marginBottom: 10 }}>주택형별 경쟁률</div>
+                <div style={{ fontSize: 15, fontWeight: 650, color: 'var(--ink-2)', marginBottom: 10 }}>주택형별 경쟁률</div>
                 <div style={{ overflowX: 'auto', borderRadius: 'var(--r-md)', border: '1px solid var(--line)' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
                     <thead>
@@ -232,12 +232,12 @@ export default function CompetitionTab() {
                         const rateColor = rate >= 10 ? 'var(--hot)' : rate >= 3 ? 'var(--warn)' : 'var(--pos)'
                         return (
                           <tr key={i} className="rowhover">
-                            <td style={{ padding: '13px 18px', fontSize: 13.5, fontWeight: 650, color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>{item.HOUSE_TY}</td>
-                            <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 13.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }} className="tnum">{Number(item.SUPLY_HSHLDCO).toLocaleString()}</td>
-                            <td style={{ padding: '13px 18px', fontSize: 13.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }}>{item.RESIDE_SENM}</td>
-                            <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 13.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }} className="tnum">{Number(item.REQ_CNT).toLocaleString()}</td>
+                            <td style={{ padding: '13px 18px', fontSize: 14.5, fontWeight: 650, color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>{item.HOUSE_TY}</td>
+                            <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 14.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }} className="tnum">{Number(item.SUPLY_HSHLDCO).toLocaleString()}</td>
+                            <td style={{ padding: '13px 18px', fontSize: 14.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }}>{item.RESIDE_SENM}</td>
+                            <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 14.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }} className="tnum">{Number(item.REQ_CNT).toLocaleString()}</td>
                             <td style={{ padding: '13px 18px', textAlign: 'right', borderBottom: '1px solid var(--line)' }} className="tnum">
-                              <span style={{ fontSize: 14, fontWeight: 700, color: item.CMPET_RATE === '-' ? 'var(--ink-3)' : rateColor }}>
+                              <span style={{ fontSize: 15, fontWeight: 700, color: item.CMPET_RATE === '-' ? 'var(--ink-3)' : rateColor }}>
                                 {item.CMPET_RATE === '-' ? '-' : `${parseFloat(item.CMPET_RATE).toFixed(2)}:1`}
                               </span>
                             </td>
@@ -253,7 +253,7 @@ export default function CompetitionTab() {
             {/* 특별공급 */}
             {spData.length > 0 && (
               <div>
-                <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--ink-2)', marginBottom: 10 }}>특별공급 신청현황</div>
+                <div style={{ fontSize: 15, fontWeight: 650, color: 'var(--ink-2)', marginBottom: 10 }}>특별공급 신청현황</div>
                 <div style={{ overflowX: 'auto', borderRadius: 'var(--r-md)', border: '1px solid var(--line)' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
@@ -269,14 +269,14 @@ export default function CompetitionTab() {
                     <tbody>
                       {spData.map((item, i) => (
                         <tr key={i} className="rowhover">
-                          <td style={{ padding: '13px 18px', fontSize: 13.5, fontWeight: 650, color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>{item.HOUSE_TY}</td>
-                          <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 13.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }} className="tnum">{Number(item.SPSPLY_HSHLDCO).toLocaleString()}</td>
+                          <td style={{ padding: '13px 18px', fontSize: 14.5, fontWeight: 650, color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>{item.HOUSE_TY}</td>
+                          <td style={{ padding: '13px 18px', textAlign: 'right', fontSize: 14.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }} className="tnum">{Number(item.SPSPLY_HSHLDCO).toLocaleString()}</td>
                           {Object.keys(SPECIAL_LABELS).map(key => (
-                            <td key={key} style={{ padding: '13px 18px', textAlign: 'right', fontSize: 13.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }} className="tnum">
+                            <td key={key} style={{ padding: '13px 18px', textAlign: 'right', fontSize: 14.5, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)' }} className="tnum">
                               {item[key as keyof SpecialSupplyItem] || '-'}
                             </td>
                           ))}
-                          <td style={{ padding: '13px 18px', fontSize: 13, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' }}>{item.SUBSCRPT_RESULT_NM || '-'}</td>
+                          <td style={{ padding: '13px 18px', fontSize: 14, color: 'var(--ink-2)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' }}>{item.SUBSCRPT_RESULT_NM || '-'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -286,7 +286,7 @@ export default function CompetitionTab() {
             )}
 
             {compData.length === 0 && spData.length === 0 && (
-              <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-3)', fontSize: 14 }}>
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-3)', fontSize: 15 }}>
                 해당 공고번호의 데이터가 없습니다
               </div>
             )}

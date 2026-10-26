@@ -299,7 +299,7 @@ export default function DashboardView() {
                   <Chip tone="accent">
                     수신 : {customerById.get(latestNotification.customerId)?.name ?? latestNotification.customerId}
                   </Chip>
-                  <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>
+                  <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>
                     {clockTime(latestNotification.createdAt)}
                   </span>
                 </div>
@@ -450,7 +450,7 @@ export default function DashboardView() {
                     </tbody>
                   </table>
                   {result.matches.length > 8 && (
-                    <p style={{ fontSize: 12, color: 'var(--ink-3)', margin: '12px 0 0' }}>
+                    <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: '12px 0 0' }}>
                       외 {result.matches.length - 8}명 ·{' '}
                       <Link href="/matches" className="link-ink">
                         매칭현황에서 전체 조회

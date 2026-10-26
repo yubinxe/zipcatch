@@ -370,7 +370,7 @@ export default function CrmDashboard() {
                     border: '1px solid var(--line)',
                     borderRadius: 'var(--r-sm)',
                     fontFamily: 'inherit',
-                    fontSize: 13,
+                    fontSize: 14,
                     lineHeight: 1.65,
                     whiteSpace: 'pre-wrap',
                     maxHeight: 320,
@@ -411,7 +411,7 @@ export default function CrmDashboard() {
                     <tr key={mt.id}>
                       <td>{mt.customerName ?? '—'}</td>
                       <td className="muted">{mt.opportunityTitle ?? '—'}</td>
-                      <td style={{ maxWidth: 460, fontSize: 13, lineHeight: 1.55 }}>{mt.reason}</td>
+                      <td style={{ maxWidth: 460, fontSize: 14, lineHeight: 1.55 }}>{mt.reason}</td>
                       <td className="num">
                         <span className="score-badge" data-tier={mt.opportunity_score >= 85 ? 'high' : 'mid'}>
                           {mt.opportunity_score}

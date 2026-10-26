@@ -72,7 +72,7 @@ export default function CrmShell({ children }: { children: ReactNode }) {
                 <path d="M5 10v9.5h14V10" />
               </svg>
             </span>
-            집캐치 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)' }}>운영</span>
+            집캐치 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>운영</span>
           </Link>
 
           <div className="crm-nav__links">

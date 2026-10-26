@@ -156,7 +156,7 @@ export default function Page() {
       </main>
 
       <footer style={{ borderTop: '1px solid var(--line)', padding: '24px 32px', textAlign: 'center' }}>
-        <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-3)' }}>
+        <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-3)' }}>
           데이터 출처: 공공데이터포털 청약홈 OpenAPI · 한국부동산원
         </p>
       </footer>

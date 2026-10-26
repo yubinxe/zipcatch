@@ -7,7 +7,7 @@ import type { HeroAnnouncement } from '@/lib/announcement-helpers'
 function HeroStat({ label, value, hot }: { label: string; value: string; hot?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: 11.5, color: 'var(--ink-3)', fontWeight: 550, marginBottom: 5, whiteSpace: 'nowrap' }}>{label}</div>
+      <div style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 550, marginBottom: 5, whiteSpace: 'nowrap' }}>{label}</div>
       <div
         className="tnum"
         style={{
@@ -58,7 +58,7 @@ export default function Hero({ items }: { items: HeroAnnouncement[] }) {
               borderRadius: 99,
               background: 'var(--hot-soft)',
               color: 'var(--hot)',
-              fontSize: 12.5,
+              fontSize: 13.5,
               fontWeight: 700,
               marginBottom: 14,
               whiteSpace: 'nowrap',
@@ -117,7 +117,7 @@ export default function Hero({ items }: { items: HeroAnnouncement[] }) {
                     </div>
                   </div>
                 ) : (
-                  <div className="tnum" style={{ fontSize: 14, fontWeight: 650, color: 'var(--ink-3)', whiteSpace: 'nowrap' }}>
+                  <div className="tnum" style={{ fontSize: 15, fontWeight: 650, color: 'var(--ink-3)', whiteSpace: 'nowrap' }}>
                     D-{a.dday}
                   </div>
                 )}
@@ -125,7 +125,7 @@ export default function Hero({ items }: { items: HeroAnnouncement[] }) {
               <h3 style={{ margin: '20px 0 6px', fontSize: 22, fontWeight: 720, letterSpacing: '-0.025em', color: 'var(--ink)' }}>
                 {a.name}
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink-3)', fontSize: 13.5, fontWeight: 500 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink-3)', fontSize: 14.5, fontWeight: 500 }}>
                 <Icon name="pin" size={14} />
                 {a.sido} {a.gu} · {a.builder}
               </div>

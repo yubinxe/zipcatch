@@ -64,7 +64,7 @@ export default function KpiStrip({
                 color: s.hot ? 'var(--hot)' : 'var(--ink-3)',
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>
                 {s.label}
               </span>
               <Icon name={s.icon} size={16} />
@@ -82,7 +82,7 @@ export default function KpiStrip({
                 {s.text ? s.value : typeof s.value === 'number' ? s.value.toLocaleString() : s.value}
               </span>
               {s.unit && (
-                <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink-3)' }}>{s.unit}</span>
+                <span style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--ink-3)' }}>{s.unit}</span>
               )}
             </div>
             {'hint' in s && s.hint && (

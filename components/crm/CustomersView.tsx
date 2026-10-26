@@ -198,7 +198,7 @@ export default function CustomersView() {
                           <tr key={m.id}>
                             <td>
                               {p?.name ?? m.propertyId}
-                              <div className="muted" style={{ fontSize: 12, marginTop: 3 }}>
+                              <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>
                                 {p ? `${p.region} · ${p.area}㎡ · 접수 ~${shortDate(p.applicationEnd)}` : ''}
                               </div>
                             </td>

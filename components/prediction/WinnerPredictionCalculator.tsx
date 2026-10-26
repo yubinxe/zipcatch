@@ -350,7 +350,7 @@ export default function WinnerPredictionCalculator({
                   </button>
                   <div className="predict-stepper-value">
                     <span className="tnum predict-big-num">{input.dependents}</span>
-                    <span style={{ fontSize: 14, color: 'var(--ink-3)', fontWeight: 500 }}>명</span>
+                    <span style={{ fontSize: 15, color: 'var(--ink-3)', fontWeight: 500 }}>명</span>
                     <span className="predict-points tnum" style={{ marginTop: 8 }}>+{breakdown.dependents}점</span>
                   </div>
                   <button

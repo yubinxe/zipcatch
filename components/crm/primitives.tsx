@@ -113,7 +113,7 @@ export function ScoreBars({ breakdown }: { breakdown: FitBreakdown }) {
                 <span className="score-bar__weight">재분배</span>
               </span>
               <span className="score-bar__track" />
-              <span className="score-bar__val muted" style={{ fontSize: 12 }}>
+              <span className="score-bar__val muted" style={{ fontSize: 13 }}>
                 미공개
               </span>
             </div>

@@ -127,7 +127,7 @@ export default function MatchesView() {
                       </td>
                       <td style={{ minWidth: 170 }}>
                         <div style={{ fontWeight: 550 }}>{p?.name ?? m.propertyId}</div>
-                        <div className="muted" style={{ fontSize: 12, marginTop: 3 }}>
+                        <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>
                           {p
                             ? [
                                 p.region,
@@ -142,7 +142,7 @@ export default function MatchesView() {
                             : ''}
                         </div>
                       </td>
-                      <td style={{ maxWidth: 420, fontSize: 13, lineHeight: 1.55 }}>
+                      <td style={{ maxWidth: 420, fontSize: 14, lineHeight: 1.55 }}>
                         {m.reasons.join(' · ')}
                         {openId === m.id && (
                           <div style={{ marginTop: 12 }}>

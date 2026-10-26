@@ -803,7 +803,7 @@ export default function NoticeDetail({ id }: { id: string }) {
                 <span>
                   <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--title)' }}>{t.title}</span>
                   {t.hint && (
-                    <span style={{ display: 'block', fontSize: 14, color: 'var(--muted)', marginTop: 2 }}>
+                    <span style={{ display: 'block', fontSize: 15, color: 'var(--muted)', marginTop: 2 }}>
                       {t.hint}
                     </span>
                   )}
