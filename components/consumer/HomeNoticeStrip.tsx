@@ -41,7 +41,9 @@ export default function HomeNoticeStrip() {
     if (region !== '전체') params.set('region', region)
     if (type !== '전체') params.set('housingType', type)
 
-    fetch(`/api/notices?${params}`, { cache: 'no-store' })
+    // 칩을 빠르게 연달아 누르면 앞의 요청은 쓸모가 없다. 기다리지 않고 거둔다
+    const ctl = new AbortController()
+    fetch(`/api/notices?${params}`, { cache: 'no-store', signal: ctl.signal })
       .then(r => (r.ok ? r.json() : Promise.reject(new Error('불러오지 못했어요'))))
       .then((data: {
         notices: NoticeRow[]
@@ -63,6 +65,7 @@ export default function HomeNoticeStrip() {
       })
     return () => {
       alive = false
+      ctl.abort()
     }
   }, [region, type, key])
 

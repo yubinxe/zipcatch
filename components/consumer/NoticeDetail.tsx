@@ -10,6 +10,7 @@ import { statusBadge } from './NoticeCard'
 import SpecialSupply from './SpecialSupply'
 import SaveButton from './SaveButton'
 import NoticeCalendar, { marksFrom } from './NoticeCalendar'
+import NearbyStores from './NearbyStores'
 import { useConsumer } from './ConsumerProvider'
 import { useSignupGate } from './SignupGate'
 
@@ -733,6 +734,14 @@ export default function NoticeDetail({ id }: { id: string }) {
           </div>
         </section>
       )}
+
+      {/* 주변 생활 상권 — 좌표가 주소·공고명으로 찾은 자리일 때만. 지역 기준점이면 남의 동네를 보여 주게 된다 */}
+      {!isSample &&
+        property.lat !== null &&
+        property.lng !== null &&
+        (property.geoSource === 'ADDRESS' || property.geoSource === 'NAME') && (
+          <NearbyStores lat={property.lat} lng={property.lng} approximate={property.geoSource === 'NAME'} />
+        )}
 
       {/* 공식 일정 */}
       <section style={{ marginTop: 32 }}>

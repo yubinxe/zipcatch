@@ -11,17 +11,10 @@
     },
     "부산": {
       "file": "busan.svg",
-      "title": "Emblem of Busan-bu.svg",
+      "title": "Symbol of Busan.svg",
       "license": "Public domain",
-      "artist": "Vectorized by Nv7801",
-      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20Busan-bu.svg"
-    },
-    "대구": {
-      "file": "daegu.svg",
-      "title": "Emblem of Daegu-bu.svg",
-      "license": "Public domain",
-      "artist": "Vectorized by Nv7801",
-      "source": "https://commons.wikimedia.org/wiki/File:Emblem%20of%20Daegu-bu.svg"
+      "artist": "Busan Metropolitan City Government",
+      "source": "https://commons.wikimedia.org/wiki/File:Symbol%20of%20Busan.svg"
     },
     "인천": {
       "file": "incheon.svg",

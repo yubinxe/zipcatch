@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import YouthDiscoveryLoader from './YouthDiscoveryLoader'
 import { useEffect, useState } from 'react'
 import type { Candidate } from '@/lib/crm/services/scoring'
 import { formatMan } from '@/lib/crm/services/scoring'
@@ -31,11 +32,16 @@ export default function ResultsView() {
 
   const hasNewNoticeAlert = alerts.some(a => a.scope === 'NEW_NOTICE')
 
+  const [attempt, setAttempt] = useState(0)
+
   useEffect(() => {
     let alive = true
     if (!profile) return
+    // 화면을 떠나거나 다시 시도하면 앞의 요청을 거둔다. 늦게 온 옛 결과가 새 화면을 덮지 않게
+    const ctl = new AbortController()
 
     fetch('/api/search', {
+      signal: ctl.signal,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -61,8 +67,9 @@ export default function ResultsView() {
 
     return () => {
       alive = false
+      ctl.abort()
     }
-  }, [profile])
+  }, [profile, attempt])
 
   // 조건이 없으면 입력부터
   if (meLoading) return <div className="cs-wrap" role="status" style={{ paddingTop: 48 }}>저장한 조건을 확인하고 있어요…</div>
@@ -148,6 +155,16 @@ export default function ResultsView() {
         </div>
       </header>
 
+      <YouthDiscoveryLoader
+        active={loading}
+        title="저장한 조건으로 후보를 정리하는 중이에요"
+        stage="접수 중인 공고와 조건을 대조하고 있어요"
+        onRetry={() => {
+          setError(null)
+          setLoading(true)
+          setAttempt(a => a + 1)
+        }}
+      />
       {loading ? (
         <div className="cs-notice-grid" style={{ marginTop: 36 }}>
           {Array.from({ length: 4 }).map((_, i) => (

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import ScrollChrome from './ScrollChrome'
+import { warmKakao } from './kakao-sdk'
 import LuxBackdrop from './LuxBackdrop'
 import ScrollProgress from './ScrollProgress'
 import { usePathname } from 'next/navigation'
@@ -82,6 +83,8 @@ export default function ConsumerShell({ children }: { children: ReactNode }) {
                 href={l.href}
                 className="cs-nav__link"
                 data-active={pathname.startsWith(l.href) ? 'true' : 'false'}
+                // 지도로 갈 손이면 SDK 를 미리 받기 시작한다 (누르기 전 수백 ms)
+                {...(l.href === '/map' ? { onPointerEnter: warmKakao, onFocus: warmKakao, onTouchStart: warmKakao } : {})}
               >
                 {l.label}
                 {l.href === '/saved' && savedCount > 0 && (

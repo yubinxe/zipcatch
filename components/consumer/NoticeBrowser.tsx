@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ELIGIBILITY_CAUTION, type UrgencyInfo } from '@/lib/crm/services/scoring'
 import type { Property } from '@/lib/crm/types'
 import NoticeCard from './NoticeCard'
@@ -17,7 +18,8 @@ interface Row {
 }
 
 export default function NoticeBrowser() {
-  const [region, setRegion] = useState('전체')
+  const initialRegion = useSearchParams().get('region')
+  const [region, setRegion] = useState(initialRegion || '전체')
   const [type, setType] = useState('전체')
   const [nonce, setNonce] = useState(0)
   const [result, setResult] = useState<{ key: string; rows: Row[]; error: string | null } | null>(null)
@@ -44,7 +46,9 @@ export default function NoticeBrowser() {
     if (region !== '전체') params.set('region', region)
     if (type !== '전체') params.set('housingType', type)
 
-    fetch(`/api/notices?${params}`, { cache: 'no-store' })
+    // 칩을 빠르게 연달아 누르면 앞의 요청은 쓸모가 없다. 기다리지 않고 거둔다
+    const ctl = new AbortController()
+    fetch(`/api/notices?${params}`, { cache: 'no-store', signal: ctl.signal })
       .then(r => (r.ok ? r.json() : Promise.reject(new Error('공고를 불러오지 못했어요.'))))
       .then((json: {
         notices: Row[]
@@ -70,6 +74,7 @@ export default function NoticeBrowser() {
 
     return () => {
       alive = false
+      ctl.abort()
     }
   }, [region, type, key])
 

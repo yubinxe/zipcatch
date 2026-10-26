@@ -4,6 +4,8 @@ import './globals.css'
 import './consumer.css'
 /* 한지·먹·주묵 체계 위에 빛과 깊이만 얹는 층. 반드시 consumer.css 뒤에 온다 */
 import './consumer-lux.css'
+/* 첫 화면 지도 · 네 장면 · 주거비 환산. 같은 토큰을 쓰므로 lux 뒤에 둔다 */
+import './consumer-atlas.css'
 import './crm.css'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zipcatch.vercel.app').replace(/\/$/, '')
