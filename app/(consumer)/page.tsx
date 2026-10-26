@@ -57,19 +57,24 @@ const FAQ: { q: string; a: string[] }[] = [
 /** 섹션 머리 — 잡지 목차처럼 번호와 괘선을 앞세운다 */
 function SectionHead({
   index,
+  eyebrow,
   title,
   sub,
   right,
 }: {
   index: string
+  eyebrow?: string
   title: string
   sub?: string
   right?: React.ReactNode
 }) {
   return (
     <div className="cs-sec-head">
-      <span className="cs-sec-index">{index}</span>
+      <span className="cs-sec-index" aria-hidden="true">
+        {index}
+      </span>
       <div className="cs-sec-head__body">
+        {eyebrow && <span className="cs-sec-eyebrow">{eyebrow}</span>}
         <h2 className="cs-section-title">{title}</h2>
         {sub && (
           <p className="cs-sub" style={{ marginTop: 12 }}>
@@ -86,17 +91,16 @@ export default function ConsumerHome() {
   return (
     <>
       {/* ── 첫 화면 ─────────────────────────────────────── */}
-      <section className="cs-wrap cs-hero">
-        {/* 빛과 결. 글을 가리지 않는 자리에만 깔린다 */}
-        <div className="cs-lux-aura" aria-hidden="true">
-          <span />
-          <span />
-          <span />
+      {/* 밤의 도시 — 남색 하늘, 아래에서 번지는 주황, 눕힌 바닥 모눈과 빛기둥 */}
+      <section className="cs-night">
+        <div className="cs-night__sky" aria-hidden="true">
+          <i />
+          <i />
+          <i />
         </div>
-        <div className="cs-lux-grid" aria-hidden="true" />
-
+        <div className="cs-wrap cs-hero">
         <div>
-          <span className="cs-eyebrow">청약부터 공공임대까지</span>
+          <span className="cs-eyebrow">청약 · 공공임대 모집공고 · ZIPCATCH</span>
 
           {/* 줄마다 차례로 올라온다. 쓸어 올리려면 줄이 각자 틀을 가져야 한다 */}
           <h1 className="cs-hero-title">
@@ -186,6 +190,7 @@ export default function ConsumerHome() {
 
         {/* 예시 카드 대신 실제 집계. 지금 어디에 공고가 열려 있는지가 첫 화면의 주인공이다 */}
         <HeroAtlas />
+        </div>
       </section>
 
       {/* ── 어디서 온 정보인지 ──────────────────────────── */}
@@ -206,9 +211,10 @@ export default function ConsumerHome() {
       <DeadlineCalendar />
 
       {/* ── 준비 순서 ───────────────────────────────────── */}
-      <section className="cs-wrap cs-section">
+      <section className="cs-wrap cs-section cs-band">
         <SectionHead
           index="02"
+          eyebrow="Four Steps"
           title="집 하나를 고르기까지"
           sub="고르고, 견주고, 확인하고, 챙기는 네 장면. 장면마다 실제로 쓰는 화면이 하나씩 있습니다."
         />
@@ -219,6 +225,7 @@ export default function ConsumerHome() {
       <Reveal as="section" id="cost" className="cs-wrap cs-section">
         <SectionHead
           index="03"
+          eyebrow="Monthly Cost"
           title="보증금도 매달 비용입니다"
           sub="보증금과 월 임대료를 한 달 단위로 옮겨, 서로 다른 공고를 같은 잣대로 봅니다."
         />
@@ -227,9 +234,10 @@ export default function ConsumerHome() {
 
       {/* ── 지금 짓고 있는 집 ───────────────────────────── */}
       {/* 당첨 뒤에도 기다림은 이어진다. 지역마다 공사가 얼마나 남았는지 */}
-      <Reveal as="section" className="cs-wrap cs-section">
+      <Reveal as="section" className="cs-wrap cs-section cs-band">
         <SectionHead
           index="04"
+          eyebrow="Under Construction"
           title="지금 짓고 있는 집"
           sub="분양받은 뒤의 시간 — 지역별로 공사가 어디까지 왔는지 주택도시보증공사 집계로 봅니다."
         />
@@ -237,8 +245,8 @@ export default function ConsumerHome() {
       </Reveal>
 
       {/* ── 알림 ────────────────────────────────────────── */}
-      <Reveal as="section" className="cs-wrap cs-section">
-        <SectionHead index="05" title="다음에도, 처음부터 찾지 않도록" />
+      <Reveal as="section" className="cs-wrap cs-section cs-band cs-band--night">
+        <SectionHead index="05" eyebrow="Saved Search" title="다음에도, 처음부터 찾지 않도록" />
         {/*
           저장 권유. 버튼은 버튼의 키(56px)로 둔다 — 지면 높이만큼 늘린 먹판은
           누르는 곳이 아니라 벽처럼 보였다. 설명은 세 번 되풀이하지 않고, 저장하면
@@ -295,6 +303,7 @@ export default function ConsumerHome() {
       <Reveal as="section" className="cs-wrap cs-section">
         <SectionHead
           index="06"
+          eyebrow="Trust"
           title="확인하고, 구분해서 보여드려요"
           sub="어디서 온 정보인지, 무엇을 아직 확인하지 않았는지 함께 적어둡니다."
         />
@@ -325,7 +334,7 @@ export default function ConsumerHome() {
 
       {/* ── FAQ ─────────────────────────────────────────── */}
       <Reveal as="section" className="cs-wrap cs-section">
-        <SectionHead index="07" title="처음이라 궁금하신 것들" />
+        <SectionHead index="07" eyebrow="FAQ" title="처음이라 궁금하신 것들" />
         <div className="cs-faq">
           {FAQ.map(f => (
             <details key={f.q} className="cs-faq__item">

@@ -118,6 +118,7 @@ export default function DeadlineCalendar() {
       <div className="cs-cal">
         <header className="cs-cal__head">
           <div>
+            <span className="cs-sec-eyebrow">Deadlines</span>
             <h2 className="cs-cal__title">앞으로 {weeks}주, 접수가 끝나는 날</h2>
             <p className="cs-cal__sub">네모 하나가 공고 하나예요.</p>
           </div>

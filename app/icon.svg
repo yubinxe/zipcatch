@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="집캐치">
-  <!-- 헤더의 `.cs-logo__mark` 와 같은 마크. 먹 바탕에 한지색 획으로,
+  <!-- 헤더의 `.cs-logo__mark` 와 같은 마크. 주황 바탕에 흰 획으로,
        밝은 탭과 어두운 탭 어디에 놓여도 대비가 유지된다. -->
-  <rect width="32" height="32" rx="9" fill="#14110C"/>
-  <g transform="translate(4 4.5)" fill="none" stroke="#F4F1EB" stroke-width="2.6"
+  <rect width="32" height="32" rx="8" fill="#C2410C"/>
+  <g transform="translate(4 4.5)" fill="none" stroke="#FFFFFF" stroke-width="2.6"
      stroke-linecap="round" stroke-linejoin="round">
     <path d="M3 11.5 12 4l9 7.5"/>
     <path d="M5 10v9.5h14V10"/>

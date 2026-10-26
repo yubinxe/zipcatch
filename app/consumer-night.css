@@ -1,0 +1,599 @@
+/* ============================================================
+   밤 — 집캐치 2.1 디자인 층
+   consumer.css · consumer-lux.css · consumer-atlas.css 위에 마지막으로 얹는다.
+
+   한지·먹·주묵의 따뜻한 지면을 걷고, 밤의 도시와 빛으로 바꾼다.
+   - 지면: 흰색과 #F5F6F7 을 번갈아, 이야기가 바뀌는 자리는 밤(#0B0E14)
+   - 채색: 주황 하나(#C2410C). 밤 위에서는 빛(#FFB27A)으로 핀다
+   - 글자: Pretendard 하나. 제목은 800 으로 단단하게, 자간을 조인다
+   - 모서리: 버튼 6px · 카드 16px. 둥글둥글하지 않게
+
+   토큰을 먼저 바꾸고, 토큰만으로 바뀌지 않는 것(히어로·섹션 머리·
+   버튼의 장식·띠)만 아래에서 다시 그린다.
+   ============================================================ */
+
+.cs,
+.cs-chat-fab,
+.cs-chat {
+  /* 제목 글꼴도 Pretendard — 굵기로만 위계를 세운다 */
+  --font-brand: var(--font-pretendard), Arial, system-ui, sans-serif;
+  --font-display: var(--font-pretendard), Arial, system-ui, sans-serif;
+
+  --paper: #F5F6F7;
+  --paper-2: #ECEEF1;
+  --surface: #ffffff;
+  --title: #0B0E14;
+  --body: #2A2F38;
+  /* #F5F6F7 위 6.0:1, #ECEEF1 위 5.5:1 */
+  --muted: #555D6B;
+
+  --brand: #0B0E14;
+  --brand-press: #000000;
+  --brand-soft: #EEF0F3;
+
+  --accent: #C2410C;
+  --accent-press: #9A3412;
+  --accent-soft: #FFF1E8;
+  --glow: #FFB27A;
+  --gold: #FF9B52;
+  --gold-soft: #FFD9B8;
+
+  --night: #0B0E14;
+  --night-2: #121823;
+
+  --ok: #15803D;
+  --ok-soft: #EAF6EE;
+  --check: #A16207;
+  --check-soft: #FDF6E3;
+  --urgent: var(--accent);
+  --urgent-soft: var(--accent-soft);
+  --line: #E3E6EA;
+  --line-ink: #0B0E14;
+
+  --r-card: 16px;
+  --r-inner: 10px;
+  --r-btn: 6px;
+
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 18px 40px -26px rgba(16, 24, 40, 0.22);
+}
+
+:root {
+  /* 마감 달력 — 분양은 주황, 임대는 밤하늘의 파랑 */
+  --cal-sale: #C2410C;
+  --cal-sale-soft: #FFE4D3;
+  --cal-rent: #2F5BB7;
+  --cal-rent-soft: #DCE6F7;
+}
+
+.cs {
+  font-weight: 450;
+  letter-spacing: -0.012em;
+}
+
+/* ── 뒤 겹 — 모눈만 남긴다 ─────────────────────────────── */
+.cs-backdrop__wash,
+.cs-backdrop__shafts,
+.cs-backdrop__arcs,
+.cs-backdrop__spot,
+.cs-backdrop__frame {
+  display: none !important;
+}
+.cs-backdrop__plan {
+  opacity: 0.7;
+}
+
+/* ── 머리글 ─────────────────────────────────────────────── */
+.cs .cs-header {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  border-bottom: 1px solid #ECEEF1;
+  box-shadow: none;
+}
+.cs .cs-logo {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  color: var(--title);
+}
+.cs .cs-logo__mark {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px -6px rgba(194, 65, 12, 0.65);
+}
+.cs .cs-nav__link {
+  font-weight: 600;
+  color: #3A404B;
+  letter-spacing: -0.02em;
+}
+.cs .cs-nav__link:hover,
+.cs .cs-nav__link[aria-current='page'] {
+  color: var(--title);
+}
+.cs .cs-nav__link::after {
+  background: var(--accent);
+}
+
+/* ── 버튼 ───────────────────────────────────────────────── */
+.cs .cs-btn,
+.cs-chat .cs-btn {
+  border-radius: var(--r-btn);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.cs .cs-btn.cs-btn--primary {
+  background: var(--accent);
+  background-image: none;
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 12px 26px -14px rgba(194, 65, 12, 0.75);
+}
+.cs .cs-btn.cs-btn--primary:hover:not(:disabled) {
+  background: var(--accent-press);
+  border-color: var(--accent-press);
+  box-shadow: 0 16px 32px -14px rgba(194, 65, 12, 0.8);
+}
+.cs .cs-btn--primary::after {
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+}
+.cs .cs-btn.cs-btn--ghost {
+  background: #fff;
+  border: 1px solid #D5D9DF;
+  color: var(--title);
+}
+.cs .cs-btn.cs-btn--ghost:hover:not(:disabled) {
+  border-color: var(--title);
+}
+
+/* ── 글자 ───────────────────────────────────────────────── */
+.cs h1,
+.cs h2,
+.cs h3 {
+  font-family: var(--font-sans);
+}
+.cs .cs-section-title {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: clamp(30px, 3.1vw, 46px);
+  line-height: 1.2;
+  letter-spacing: -0.042em;
+  color: var(--title);
+}
+.cs .cs-sub {
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--muted);
+  letter-spacing: -0.02em;
+}
+.cs .cs-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* 하위 화면의 제목 — 주황 한 획 위에 굵게 */
+.cs .cs-page-title {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: clamp(32px, 3.4vw, 48px);
+  line-height: 1.18;
+  letter-spacing: -0.042em;
+  color: var(--title);
+}
+.cs .cs-page-title::before {
+  content: '';
+  display: block;
+  width: 28px;
+  height: 3px;
+  margin-bottom: 18px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.cs .cs-lead {
+  color: var(--body);
+  letter-spacing: -0.02em;
+}
+
+/* ── 섹션 머리 — 영문 눈썹 + 굵은 제목 + 뒤에 큰 번호 ──── */
+.cs .cs-sec-head {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 0;
+  border-top: 0;
+  margin-bottom: 40px;
+}
+.cs .cs-sec-head__body {
+  max-width: 760px;
+}
+.cs .cs-sec-index {
+  position: absolute;
+  right: -0.03em;
+  top: -0.5em;
+  z-index: -1;
+  font-family: var(--font-sans);
+  font-size: clamp(96px, 12vw, 176px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: rgba(11, 14, 20, 0.05);
+  pointer-events: none;
+  user-select: none;
+}
+.cs-sec-eyebrow {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* ── 카드 ───────────────────────────────────────────────── */
+.cs .cs-card {
+  background: #fff;
+  background-image: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* ── 띠 — 지면을 화면 끝까지 칠한다 ────────────────────────
+   상자 그림자로 칠하면 레이아웃도 가로 스크롤도 건드리지 않는다 */
+.cs-band {
+  position: relative;
+  background: #fff;
+  box-shadow: 0 0 0 100vmax #fff;
+  clip-path: inset(0 -100vmax);
+}
+.cs-band--night {
+  background: var(--night);
+  box-shadow: 0 0 0 100vmax var(--night);
+}
+
+/* ═════════════════════════════════════════════════════════
+   밤 — 첫 화면과 어두운 띠. 안쪽 토큰을 뒤집어 아래 부품이 그대로 따라온다
+   ═════════════════════════════════════════════════════════ */
+.cs-night,
+.cs-band--night {
+  --title: #ffffff;
+  --body: rgba(255, 255, 255, 0.8);
+  --muted: rgba(255, 255, 255, 0.62);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-ink: rgba(255, 255, 255, 0.35);
+  --surface: #131926;
+  --paper: #0E131C;
+  --paper-2: #182030;
+  --brand: #ffffff;
+  --brand-press: #E5E7EB;
+  --brand-soft: rgba(255, 255, 255, 0.08);
+  --accent-soft: rgba(255, 138, 61, 0.14);
+  --shadow-card: 0 30px 70px -36px rgba(0, 0, 0, 0.9);
+  color: var(--body);
+}
+.cs-band--night .cs-card {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.cs-band--night .cs-sec-index {
+  color: rgba(255, 255, 255, 0.05);
+}
+.cs-band--night .cs-sec-eyebrow {
+  color: var(--glow);
+}
+.cs-night .cs-btn.cs-btn--ghost,
+.cs-band--night .cs-btn.cs-btn--ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.cs-night {
+  position: relative;
+  isolation: isolate;
+  background: var(--night);
+  overflow: clip;
+}
+
+/* 하늘 — 남색 위로 도시의 주황이 아래에서 번진다 */
+.cs-night__sky {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 70% at 78% 108%, rgba(255, 122, 48, 0.32), transparent 62%),
+    radial-gradient(40% 50% at 70% 30%, rgba(46, 84, 160, 0.26), transparent 70%),
+    radial-gradient(30% 40% at 8% 0%, rgba(255, 155, 82, 0.1), transparent 70%),
+    linear-gradient(180deg, #0B1020 0%, #090C14 60%, #0B0E14 100%);
+}
+/* 바닥 모눈 — 원근으로 눕혀 도시의 바닥처럼 */
+.cs-night__sky::before {
+  content: '';
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  bottom: -8%;
+  height: 70%;
+  background-image:
+    linear-gradient(to right, rgba(255, 155, 82, 0.16) 0 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 155, 82, 0.16) 0 1px, transparent 1px);
+  background-size: 72px 72px;
+  transform: perspective(620px) rotateX(62deg);
+  transform-origin: 50% 100%;
+  mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.6) 40%, transparent 85%);
+}
+/* 위쪽 잔모눈 */
+.cs-night__sky::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(80% 70% at 30% 20%, #000, transparent 80%);
+}
+/* 빛기둥 셋 — 폭과 높이를 서로 다르게 */
+.cs-night__sky i {
+  position: absolute;
+  bottom: 18%;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(0deg, #FFE2C4 0%, rgba(255, 155, 82, 0.8) 30%, rgba(255, 138, 61, 0) 100%);
+  box-shadow: 0 0 16px 3px rgba(255, 120, 48, 0.4);
+  animation: nightBeam 6s ease-in-out infinite;
+}
+.cs-night__sky i:nth-child(1) { left: 49.5%; height: 30%; bottom: 10%; }
+.cs-night__sky i:nth-child(2) { left: 97.5%; height: 36%; bottom: 14%; animation-delay: -2s; opacity: 0.75; }
+.cs-night__sky i:nth-child(3) { left: 3%; height: 18%; bottom: 6%; animation-delay: -4s; opacity: 0.5; }
+@keyframes nightBeam {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+/* 첫 화면의 글 */
+.cs-night .cs-hero {
+  --header-h: 73px;
+}
+.cs-night .cs-eyebrow {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.cs-night .cs-eyebrow::before {
+  background: var(--glow);
+  box-shadow: 0 0 10px 2px rgba(255, 138, 61, 0.8);
+}
+.cs-night .cs-hero-title {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: clamp(44px, 5.4vw, 80px);
+  line-height: 1.12;
+  letter-spacing: -0.036em;
+  color: #fff;
+}
+/* 빛 번짐(text-shadow)은 줄마다 걸린 overflow 에 잘려 네모로 보인다. 색만 켠다 */
+.cs-night .cs-hero-title em {
+  color: var(--glow);
+  background: none;
+  animation: none;
+  -webkit-text-stroke: 0;
+  text-decoration: none;
+}
+.cs-night .cs-hero-title em::after,
+.cs-night .cs-hero-title em::before {
+  display: none;
+}
+.cs-night .cs-lead {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: clamp(17px, 1.35vw, 20px);
+  line-height: 1.7;
+}
+.cs-night .cs-note {
+  color: rgba(255, 255, 255, 0.5);
+}
+.cs-night .cs-btn.cs-btn--text {
+  color: #fff;
+}
+.cs-night .cs-btn--text::after {
+  background: rgba(255, 255, 255, 0.5);
+}
+.cs-night .cs-lux-scroll {
+  color: rgba(255, 255, 255, 0.45);
+}
+.cs-night .cs-lux-scroll i {
+  background: linear-gradient(var(--glow), transparent);
+}
+
+/* 첫 화면의 지도 — 유리판 위에 밤의 지도 */
+.cs-night .cs-atlas {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 50px 100px -40px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.cs-night .cs-atlas__kicker i {
+  background: var(--glow);
+  box-shadow: 0 0 10px 2px rgba(255, 138, 61, 0.8);
+}
+.cs-night .cs-atlas__land {
+  fill: #141B27;
+  stroke: rgba(148, 163, 184, 0.3);
+  stroke-width: 1;
+}
+.cs-night .cs-atlas__land[data-level='1'] { fill: color-mix(in srgb, #FF8A3D 16%, #141B27); }
+.cs-night .cs-atlas__land[data-level='2'] { fill: color-mix(in srgb, #FF8A3D 28%, #141B27); }
+.cs-night .cs-atlas__land[data-level='3'] { fill: color-mix(in srgb, #FF8A3D 42%, #141B27); }
+.cs-night .cs-atlas__land[data-level='4'] { fill: color-mix(in srgb, #FF8A3D 58%, #141B27); }
+.cs-night .cs-atlas__land[data-on] {
+  fill: #FF8A3D;
+  stroke: #FFD2A8;
+  filter: drop-shadow(0 0 10px rgba(255, 138, 61, 0.85));
+}
+.cs-night .cs-atlas__dot circle:last-child {
+  fill: #FFE2C4;
+  stroke: rgba(255, 138, 61, 0.9);
+}
+.cs-night .cs-atlas__dot[data-on] circle:last-child {
+  fill: #fff;
+  stroke: #FF8A3D;
+}
+.cs-night .cs-atlas__halo {
+  stroke: var(--glow);
+}
+
+/* ── 불러오는 자리 ──────────────────────────────────────── */
+.cs .cs-skel {
+  background: linear-gradient(90deg, #ECEEF1 25%, #F6F7F9 50%, #ECEEF1 75%);
+  background-size: 200% 100%;
+}
+.cs-night .cs-skel,
+.cs-band--night .cs-skel {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06) 25%, rgba(255, 255, 255, 0.13) 50%, rgba(255, 255, 255, 0.06) 75%);
+  background-size: 200% 100%;
+}
+
+/* ── 출처 띠 ────────────────────────────────────────────── */
+.cs .cs-lux-sources {
+  border-color: var(--line);
+  color: var(--muted);
+}
+.cs .cs-lux-sources b {
+  color: var(--accent);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ── 마지막 띠 — 밤의 큰 글씨 ───────────────────────────── */
+.cs .cs-cta-band {
+  background:
+    radial-gradient(60% 90% at 85% 120%, rgba(255, 122, 48, 0.35), transparent 60%),
+    radial-gradient(40% 60% at 10% -10%, rgba(46, 84, 160, 0.3), transparent 70%),
+    var(--night);
+  border-radius: 20px;
+  color: #fff;
+}
+.cs .cs-cta-band .cs-section-title {
+  color: #fff;
+  font-size: clamp(34px, 4.4vw, 64px);
+  line-height: 1.14;
+  letter-spacing: -0.048em;
+}
+.cs .cs-cta-band .cs-btn.cs-btn--primary {
+  background: var(--accent);
+  color: #fff;
+}
+.cs .cs-cta-band .cs-btn.cs-btn--primary:hover:not(:disabled) {
+  background: var(--accent-press);
+}
+
+/* ── 마감 티커 — 바닥의 밤 ─────────────────────────────── */
+.cs .cs-ticker {
+  background: var(--night);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 -12px 30px -18px rgba(0, 0, 0, 0.6);
+  --title: #fff;
+  --body: rgba(255, 255, 255, 0.82);
+  --muted: rgba(255, 255, 255, 0.55);
+  --line: rgba(255, 255, 255, 0.1);
+  --line-ink: rgba(255, 255, 255, 0.2);
+  --surface: var(--night);
+  --accent: #FF8A3D;
+}
+
+/* ── 바닥글 ─────────────────────────────────────────────── */
+.cs .cs-footer {
+  background: var(--night);
+  border-top: 0;
+  box-shadow: 0 0 0 100vmax var(--night);
+  clip-path: inset(0 -100vmax);
+}
+.cs .cs-footer p {
+  color: rgba(255, 255, 255, 0.55);
+}
+.cs .cs-footer a {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ── 챗봇 버튼 ──────────────────────────────────────────── */
+.cs-chat-fab {
+  background: var(--accent);
+  box-shadow: 0 16px 34px -12px rgba(194, 65, 12, 0.7);
+}
+
+@media (max-width: 760px) {
+  .cs .cs-sec-head {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 28px;
+  }
+  .cs .cs-sec-index {
+    font-size: 96px;
+    top: -0.38em;
+  }
+  .cs .cs-sub {
+    font-size: 16.5px;
+  }
+  .cs-night__sky i {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-night__sky i {
+    animation: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════
+   남은 한지 장식 걷기 — 금박 괘선·후광·번짐
+   ═════════════════════════════════════════════════════════ */
+.cs .cs-sec-head::before,
+.cs .cs-sec-index::after,
+.cs .cs-steps3 > .cs-card::after {
+  display: none;
+}
+.cs .cs-steps3 > .cs-card::before {
+  background: var(--accent);
+}
+
+/* ── 주거비 환산 — 결과판은 밤, 막대는 빛의 농담 ──────────── */
+.cs .cs-sim__out {
+  --on-ink: #ffffff;
+  --on-ink-2: rgba(255, 255, 255, 0.62);
+  background:
+    radial-gradient(70% 60% at 100% 110%, rgba(255, 122, 48, 0.28), transparent 65%),
+    var(--night);
+}
+.cs .cs-sim [data-part='rent'] { --c: #FFB27A; }
+.cs .cs-sim [data-part='fee'] { --c: #FF8A3D; }
+.cs .cs-sim [data-part='interest'] { --c: #C2410C; }
+.cs .cs-sim__stack [data-part='forgone'] {
+  box-shadow: inset 0 0 0 1px rgba(255, 178, 122, 0.6);
+  background: repeating-linear-gradient(135deg, transparent 0 3px, rgba(255, 178, 122, 0.25) 3px 4px);
+}
+.cs .cs-sim__cta.cs-btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.cs .cs-sim__cta.cs-btn--primary:hover {
+  background: var(--accent-press);
+}
+
+/* 밤 위의 주황 글자는 빛으로 — #C2410C 는 어두운 바탕에서 3:1 아래로 꺼진다 */
+.cs-night .cs-atlas__due,
+.cs-band--night .cs-num[data-tone='hot'] {
+  color: var(--glow);
+}
