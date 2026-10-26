@@ -134,9 +134,9 @@ export default function SupplyRead() {
                         {r.region && <span className="muted"> · {r.region}</span>}
                       </span>
                     </td>
-                    <td className="num">{r.supply.toLocaleString()}</td>
-                    <td className="num">{r.applied.toLocaleString()}</td>
-                    <td className="num cs-read__short">{r.shortBy.toLocaleString()}</td>
+                    <td className="num" data-label="공급">{r.supply.toLocaleString()}</td>
+                    <td className="num" data-label="접수">{r.applied.toLocaleString()}</td>
+                    <td className="num cs-read__short" data-label="남은 세대">{r.shortBy.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

@@ -9,7 +9,9 @@ export const metadata = {
 
 export default function BizPage() {
   return (
-    <div className="cs-main cs-mk">
+    // 다른 화면처럼 cs-wrap 안에 둔다. 처음에 cs-main(셸이 이미 쓰는 이름)만 달아서
+    // 폭 제한도 좌우 여백도 없이 화면 가장자리에 글자가 붙어 있었다.
+    <div className="cs-wrap cs-mk" style={{ paddingTop: 44 }}>
       <header className="cs-mk__head">
         <p className="cs-mk__kicker">시행 · 분양대행 · 감정평가</p>
         <h1 className="cs-page-title">사업성 판독</h1>

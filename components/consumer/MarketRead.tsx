@@ -350,6 +350,7 @@ export default function MarketRead() {
   const [data, setData] = useState<Market | null>(null)
   const [error, setError] = useState('')
   const [kind, setKind] = useState<'private' | 'public'>('private')
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let alive = true
@@ -367,9 +368,26 @@ export default function MarketRead() {
     return () => {
       alive = false
     }
-  }, [])
+  }, [attempt])
 
-  if (error) return <p className="cs-note">{error}</p>
+  // 실패하면 다시 누를 자리를 둔다. 표 셋을 받는 첫 호출은 시간 제한에 걸리기도 하고,
+  // 두 번째는 캐시가 받아 둔 덕에 대개 금방 끝난다.
+  if (error)
+    return (
+      <div className="cs-error">
+        <span>{error}</span>
+        <button
+          className="cs-btn cs-btn--sm cs-btn--ghost"
+          onClick={() => {
+            setError('')
+            setData(null)
+            setAttempt(a => a + 1)
+          }}
+        >
+          다시 시도
+        </button>
+      </div>
+    )
 
   if (!data) {
     return (

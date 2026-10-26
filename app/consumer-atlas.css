@@ -1082,3 +1082,28 @@
    들어오는 순간 아래로 밀려 나간다. 사용자가 손대지 않은 그 움직임이 휴대폰에서
    CLS 0.19 로 잡혔다. 뼈대가 최소한 한 화면은 채우게 한다. */
 .cs-boot { min-height: calc(100svh - var(--header-h)); }
+
+/* ── 공급 판독: 미달 표를 휴대폰에서 ──────────────────────── */
+/* 표가 가로로 밀리는 동안 이 표의 핵심인 '남은 세대' 칸이 화면 밖에 있었다.
+   밀어야 한다는 표시도 없어서 그 칸이 있는 줄 몰랐다. 좁은 화면에서는 한 줄을
+   두 단으로 쌓는다 — 공고·주택형 위, 숫자 셋 아래(이름표를 달아서). */
+@media (max-width: 600px) {
+  .cs-read__tablewrap { overflow: visible; }
+  .cs-read__table { min-width: 0; }
+  .cs-read__table thead { display: none; }
+  .cs-read__table tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-bottom: 1px solid var(--line);
+  }
+  .cs-read__table tbody tr:last-child { border-bottom: 0; }
+  .cs-read__table td { border-bottom: 0; padding: 8px 14px; }
+  .cs-read__table td:first-child { grid-column: 1 / -1; min-width: 0; padding-top: 14px; }
+  .cs-read__table td.num { display: grid; gap: 2px; text-align: left; padding-bottom: 14px; }
+  .cs-read__table td.num::before {
+    content: attr(data-label);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+}
