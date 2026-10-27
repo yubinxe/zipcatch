@@ -1,0 +1,75 @@
+/* ── 화면 머리 — 머리글에서 이어지는 마린 네이비 무대 ───────────────── */
+.cs-mast {
+  position: relative;
+  isolation: isolate;
+  margin: 0 0 clamp(36px, 4vw, 56px);
+  padding: clamp(48px, 6vw, 88px) 0 clamp(40px, 4.6vw, 64px);
+  color: #E6EEF8;
+  background: var(--night);
+  /* 감싸는 cs-wrap 을 넘어 화면 끝까지 */
+  box-shadow: 0 0 0 100vmax var(--night);
+  clip-path: inset(0 -100vmax);
+}
+/* 무대의 빛 — 오른쪽 위에서 비스듬히 드는 얼음빛과, 바닥의 모눈 */
+.cs-mast__sky {
+  position: absolute;
+  inset: 0 -100vmax;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 120% at 82% -10%, rgba(91, 143, 217, 0.22), transparent 60%),
+    radial-gradient(40% 80% at 10% 120%, rgba(37, 89, 166, 0.28), transparent 70%);
+}
+.cs-mast__sky span:first-child {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right, rgba(169, 200, 240, 0.07) 0 1px, transparent 1px) 0 0 / 64px 64px,
+    linear-gradient(to bottom, rgba(169, 200, 240, 0.07) 0 1px, transparent 1px) 0 0 / 64px 64px;
+  mask-image: linear-gradient(to bottom, transparent, #000 40%, transparent);
+}
+.cs-mast__sky span:last-child {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(169, 200, 240, 0.45), transparent);
+}
+.cs .cs-mast__eyebrow {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #A9C8F0;
+  animation: cs-mast-in 640ms var(--ease) both;
+}
+.cs .cs-mast__title {
+  margin: 0;
+  max-width: 18em;
+  font-size: clamp(34px, 4.6vw, 60px);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  color: #F4F8FD;
+  word-break: keep-all;
+  animation: cs-mast-in 720ms var(--ease) 60ms both;
+}
+.cs .cs-mast__lead {
+  margin: 18px 0 0;
+  max-width: 40em;
+  font-size: clamp(16px, 1.3vw, 18px);
+  line-height: 1.7;
+  color: #B9C9DD;
+  animation: cs-mast-in 760ms var(--ease) 120ms both;
+}
+.cs-mast__lead b { color: #F4F8FD; }
+.cs-mast__extra { margin-top: 26px; animation: cs-mast-in 800ms var(--ease) 180ms both; }
+@keyframes cs-mast-in {
+  from { opacity: 0; transform: translateY(18px); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs-mast__eyebrow, .cs-mast__title, .cs-mast__lead, .cs-mast__extra { animation: none; }
+}

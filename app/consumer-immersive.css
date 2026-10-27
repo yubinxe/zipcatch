@@ -13,13 +13,13 @@
   --muted: rgba(255, 255, 255, 0.62);
   --line: rgba(255, 255, 255, 0.11);
   --line-ink: rgba(255, 255, 255, 0.35);
-  --surface: #121823;
-  --paper: #0B0E14;
+  --surface: #10243F;
+  --paper: #0A1A2F;
   --paper-2: #161D2A;
   --brand: #ffffff;
-  --brand-press: #E5E7EB;
+  --brand-press: #DDE4ED;
   --brand-soft: rgba(255, 255, 255, 0.08);
-  --accent-soft: rgba(255, 138, 61, 0.14);
+  --accent-soft: rgba(91, 143, 217, 0.14);
   --ok: #4ADE80;
   --ok-soft: rgba(74, 222, 128, 0.12);
   --check: #FACC15;
@@ -74,8 +74,8 @@
 
 /* 흰 띠는 한 단 밝은 밤으로 */
 .cs-home .cs-band {
-  background: #0E131D;
-  box-shadow: 0 0 0 100vmax #0E131D;
+  background: #0D1F37;
+  box-shadow: 0 0 0 100vmax #0D1F37;
 }
 .cs-home .cs-band--night {
   background: var(--night);
@@ -190,8 +190,8 @@
 }
 .cs-carousel__track .cs-notice:hover {
   transform: translateY(-6px);
-  border-color: rgba(255, 178, 122, 0.45);
-  box-shadow: 0 40px 80px -40px rgba(255, 110, 40, 0.45);
+  border-color: rgba(169, 200, 240, 0.45);
+  box-shadow: 0 40px 80px -40px rgba(48, 102, 186, 0.45);
 }
 .cs-carousel__bar {
   display: flex;
@@ -269,7 +269,7 @@
 /* ── 장면 1 — 문장과 지도 ──────────────────────────────── */
 .cs-scene--statement .cs-stage__pin {
   background:
-    radial-gradient(50% 60% at 72% 55%, rgba(255, 122, 48, calc(0.05 + 0.2 * var(--p))), transparent 70%),
+    radial-gradient(50% 60% at 72% 55%, rgba(64, 118, 201, calc(0.05 + 0.2 * var(--p))), transparent 70%),
     var(--night);
 }
 .cs-scene__map {
@@ -298,10 +298,10 @@
   --k: clamp(0, calc(var(--p) * (var(--lit) + 3) - 1.2 - var(--i)), 1);
   /* 많은 곳일수록 밝게 — 전부 같은 밝기면 지도가 한 덩어리가 된다 */
   --peak: clamp(0.16, calc(0.78 - var(--i) * 0.07), 0.78);
-  fill: #FF8A3D;
+  fill: #5B8FD9;
   fill-opacity: calc(0.04 + var(--peak) * var(--k));
   stroke: rgba(255, 210, 168, calc(0.18 + 0.6 * var(--k)));
-  filter: drop-shadow(0 0 calc(var(--k) * var(--peak) * 18px) rgba(255, 138, 61, 0.8));
+  filter: drop-shadow(0 0 calc(var(--k) * var(--peak) * 18px) rgba(91, 143, 217, 0.8));
 }
 .cs-scene__copy {
   position: relative;
@@ -359,7 +359,7 @@
 .cs-scene--open .cs-stage__pin {
   --z: clamp(0, calc((var(--p) - 0.14) / 0.56), 1);
   background:
-    radial-gradient(60% 50% at 50% 100%, rgba(255, 122, 48, 0.18), transparent 70%),
+    radial-gradient(60% 50% at 50% 100%, rgba(64, 118, 201, 0.18), transparent 70%),
     var(--night);
 }
 .cs-open__head {
@@ -386,10 +386,10 @@
   border-radius: calc(56px * (1 - var(--z)));
   overflow: hidden;
   background:
-    radial-gradient(80% 60% at 100% 0%, rgba(255, 138, 61, calc(0.28 - 0.18 * var(--z))), transparent 60%),
-    linear-gradient(160deg, #1A2232, #0E131D 70%);
+    radial-gradient(80% 60% at 100% 0%, rgba(91, 143, 217, calc(0.28 - 0.18 * var(--z))), transparent 60%),
+    linear-gradient(160deg, #1A2232, #0D1F37 70%);
   border: 1px solid rgba(255, 255, 255, calc(0.16 * (1 - var(--z))));
-  box-shadow: 0 60px 120px -40px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 178, 122, calc(0.25 * (1 - var(--z))));
+  box-shadow: 0 60px 120px -40px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(169, 200, 240, calc(0.25 * (1 - var(--z))));
   will-change: transform;
 }
 .cs-open__face {
@@ -470,7 +470,7 @@
   font-weight: 800;
   color: #fff;
   background: var(--accent);
-  box-shadow: 0 14px 30px -12px rgba(255, 110, 40, 0.8);
+  box-shadow: 0 14px 30px -12px rgba(48, 102, 186, 0.8);
 }
 .cs-open__title {
   margin: 18px 0 0;

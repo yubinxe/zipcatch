@@ -10,6 +10,13 @@ import './consumer-atlas.css'
 import './consumer-night.css'
 /* 홈 — 끝까지 밤, 스크롤로 넘기는 장면·옆으로 넘기는 띠. night 뒤 */
 import './consumer-immersive.css'
+/* 3.0 — 마린 네이비 위의 브랜드·폰 챗봇·움직임·화면별 공간. 각자 자기 파일만 고친다 */
+import './consumer-masthead.css'
+import './consumer-brand.css'
+import './consumer-phone.css'
+import './consumer-motion.css'
+import './consumer-spaces.css'
+import './consumer-spaces-b.css'
 import './crm.css'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zipcatch.vercel.app').replace(/\/$/, '')
