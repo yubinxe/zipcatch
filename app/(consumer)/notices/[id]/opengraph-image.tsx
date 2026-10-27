@@ -42,7 +42,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
     readFile(join(process.cwd(), 'app/fonts/Pretendard-Bold.otf')),
     readFile(join(process.cwd(), 'app/fonts/Pretendard-Regular.otf')),
     readFile(join(process.cwd(), 'app/og-night.jpg')),
-    // 집캐치 마크(핀과 고리) — scripts/og/render-og.mjs 가 BrandMark 와 같은 모양으로 굽는다
+    // 집캐치 마크(지붕 하나, 문 하나) — scripts/og/render-og.mjs 가 BrandMark 와 같은 모양으로 굽는다
     readFile(join(process.cwd(), 'app/og-mark.svg')),
   ])
 
@@ -115,7 +115,8 @@ export default async function Image({ params }: { params: Promise<{ id: string }
                 width={48}
                 height={48}
                 alt=""
-                style={{ width: 48, height: 48, borderRadius: 12, boxShadow: '0 12px 32px -10px rgba(255,110,40,0.85)' }}
+                // 그림자가 타일 모서리(32 격자의 7.5 → 48px 에서 11.25)를 따라가게
+                style={{ width: 48, height: 48, borderRadius: 11, boxShadow: '0 12px 32px -10px rgba(255,110,40,0.85)' }}
               />
               <span style={{ display: 'flex', fontSize: 30, fontWeight: 700, letterSpacing: -1 }}>집캐치</span>
               <span style={{ display: 'flex', marginLeft: 10, fontSize: 18, fontWeight: 700, letterSpacing: 4, color: 'rgba(255,255,255,0.5)' }}>

@@ -61,9 +61,13 @@ export default function ConsumerShell({ children }: { children: ReactNode }) {
       <a href="#consumer-main" className="cs-skip">본문으로 건너뛰기</a>
       <header className="cs-header">
         <div className="cs-wrap cs-header__inner">
+          {/* 마크 + 두 줄 글자표. 영문은 장식이라 읽지 않는다 — 링크 이름은 "집캐치" 하나 */}
           <Link href="/" className="cs-logo">
             <BrandMark size={34} className="cs-logo__mark" />
-            집캐치
+            <span className="cs-logo__type">
+              <span className="cs-logo__ko">집캐치</span>
+              <span className="cs-logo__en" aria-hidden="true">ZIPCATCH</span>
+            </span>
           </Link>
 
           <nav className="cs-nav" aria-label="주요 메뉴">

@@ -19,6 +19,7 @@ import './consumer-spaces.css'
 import './consumer-spaces-b.css'
 import './consumer-footer.css'
 import './crm.css'
+import './consumer-news.css'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zipcatch.vercel.app').replace(/\/$/, '')
 

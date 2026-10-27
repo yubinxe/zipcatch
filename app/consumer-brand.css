@@ -1,1 +1,138 @@
-/* 집캐치 3.0 — brand 층. consumer-immersive.css 뒤에 온다 */
+/* 집캐치 3.0 — brand 층. consumer-immersive.css 뒤에 온다
+   마크(components/consumer/BrandMark.tsx)의 움직임과 머리글 글자표(.cs-logo).
+   마크의 모양은 BrandMark.tsx 에만 있다. 여기서는 크기·빛·움직임만 다룬다. */
+
+/* ── 마크 ─────────────────────────────────────────────────
+   지붕(.zc-mark__roof)과 문 안의 불빛(.zc-mark__light)만 움직인다.
+   손을 올리면 지붕이 살짝 들리고 문에 불이 켜진다 — "문이 열린다".
+   transform·opacity 만 쓴다. */
+.zc-mark {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+}
+.zc-mark__roof {
+  transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.zc-mark__light {
+  transition: opacity 360ms ease;
+}
+@media (hover: hover) {
+  a:hover .zc-mark__roof {
+    transform: translateY(-1.25px);
+  }
+  a:hover .zc-mark__light {
+    opacity: 1;
+  }
+}
+a:focus-visible .zc-mark__roof {
+  transform: translateY(-1.25px);
+}
+a:focus-visible .zc-mark__light {
+  opacity: 1;
+}
+
+/* 첫 화면을 기다리는 동안(app/(consumer)/loading.tsx) — 지붕이 내려앉고, 문에 불이 숨 쉰다.
+   돌아가는 동그라미 대신 "집에 불이 켜지는 중" */
+.cs-boot__logo .zc-mark__roof {
+  animation: zc-roof-settle 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.cs-boot__logo .zc-mark__light {
+  animation: zc-door-glow 1.8s ease-in-out 700ms infinite both;
+}
+@keyframes zc-roof-settle {
+  from {
+    opacity: 0;
+    transform: translateY(-3.5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes zc-door-glow {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ── 머리글 글자표 ─────────────────────────────────────────
+   [마크] 집캐치
+          ZIPCATCH   ← 영문 줄은 한글 줄과 같은 폭으로 양끝을 맞춘다 */
+.cs .cs-logo {
+  gap: 11px;
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+  color: var(--title);
+  border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+.cs .cs-logo__mark {
+  width: 34px;
+  height: 34px;
+  /* 그림자가 타일(MARK_TILE) 모서리를 따라가게 */
+  border-radius: 8px;
+  background: none;
+  box-shadow:
+    0 1px 2px rgba(154, 52, 18, 0.2),
+    0 8px 18px -8px rgba(194, 65, 12, 0.72);
+  transition:
+    box-shadow 420ms ease,
+    transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* 예전의 기울이기(rotate) 대신 지붕이 들린다. 타일 자체는 반 픽셀만 뜬다 */
+.cs .cs-logo:hover .cs-logo__mark {
+  transform: translateY(-0.5px);
+  box-shadow:
+    0 1px 2px rgba(154, 52, 18, 0.22),
+    0 12px 24px -10px rgba(194, 65, 12, 0.85);
+}
+.cs-logo__type {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  line-height: 1;
+}
+.cs .cs-logo__ko {
+  display: block;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+.cs .cs-logo__en {
+  display: block;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  /* 한글 21px 줄과 영문 8px 줄의 폭이 같아지는 자간(Pretendard 로 잰 값) */
+  letter-spacing: 0.218em;
+  /* 마지막 글자 뒤에 붙는 자간을 걷어 양끝이 맞게 */
+  margin-right: -0.218em;
+  opacity: 0.56;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zc-mark__roof,
+  .cs .cs-logo__mark {
+    transition: none;
+  }
+  .cs-boot__logo .zc-mark__roof,
+  .cs-boot__logo .zc-mark__light {
+    animation: none;
+  }
+  /* 움직임은 빼고 불빛만 켠다 */
+  .cs-boot__logo .zc-mark__light {
+    opacity: 1;
+  }
+  a:hover .zc-mark__roof,
+  a:focus-visible .zc-mark__roof,
+  .cs .cs-logo:hover .cs-logo__mark {
+    transform: none;
+  }
+}
