@@ -57,19 +57,37 @@ export interface ScoreComparison {
 }
 
 export const SCORE_LIMITS = {
-  homelessYearsMax: 16,
+  /** 15년 이상이면 만점(32) — 슬라이더의 끝은 "15년+" */
+  homelessYearsMax: 15,
   dependentsMax: 6,
-  accountYearsMax: 17,
+  /** 15년 이상이면 만점(17) */
+  accountYearsMax: 15,
 } as const
 
 export function clampHomelessYears(years: number) {
   return Math.min(SCORE_LIMITS.homelessYearsMax, Math.max(0, Math.floor(years)))
 }
 
-export function calculateSubscriptionScore(input: ScoreInput): ScoreBreakdown {
-  const homeless = Math.min(Math.max(0, Math.floor(input.homelessYears)) * 2, 32)
-  const dependents = Math.min(Math.max(0, Math.floor(input.dependents)) * 5, 35)
-  const account = Math.min(Math.max(0, Math.floor(input.accountYears)), 17)
+/**
+ * 가점 — 주택공급에 관한 규칙 [별표 1] 제2호 가점산정기준표(개정 2023.12.20.).
+ *
+ * 예전 식은 표의 첫 칸을 빼먹고 있었다. 부양가족 0명은 0점이 아니라 5점,
+ * 무주택 1년 미만은 0점이 아니라 2점, 통장 1년은 1점이 아니라 3점이다.
+ * 같은 사람이 실제보다 최대 9점 낮게 나왔고, 그 점수로 당첨가점과 견주니
+ * "평균보다 낮습니다"가 실제보다 자주 나왔다.
+ *
+ *  · 무주택기간(32): 1년 미만 2점, 이후 1년마다 +2, 15년 이상 32점.
+ *    유주택 세대·만 30세 미만 미혼은 0점(`homeowner`).
+ *  · 부양가족(35): 0명 5점, 1명마다 +5, 6명 이상 35점.
+ *  · 통장 가입기간(17): 6개월 미만 1점, 6개월~1년 2점, 1년 이상은 (년+2)점, 15년 이상 17점.
+ *    입력이 정수 년이라 0년은 '6개월 미만'으로 보수적으로 1점을 준다.
+ */
+export function calculateSubscriptionScore(input: ScoreInput & { homeowner?: boolean }): ScoreBreakdown {
+  const y = Math.max(0, Math.floor(input.homelessYears))
+  const homeless = input.homeowner ? 0 : y < 1 ? 2 : Math.min(32, 2 * (y + 1))
+  const dependents = Math.min(35, 5 + 5 * Math.max(0, Math.floor(input.dependents)))
+  const a = Math.max(0, Math.floor(input.accountYears))
+  const account = a < 1 ? 1 : Math.min(17, a + 2)
   return { homeless, dependents, account, total: homeless + dependents + account }
 }
 

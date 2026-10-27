@@ -1428,3 +1428,53 @@
   .cs-pr__table th:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; }
   .cs-pr__table thead th:first-child { background: var(--paper); }
 }
+
+/* ── 가점제냐 추첨제냐 ─────────────────────────────────────── */
+.cs-dvs { margin-top: 40px; padding: clamp(24px, 3vw, 36px); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); }
+.cs-dvs__head { display: flex; justify-content: space-between; align-items: flex-end; gap: 18px 28px; flex-wrap: wrap; }
+.cs .cs-dvs__title { margin: 0; font-size: clamp(22px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.015em; color: var(--title); }
+.cs .cs-dvs__sub { margin: 8px 0 0; font-size: 15.5px; color: var(--body); }
+.cs-dvs__sub b { color: var(--title); }
+.cs-dvs__controls { display: grid; gap: 8px; justify-items: end; }
+.cs .cs-dvs__hint { margin: 12px 0 0; }
+.cs-dvs__rows { list-style: none; margin: 22px 0 14px; padding: 0; border-top: 2px solid var(--title); }
+.cs .cs-dvs__row {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 16px 28px;
+  align-items: start;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cs-dvs__type { display: grid; gap: 2px; }
+.cs-dvs__type b { font-size: 17px; color: var(--title); }
+.cs-dvs__type span { font-size: 13.5px; color: var(--muted); }
+.cs-dvs__bar { height: 12px; background: var(--paper-2); overflow: hidden; margin-top: 4px; }
+.cs-dvs__s { display: block; height: 100%; background: var(--title); transition: width 360ms var(--ease); }
+.cs-dvs__s[data-range] { background: repeating-linear-gradient(135deg, var(--title) 0 6px, color-mix(in srgb, var(--title) 55%, var(--paper-2)) 6px 9px); }
+.cs-dvs__legend { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; font-size: 13.5px; color: var(--body); }
+.cs-dvs__verdict b { display: block; font-size: 16.5px; line-height: 1.45; color: var(--title); }
+.cs-dvs__row[data-tone='score'] .cs-dvs__verdict b::before,
+.cs-dvs__row[data-tone='draw'] .cs-dvs__verdict b::before,
+.cs-dvs__row[data-tone='both'] .cs-dvs__verdict b::before {
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 8px;
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+.cs-dvs__row[data-tone='score'] .cs-dvs__verdict b::before { background: var(--title); }
+.cs-dvs__row[data-tone='both'] .cs-dvs__verdict b::before { background: var(--check); }
+.cs-dvs__row[data-tone='draw'] .cs-dvs__verdict b::before { border: 2px solid var(--title); width: 7px; height: 7px; }
+.cs-dvs__row[data-tone='muted'] .cs-dvs__verdict b { color: var(--muted); }
+.cs-dvs__verdict summary { min-height: 36px; display: flex; align-items: center; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--body); text-decoration: underline; text-underline-offset: 4px; }
+.cs-dvs__verdict ul { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 8px; }
+.cs .cs-dvs__verdict li { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--body); }
+.cs-dvs__verdict cite { display: block; font-style: normal; font-size: 12.5px; color: var(--muted); }
+@media (max-width: 860px) {
+  .cs .cs-dvs__row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .cs-dvs__controls { justify-items: start; }
+}

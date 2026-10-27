@@ -11,6 +11,9 @@ import SpecialSupply from './SpecialSupply'
 import SaveButton from './SaveButton'
 import NoticeCalendar, { marksFrom } from './NoticeCalendar'
 import NearbyStores from './NearbyStores'
+import DrawVsScore from './DrawVsScore'
+import { guessZone } from '@/lib/consumer/draw-vs-score'
+import { calculateSubscriptionScore } from '@/lib/subscription-score'
 import { useConsumer } from './ConsumerProvider'
 import { useSignupGate } from './SignupGate'
 
@@ -80,7 +83,7 @@ interface DetailResponse {
 }
 
 export default function NoticeDetail({ id }: { id: string }) {
-  const { alerts } = useConsumer()
+  const { alerts, profile } = useConsumer()
   const gate = useSignupGate()
   const [data, setData] = useState<DetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -735,6 +738,38 @@ export default function NoticeDetail({ id }: { id: string }) {
           </div>
         </section>
       )}
+
+      {/* 가점제냐 추첨제냐 — 분양(청약홈) 공고에만. 임대는 가점·추첨으로 뽑지 않는다 */}
+      {!isSample && supplyModels.length > 0 && (() => {
+        const sc = region?.scores.find(x => x.average !== null && x.lowest !== null)
+        const hasScore = profile && (profile.homelessYears !== null || profile.dependents !== null || profile.accountYears !== null)
+        const me = hasScore
+          ? calculateSubscriptionScore({
+              homelessYears: profile.homelessYears ?? 0,
+              dependents: profile.dependents ?? 0,
+              accountYears: profile.accountYears ?? 0,
+              homeowner: profile.homeownership === 'ONE' || profile.homeownership === 'MANY',
+            }).total
+          : null
+        const where = `${property.district ?? ''} ${property.region ?? ''} ${property.address ?? ''}`
+        return (
+          <section style={{ marginTop: 32 }}>
+            <DrawVsScore
+              myScore={me ?? 0}
+              reference={sc ? { avg: sc.average!, min: sc.lowest!, label: `${region!.province} 최근 ${sc.months}개월` } : null}
+              models={supplyModels.map(m => ({ name: m.name, exclusiveArea: m.exclusiveArea, households: null }))}
+              defaultZone={guessZone(where)}
+              defaultOwnership={profile?.homeownership === 'ONE' ? 'ONE' : profile?.homeownership === 'MANY' ? 'MULTI' : 'NONE'}
+              zoneHint={`공고 지역 「${where.trim()}」`}
+            />
+            {me === null && (
+              <p className="cs-note" style={{ marginTop: 8 }}>
+                저장한 조건에 가점 항목이 없어 0점으로 보았습니다. <a href="/score">가점 계산</a>에서 내 점수를 넣어 보세요.
+              </p>
+            )}
+          </section>
+        )
+      })()}
 
       {/* 주변 생활 상권 — 좌표가 주소·공고명으로 찾은 자리일 때만. 지역 기준점이면 남의 동네를 보여 주게 된다 */}
       {!isSample &&
