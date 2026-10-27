@@ -10,13 +10,14 @@ import './consumer-atlas.css'
 import './consumer-night.css'
 /* 홈 — 끝까지 밤, 스크롤로 넘기는 장면·옆으로 넘기는 띠. night 뒤 */
 import './consumer-immersive.css'
-/* 3.0 — 마린 네이비 위의 브랜드·폰 챗봇·움직임·화면별 공간. 각자 자기 파일만 고친다 */
+/* 3.0 — 주황 밤 무대 위의 브랜드·폰 챗봇·움직임·화면별 공간·바닥글. 각자 자기 파일만 고친다 */
 import './consumer-masthead.css'
 import './consumer-brand.css'
 import './consumer-phone.css'
 import './consumer-motion.css'
 import './consumer-spaces.css'
 import './consumer-spaces-b.css'
+import './consumer-footer.css'
 import './crm.css'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zipcatch.vercel.app').replace(/\/$/, '')
@@ -33,7 +34,20 @@ const JSON_LD = {
   operatingSystem: 'Web',
   inLanguage: 'ko-KR',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'KRW' },
-  creator: { '@type': 'Person', '@id': PORTFOLIO + '#person', name: '김유빈', alternateName: 'Yubin Kim', url: PORTFOLIO },
+  creator: {
+    '@type': 'Person',
+    '@id': PORTFOLIO + '#person',
+    name: '김유빈',
+    alternateName: 'Yubin Kim',
+    url: PORTFOLIO,
+    // 포트폴리오의 Person 과 같은 채널 — 검색엔진이 한 사람으로 잇는다
+    sameAs: [
+      'https://github.com/yubinxe',
+      'https://www.instagram.com/yubinxe/',
+      'https://yubinxe.tistory.com/',
+      'https://blog.naver.com/yubinxe',
+    ],
+  },
 }
 
 const TITLE = '집캐치 — 내 조건에 맞는 청약·임대 공고 찾기'

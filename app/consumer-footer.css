@@ -1,0 +1,324 @@
+/* ═══════════════════════════════════════════════════════════════
+   바닥글 — 만든 사람에게로 이어지는 마지막 장면.
+   밤 무대 위에 이름 하나, 다음 걸음 둘(포트폴리오 · 문의), 채널 넷.
+   카드 대신 괘선과 여백으로 나눈다. 고지는 맨 아래 작은 글씨로 남긴다.
+   ═══════════════════════════════════════════════════════════════ */
+
+.cs .cs-footer.cs-maker {
+  position: relative;
+  padding: 104px 0 44px;
+  overflow: hidden;
+  color: #fff;
+}
+body:has(.cs-ticker) .cs .cs-footer.cs-maker {
+  padding-bottom: calc(44px + var(--ticker-h));
+}
+
+/* 무대 조명 — 왼쪽 위에서 주황 빛 한 줄기, 아래로 갈수록 어둡게 */
+.cs-maker::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 70% at 12% 0%, rgba(255, 138, 61, 0.16), transparent 70%),
+    radial-gradient(40% 50% at 92% 100%, rgba(194, 65, 12, 0.14), transparent 70%);
+  pointer-events: none;
+}
+.cs-maker::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 178, 122, 0.35) 30%, rgba(255, 178, 122, 0.35) 70%, transparent);
+}
+.cs-maker > .cs-wrap {
+  position: relative;
+}
+
+.cs-maker__card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 72px;
+  align-items: start;
+}
+
+/* ── 사람 ─────────────────────────────────────────────────── */
+.cs .cs-maker .cs-maker__eyebrow {
+  margin: 0 0 18px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: #ffb27a;
+}
+.cs .cs-maker .cs-maker__name {
+  margin: 0;
+  font-size: clamp(34px, 4.4vw, 52px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  color: #fff;
+}
+.cs .cs-maker .cs-maker__name span {
+  display: inline-block;
+  margin-left: 0.32em;
+  font-size: 0.42em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: 0.35em;
+  color: rgba(255, 255, 255, 0.5);
+}
+.cs .cs-maker .cs-maker__role {
+  margin: 16px 0 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+.cs .cs-maker .cs-maker__line {
+  margin: 10px 0 0;
+  max-width: 34em;
+  font-size: 15px;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ── 다음 걸음 둘 ─────────────────────────────────────────── */
+.cs-maker__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 32px;
+}
+.cs .cs-maker a.cs-maker__primary,
+.cs .cs-maker a.cs-maker__secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 0 22px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.25s ease;
+}
+.cs .cs-maker a.cs-maker__primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 14px 30px -14px rgba(194, 65, 12, 0.9);
+}
+.cs .cs-maker a.cs-maker__primary svg {
+  transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.cs .cs-maker a.cs-maker__primary:hover {
+  background: #d4520f;
+  transform: translateY(-2px);
+  box-shadow: 0 20px 36px -14px rgba(194, 65, 12, 0.95);
+}
+.cs .cs-maker a.cs-maker__primary:hover svg {
+  transform: translate(2px, -2px);
+}
+.cs .cs-maker a.cs-maker__secondary {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+.cs .cs-maker a.cs-maker__secondary:hover {
+  border-color: rgba(255, 178, 122, 0.7);
+  background: rgba(255, 138, 61, 0.08);
+}
+
+/* ── 더 보기 — 경력 · 강의 · 갤러리 ───────────────────────── */
+.cs-maker__more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.cs .cs-maker .cs-maker__more a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.cs .cs-maker .cs-maker__more a svg {
+  width: 13px;
+  height: 13px;
+  opacity: 0.6;
+}
+.cs .cs-maker .cs-maker__more a:hover {
+  color: #ffb27a;
+  border-bottom-color: rgba(255, 178, 122, 0.5);
+}
+
+/* ── 채널 넷 — 괘선으로 나눈 목록 ─────────────────────────── */
+.cs-maker__channels {
+  margin: 34px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.cs-maker__channels li {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.cs .cs-maker a.cs-maker__channel {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 6px;
+  color: #fff;
+  text-decoration: none;
+  isolation: isolate;
+}
+/* 지나가면 바닥에서 빛이 차오른다 */
+.cs .cs-maker a.cs-maker__channel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(255, 138, 61, 0.1), rgba(255, 138, 61, 0));
+  opacity: 0;
+  transform: scaleX(0.6);
+  transform-origin: left;
+  transition:
+    opacity 0.35s ease,
+    transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.cs .cs-maker a.cs-maker__channel:hover::before,
+.cs .cs-maker a.cs-maker__channel:focus-visible::before {
+  opacity: 1;
+  transform: scaleX(1);
+}
+.cs-maker__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.85);
+  transition:
+    border-color 0.3s ease,
+    color 0.3s ease,
+    background-color 0.3s ease;
+}
+.cs-maker__channel:hover .cs-maker__icon {
+  border-color: rgba(255, 178, 122, 0.6);
+  background: rgba(255, 138, 61, 0.12);
+  color: #ffb27a;
+}
+.cs-maker__ch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cs-maker__ch-text b {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.cs-maker__ch-text span {
+  overflow: hidden;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.cs-maker__go {
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.4);
+  transition:
+    color 0.3s ease,
+    transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.cs-maker__channel:hover .cs-maker__go {
+  color: #ffb27a;
+  transform: translate(3px, -3px);
+}
+
+/* ── 고지 ─────────────────────────────────────────────────── */
+.cs-maker__legal {
+  margin-top: 88px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.cs .cs-maker .cs-maker__legal p {
+  margin: 0;
+  max-width: 62em;
+  font-size: 13px;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.45);
+}
+.cs .cs-maker .cs-maker__legal p + p {
+  margin-top: 4px;
+}
+.cs .cs-maker .cs-maker__legal .cs-maker__copy {
+  margin-top: 18px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.cs-maker a:focus-visible {
+  outline: 2px solid #ffb27a;
+  outline-offset: 3px;
+}
+
+/* ── 좁은 화면 ─────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .cs .cs-footer.cs-maker {
+    padding-top: 72px;
+  }
+  .cs-maker__card {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .cs-maker__legal {
+    margin-top: 56px;
+  }
+}
+@media (max-width: 520px) {
+  .cs-maker__cta {
+    flex-direction: column;
+  }
+  .cs .cs-maker a.cs-maker__primary,
+  .cs .cs-maker a.cs-maker__secondary {
+    justify-content: center;
+    width: 100%;
+  }
+  .cs .cs-maker a.cs-maker__channel {
+    grid-template-columns: 40px minmax(0, 1fr) 20px;
+    gap: 14px;
+    padding: 16px 2px;
+  }
+  .cs-maker__icon {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-maker *,
+  .cs-maker *::before {
+    transition: none !important;
+  }
+}
