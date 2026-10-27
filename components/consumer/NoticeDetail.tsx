@@ -232,7 +232,8 @@ export default function NoticeDetail({ id }: { id: string }) {
   const recommended = schedule.filter(t => t.source === 'RECOMMENDED')
 
   return (
-    <div className="cs-wrap" style={{ paddingTop: 32, maxWidth: 860 }}>
+    // 카드 한 장이 펼쳐지듯 열린다 (consumer-immersive.css · cs-open-in)
+    <div className="cs-wrap cs-open-in" style={{ paddingTop: 32, maxWidth: 860 }}>
       <Link href="/results" className="cs-btn cs-btn--text" style={{ paddingLeft: 0, marginBottom: 12 }}>
         ← 후보 목록으로
       </Link>

@@ -8,6 +8,7 @@ import ScrollProgress from './ScrollProgress'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { useConsumer } from './ConsumerProvider'
+import BrandMark from './BrandMark'
 
 /**
  * 메뉴 이름은 **화면 제목이 아니라 이름표**다.
@@ -60,21 +61,7 @@ export default function ConsumerShell({ children }: { children: ReactNode }) {
       <header className="cs-header">
         <div className="cs-wrap cs-header__inner">
           <Link href="/" className="cs-logo">
-            <span className="cs-logo__mark" aria-hidden="true">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 11.5 12 4l9 7.5" />
-                <path d="M5 10v9.5h14V10" />
-              </svg>
-            </span>
+            <BrandMark size={34} className="cs-logo__mark" />
             집캐치
           </Link>
 

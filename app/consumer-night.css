@@ -97,10 +97,23 @@
   color: var(--title);
 }
 .cs .cs-logo__mark {
-  background: var(--accent);
-  color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px -6px rgba(194, 65, 12, 0.65);
+  /* 마크(BrandMark)가 바탕까지 그린다. 여기서는 크기와 빛만 */
+  width: 34px;
+  height: 34px;
+  background: none;
+  border-radius: 9px;
+  box-shadow: 0 8px 20px -8px rgba(194, 65, 12, 0.75);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cs .cs-logo:hover .cs-logo__mark {
+  transform: translateY(-1px) rotate(-4deg);
+}
+.cs-boot__logo,
+.crm-nav__mark {
+  width: auto !important;
+  height: auto !important;
+  background: none !important;
+  border-radius: 0 !important;
 }
 .cs .cs-nav__link {
   font-weight: 600;

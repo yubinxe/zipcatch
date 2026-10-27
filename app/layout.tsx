@@ -8,6 +8,8 @@ import './consumer-lux.css'
 import './consumer-atlas.css'
 /* 밤 — 2.1 디자인. 토큰과 첫 화면·섹션 머리·띠를 다시 그린다. 반드시 맨 뒤 */
 import './consumer-night.css'
+/* 홈 — 끝까지 밤, 스크롤로 넘기는 장면·옆으로 넘기는 띠. night 뒤 */
+import './consumer-immersive.css'
 import './crm.css'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zipcatch.vercel.app').replace(/\/$/, '')

@@ -7,6 +7,7 @@ import { ELIGIBILITY_CAUTION, type UrgencyInfo } from '@/lib/crm/services/scorin
 import NoticeCard from './NoticeCard'
 import FilterRow, { type FilterOption } from './FilterRow'
 import SampleOnlyNotice from './SampleOnlyNotice'
+import Carousel from './home/Carousel'
 
 interface NoticeRow {
   property: Property
@@ -37,7 +38,8 @@ export default function HomeNoticeStrip() {
 
   useEffect(() => {
     let alive = true
-    const params = new URLSearchParams({ limit: '3' })
+    // 옆으로 넘기는 띠라 한 번에 넉넉히 싣는다
+    const params = new URLSearchParams({ limit: '12' })
     if (region !== '전체') params.set('region', region)
     if (type !== '전체') params.set('housingType', type)
 
@@ -95,10 +97,12 @@ export default function HomeNoticeStrip() {
 
       {/* 로딩과 0건은 다른 상태다 */}
       {loading ? (
-        <div className="cs-notice-grid">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="cs-skel" style={{ height: 300 }} />
-          ))}
+        <div className="cs-carousel">
+          <div className="cs-carousel__track">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="cs-skel" style={{ height: 320 }} />
+            ))}
+          </div>
         </div>
       ) : error ? (
         <div className="cs-error">
@@ -125,7 +129,8 @@ export default function HomeNoticeStrip() {
               }
             />
           )}
-          <div className="cs-notice-grid" style={officialCount === 0 ? { marginTop: 26 } : undefined}>
+          <div style={officialCount === 0 ? { marginTop: 26 } : undefined}>
+          <Carousel label="지금 살펴볼 모집공고">
           {rows.map((row, i) => (
             <NoticeCard
               key={row.property.id}
@@ -154,6 +159,7 @@ export default function HomeNoticeStrip() {
               showReasons={false}
             />
           ))}
+          </Carousel>
           </div>
         </>
       )}

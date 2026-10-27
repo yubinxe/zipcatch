@@ -38,10 +38,12 @@ function titleSize(len: number) {
 }
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
-  const [bold, regular, night] = await Promise.all([
+  const [bold, regular, night, mark] = await Promise.all([
     readFile(join(process.cwd(), 'app/fonts/Pretendard-Bold.otf')),
     readFile(join(process.cwd(), 'app/fonts/Pretendard-Regular.otf')),
     readFile(join(process.cwd(), 'app/og-night.jpg')),
+    // 집캐치 마크(핀과 고리) — scripts/og/render-og.mjs 가 BrandMark 와 같은 모양으로 굽는다
+    readFile(join(process.cwd(), 'app/og-mark.svg')),
   ])
 
   const { id } = await params
@@ -108,23 +110,13 @@ export default async function Image({ params }: { params: Promise<{ id: string }
           {/* 위 — 누가, 무엇을 */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 46,
-                  height: 46,
-                  borderRadius: 12,
-                  background: ORANGE,
-                  boxShadow: '0 10px 30px -8px rgba(255,110,40,0.8)',
-                }}
-              >
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 11.5 12 4l9 7.5" />
-                  <path d="M5 10v9.5h14V10" />
-                </svg>
-              </div>
+              <img
+                src={`data:image/svg+xml;base64,${mark.toString('base64')}`}
+                width={48}
+                height={48}
+                alt=""
+                style={{ width: 48, height: 48, borderRadius: 12, boxShadow: '0 12px 32px -10px rgba(255,110,40,0.85)' }}
+              />
               <span style={{ display: 'flex', fontSize: 30, fontWeight: 700, letterSpacing: -1 }}>집캐치</span>
               <span style={{ display: 'flex', marginLeft: 10, fontSize: 18, fontWeight: 700, letterSpacing: 4, color: 'rgba(255,255,255,0.5)' }}>
                 모집공고

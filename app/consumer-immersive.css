@@ -1,0 +1,612 @@
+/* ============================================================
+   홈 — 끝까지 밤, 내릴수록 장면이 넘어간다
+   consumer-night.css 뒤에 얹는다.
+
+   홈(.cs-home)은 첫 화면부터 바닥글까지 흰 면 없이 밤으로 잇는다.
+   장면(ScrollStage)은 화면에 붙은 무대에 `--p`(0→1)를 받아 CSS 만으로 움직인다.
+   ============================================================ */
+
+/* ── 홈의 토큰 — 밤으로 뒤집는다 ───────────────────────── */
+.cs-home {
+  --title: #ffffff;
+  --body: rgba(255, 255, 255, 0.8);
+  --muted: rgba(255, 255, 255, 0.62);
+  --line: rgba(255, 255, 255, 0.11);
+  --line-ink: rgba(255, 255, 255, 0.35);
+  --surface: #121823;
+  --paper: #0B0E14;
+  --paper-2: #161D2A;
+  --brand: #ffffff;
+  --brand-press: #E5E7EB;
+  --brand-soft: rgba(255, 255, 255, 0.08);
+  --accent-soft: rgba(255, 138, 61, 0.14);
+  --ok: #4ADE80;
+  --ok-soft: rgba(74, 222, 128, 0.12);
+  --check: #FACC15;
+  --check-soft: rgba(250, 204, 21, 0.12);
+  --shadow-card: 0 30px 70px -36px rgba(0, 0, 0, 0.9);
+  --glass: linear-gradient(160deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.02));
+  color: var(--body);
+  background: var(--night);
+  /* 캐러셀이 화면 끝까지 흘러나가는데, 100vw 는 세로 스크롤바 폭까지 센다.
+     스크롤바가 늘 보이는 환경에서 그만큼 옆으로 밀리지 않게 자른다.
+     hidden 이 아니라 clip — 스크롤 상자를 만들지 않아 붙는 장면(sticky)이 산다 */
+  overflow-x: clip;
+}
+/* 지면 전체(머리글 아래·바닥글 위 틈까지) */
+.cs:has(.cs-home) {
+  background: var(--night);
+}
+.cs:has(.cs-home) .cs-backdrop {
+  display: none;
+}
+
+/* 머리글도 밤 유리 */
+.cs:has(.cs-home) .cs-header {
+  --title: #fff;
+  --body: rgba(255, 255, 255, 0.8);
+  --line: rgba(255, 255, 255, 0.1);
+  background: rgba(9, 12, 18, 0.72);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.cs:has(.cs-home) .cs-logo {
+  color: #fff;
+}
+.cs:has(.cs-home) .cs-nav__link {
+  color: rgba(255, 255, 255, 0.7);
+}
+.cs:has(.cs-home) .cs-nav__link:hover,
+.cs:has(.cs-home) .cs-nav__link[aria-current='page'] {
+  color: #fff;
+}
+.cs:has(.cs-home) .cs-header .cs-btn--text {
+  color: #fff;
+}
+.cs:has(.cs-home) .cs-header .cs-btn.cs-btn--ghost,
+.cs-home .cs-btn.cs-btn--ghost {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+.cs:has(.cs-home) .cs-nav {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+/* 흰 띠는 한 단 밝은 밤으로 */
+.cs-home .cs-band {
+  background: #0E131D;
+  box-shadow: 0 0 0 100vmax #0E131D;
+}
+.cs-home .cs-band--night {
+  background: var(--night);
+  box-shadow: 0 0 0 100vmax var(--night);
+}
+.cs-home .cs-sec-index {
+  color: rgba(255, 255, 255, 0.05);
+}
+.cs-home .cs-sec-eyebrow {
+  color: var(--glow);
+}
+
+/* 카드·달력·질문 — 유리 */
+.cs-home .cs-card,
+.cs-home .cs-cal,
+.cs-home .cs-notice {
+  background: var(--glass);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-card);
+}
+.cs-home .cs-skel {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.11) 50%, rgba(255, 255, 255, 0.05) 75%);
+  background-size: 200% 100%;
+}
+
+/* ── 첫 화면 — 화면을 꽉 채운다 ─────────────────────────── */
+.cs-home .cs-night {
+  min-height: calc(100svh - var(--header-h));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: calc(var(--ticker-h) + 8px);
+}
+.cs-home .cs-night .cs-hero {
+  width: 100%;
+}
+.cs-home .cs-night .cs-lux-sources {
+  margin-top: clamp(8px, 2vh, 24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 0;
+  color: rgba(255, 255, 255, 0.5);
+}
+/* 첫 화면을 떠날 때 글이 살짝 물러난다 — 지원하는 브라우저에서만 */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .cs-home .cs-night .cs-hero > div:first-child {
+      animation: heroLeave linear both;
+      animation-timeline: view();
+      animation-range: exit 0% exit 80%;
+    }
+    .cs-home .cs-night .cs-atlas {
+      animation: heroLeaveCard linear both;
+      animation-timeline: view();
+      animation-range: exit 0% exit 90%;
+    }
+  }
+}
+@keyframes heroLeave {
+  to {
+    transform: translateY(-60px) scale(0.96);
+    opacity: 0;
+  }
+}
+@keyframes heroLeaveCard {
+  to {
+    transform: translateY(-30px) scale(0.94);
+    opacity: 0.2;
+  }
+}
+
+/* ── 공고 띠 — 옆으로 넘긴다 ─────────────────────────────── */
+.cs-carousel {
+  position: relative;
+}
+.cs-carousel__track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: min(380px, 82vw);
+  gap: 20px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--pad-page);
+  /* 오른쪽은 화면 끝까지 흘려보낸다 — 더 있다는 것을 말 없이 알린다 */
+  margin-inline: calc(-1 * var(--pad-page)) calc(50% - 50vw);
+  padding: 10px var(--pad-page) 26px;
+  scrollbar-width: none;
+  cursor: grab;
+}
+.cs-carousel__track::-webkit-scrollbar {
+  display: none;
+}
+.cs-carousel__track > * {
+  scroll-snap-align: start;
+}
+.cs-carousel__track a,
+.cs-carousel__track img {
+  -webkit-user-drag: none;
+}
+.cs-carousel__track[data-drag] {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  user-select: none;
+}
+.cs-carousel__track:focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: 4px;
+}
+.cs-carousel__track .cs-notice {
+  height: 100%;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s, box-shadow 0.45s;
+}
+.cs-carousel__track .cs-notice:hover {
+  transform: translateY(-6px);
+  border-color: rgba(255, 178, 122, 0.45);
+  box-shadow: 0 40px 80px -40px rgba(255, 110, 40, 0.45);
+}
+.cs-carousel__bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 6px;
+}
+.cs-carousel__progress {
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.cs-carousel__progress i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--glow));
+  transform-origin: 0 50%;
+  transition: transform 0.2s linear;
+}
+.cs-carousel__nav {
+  display: flex;
+  gap: 10px;
+}
+.cs-carousel__btn {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--line-ink);
+  background: transparent;
+  color: var(--title);
+  transition: background 0.2s, border-color 0.2s, opacity 0.2s;
+}
+.cs-carousel__btn:hover:not([aria-disabled='true']) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.cs-carousel__btn[aria-disabled='true'] {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ═════════════════════════════════════════════════════════
+   장면 — 화면에 붙은 무대
+   ═════════════════════════════════════════════════════════ */
+.cs-stage {
+  position: relative;
+  height: calc(var(--len, 3) * 100svh);
+}
+.cs-stage__pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: var(--header-h);
+  padding-bottom: var(--ticker-h);
+}
+/* 움직임을 원치 않으면 무대를 붙이지 않고 끝 장면만 */
+.cs-stage[data-still] {
+  height: auto;
+}
+.cs-stage[data-still] .cs-stage__pin {
+  position: relative;
+  height: auto;
+  min-height: 100svh;
+}
+
+/* ── 장면 1 — 문장과 지도 ──────────────────────────────── */
+.cs-scene--statement .cs-stage__pin {
+  background:
+    radial-gradient(50% 60% at 72% 55%, rgba(255, 122, 48, calc(0.05 + 0.2 * var(--p))), transparent 70%),
+    var(--night);
+}
+.cs-scene__map {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center end;
+  padding-right: max(4vw, calc(50% - 600px));
+  pointer-events: none;
+}
+.cs-scene__map svg {
+  height: min(86svh, 900px);
+  width: auto;
+  overflow: visible;
+  transform: translateY(calc(6% - 6% * var(--p))) scale(calc(0.84 + 0.2 * var(--p)));
+  transform-origin: 60% 50%;
+  opacity: calc(0.45 + 0.55 * var(--p));
+}
+.cs-scene__land {
+  fill: #121826;
+  stroke: rgba(148, 163, 184, 0.22);
+  stroke-width: 1;
+}
+.cs-scene__land[data-lit] {
+  /* 차례(--i)가 오면 켜진다. 공고가 많은 곳부터 */
+  --k: clamp(0, calc(var(--p) * (var(--lit) + 3) - 1.2 - var(--i)), 1);
+  /* 많은 곳일수록 밝게 — 전부 같은 밝기면 지도가 한 덩어리가 된다 */
+  --peak: clamp(0.16, calc(0.78 - var(--i) * 0.07), 0.78);
+  fill: #FF8A3D;
+  fill-opacity: calc(0.04 + var(--peak) * var(--k));
+  stroke: rgba(255, 210, 168, calc(0.18 + 0.6 * var(--k)));
+  filter: drop-shadow(0 0 calc(var(--k) * var(--peak) * 18px) rgba(255, 138, 61, 0.8));
+}
+.cs-scene__copy {
+  position: relative;
+  width: 100%;
+}
+.cs .cs-scene__words {
+  margin: 0;
+  font-weight: 800;
+  font-size: clamp(46px, 7.2vw, 116px);
+  line-height: 1.06;
+  letter-spacing: -0.05em;
+  color: #fff;
+}
+.cs-scene__line {
+  display: block;
+}
+.cs-scene__word {
+  display: inline-block;
+  opacity: clamp(0.12, calc(var(--p) * (var(--n) + 2.4) - var(--i) - 0.6), 1);
+  transform: translateY(calc((1 - clamp(0, calc(var(--p) * (var(--n) + 2.4) - var(--i) - 0.6), 1)) * 18px));
+}
+.cs-scene__word[data-glow] {
+  color: var(--glow);
+}
+.cs-scene__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 40px;
+  margin-top: clamp(28px, 5vh, 56px);
+  opacity: clamp(0, calc((var(--p) - 0.7) * 5), 1);
+  transform: translateY(calc((1 - clamp(0, calc((var(--p) - 0.7) * 5), 1)) * 24px));
+}
+.cs-scene__fact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cs-scene__fact b {
+  font-size: clamp(34px, 3.6vw, 56px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #fff;
+}
+.cs-scene__fact:first-child b {
+  color: var(--glow);
+}
+.cs-scene__fact span {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ── 장면 2 — 카드가 공고로 열린다 ─────────────────────── */
+.cs-scene--open .cs-stage__pin {
+  --z: clamp(0, calc((var(--p) - 0.14) / 0.56), 1);
+  background:
+    radial-gradient(60% 50% at 50% 100%, rgba(255, 122, 48, 0.18), transparent 70%),
+    var(--night);
+}
+.cs-open__head {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--header-h) + clamp(28px, 6vh, 64px));
+  z-index: 2;
+  opacity: clamp(0, calc(1 - var(--z) * 2.4), 1);
+  transform: translateY(calc(var(--z) * -40px));
+}
+.cs-open__frame {
+  position: absolute;
+  inset: var(--header-h) 0 0;
+  display: grid;
+  place-items: center;
+}
+.cs-open__card {
+  /* 다 열린 크기로 그려 두고 처음엔 작게 줄인다 — 열릴 때 글이 번지지 않게 */
+  position: relative;
+  width: 100vw;
+  height: calc(100svh - var(--header-h));
+  transform: translateY(calc((1 - var(--z)) * 6svh)) scale(calc(0.4 + 0.6 * var(--z)));
+  border-radius: calc(56px * (1 - var(--z)));
+  overflow: hidden;
+  background:
+    radial-gradient(80% 60% at 100% 0%, rgba(255, 138, 61, calc(0.28 - 0.18 * var(--z))), transparent 60%),
+    linear-gradient(160deg, #1A2232, #0E131D 70%);
+  border: 1px solid rgba(255, 255, 255, calc(0.16 * (1 - var(--z))));
+  box-shadow: 0 60px 120px -40px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 178, 122, calc(0.25 * (1 - var(--z))));
+  will-change: transform;
+}
+.cs-open__face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 8vw 9vw;
+  opacity: clamp(0, calc((0.62 - var(--z)) * 3.6), 1);
+}
+.cs-open__tags {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 36px;
+}
+.cs-open__tag {
+  padding: 12px 26px;
+  border-radius: 12px;
+  font-size: 34px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.cs-open__tag--hot {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.cs-open__name {
+  margin: 0;
+  font-size: clamp(64px, 7.4vw, 120px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+  color: #fff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cs-open__where {
+  margin: 24px 0 0;
+  font-size: 40px;
+  color: rgba(255, 255, 255, 0.62);
+}
+.cs-open__body {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 0 var(--pad-page) var(--ticker-h);
+  opacity: clamp(0, calc((var(--z) - 0.5) * 3.6), 1);
+}
+.cs-open__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.cs-open__crumb {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--glow);
+}
+.cs-open__dday {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--accent);
+  box-shadow: 0 14px 30px -12px rgba(255, 110, 40, 0.8);
+}
+.cs-open__title {
+  margin: 18px 0 0;
+  font-size: clamp(32px, 4.2vw, 60px);
+  font-weight: 800;
+  line-height: 1.14;
+  letter-spacing: -0.045em;
+  color: #fff;
+}
+.cs-open__addr {
+  margin: 14px 0 0;
+  font-size: 17px;
+  color: rgba(255, 255, 255, 0.6);
+}
+.cs-open__facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: clamp(24px, 5vh, 48px) 0 0;
+}
+.cs-open__fact {
+  --f: clamp(0, calc((var(--p) - 0.6 - var(--i) * 0.05) * 9), 1);
+  padding: 22px 22px 24px;
+  border-radius: 16px;
+  background: var(--glass);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  opacity: var(--f);
+  transform: translateY(calc((1 - var(--f)) * 28px));
+}
+.cs-open__fact dt {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+}
+.cs-open__fact dd {
+  margin: 10px 0 0;
+  font-size: clamp(20px, 1.8vw, 28px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+.cs-open__go {
+  align-self: flex-start;
+  margin-top: clamp(24px, 5vh, 44px);
+  opacity: clamp(0, calc((var(--p) - 0.86) * 10), 1);
+}
+/* 키보드로 들어오면 장면이 덜 열렸어도 몸을 다 보여준다 — 보이지 않는 곳에 초점이 앉지 않게 */
+.cs-open__body:focus-within,
+.cs-open__body:focus-within .cs-open__fact,
+.cs-open__go:focus-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── 공고 상세 — 카드 한 장이 펼쳐지듯 열린다 ─────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .cs-open-in {
+    animation: csOpenIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+@keyframes csOpenIn {
+  from {
+    opacity: 0;
+    clip-path: inset(6% 5% 30% 5% round 28px);
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 0);
+    transform: none;
+  }
+}
+
+/* ── 좁은 화면 ──────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .cs-scene__map {
+    place-items: end center;
+    padding: 0 0 calc(var(--ticker-h) + 4svh);
+  }
+  .cs-scene__map svg {
+    height: 50svh;
+    opacity: calc(0.25 + 0.35 * var(--p));
+  }
+  /* 글 뒤로 지도가 비치면 글이 진다 — 위쪽을 밤으로 눌러 둔다 */
+  .cs-scene__map::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, var(--night) 0%, rgba(11, 14, 20, 0.7) 45%, rgba(11, 14, 20, 0) 75%);
+  }
+  .cs-scene__fact:nth-child(n + 4) {
+    display: none;
+  }
+  .cs-scene__fact b {
+    font-size: 36px;
+  }
+  .cs-scene__copy {
+    align-self: flex-start;
+    margin-top: 6svh;
+  }
+  .cs-scene__facts {
+    gap: 12px 26px;
+  }
+  .cs-open__card {
+    transform: translateY(calc((1 - var(--z)) * 4svh)) scale(calc(0.62 + 0.38 * var(--z)));
+    border-radius: calc(36px * (1 - var(--z)));
+  }
+  .cs-open__face {
+    padding: 10vw 8vw;
+  }
+  .cs-open__tag {
+    font-size: 22px;
+    padding: 8px 16px;
+  }
+  .cs-open__name {
+    font-size: 44px;
+    -webkit-line-clamp: 3;
+  }
+  .cs-open__where {
+    font-size: 24px;
+  }
+  .cs-open__facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .cs-open__fact {
+    padding: 16px;
+  }
+  .cs-carousel__btn {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-carousel__track .cs-notice {
+    transition: none;
+  }
+}

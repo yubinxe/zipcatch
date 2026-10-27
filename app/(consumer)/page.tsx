@@ -7,6 +7,8 @@ import HeroAtlas from '@/components/consumer/HeroAtlas'
 import Journey from '@/components/consumer/Journey'
 import CostSimulator from '@/components/consumer/CostSimulator'
 import BuildProgress from '@/components/consumer/BuildProgress'
+import StatementScene from '@/components/consumer/home/StatementScene'
+import OpenNoticeScene from '@/components/consumer/home/OpenNoticeScene'
 
 /**
  * 자주 묻는 것.
@@ -89,7 +91,7 @@ function SectionHead({
 
 export default function ConsumerHome() {
   return (
-    <>
+    <div className="cs-home">
       {/* ── 첫 화면 ─────────────────────────────────────── */}
       {/* 밤의 도시 — 남색 하늘, 아래에서 번지는 주황, 눕힌 바닥 모눈과 빛기둥 */}
       <section className="cs-night">
@@ -191,21 +193,26 @@ export default function ConsumerHome() {
         {/* 예시 카드 대신 실제 집계. 지금 어디에 공고가 열려 있는지가 첫 화면의 주인공이다 */}
         <HeroAtlas />
         </div>
+        {/* 어디서 온 정보인지 — 꾸밈이 아니라 신뢰다. 첫 화면의 바닥에 얌전히 둔다 */}
+        <div className="cs-wrap">
+          <div className="cs-lux-sources">
+            <b>Data Source</b>
+            <span>청약홈 OpenAPI</span>
+            <span>LH 청약플러스</span>
+            <span>공공데이터포털</span>
+          </div>
+        </div>
       </section>
 
-      {/* ── 어디서 온 정보인지 ──────────────────────────── */}
-      {/* 꾸밈이 아니라 신뢰다. 첫 화면 바로 아래, 가장 얌전한 모습으로 둔다 */}
-      <div className="cs-wrap">
-        <div className="cs-lux-sources">
-          <b>Data Source</b>
-          <span>청약홈 OpenAPI</span>
-          <span>LH 청약플러스</span>
-          <span>공공데이터포털</span>
-        </div>
-      </div>
 
       {/* ── 지금 살펴볼 공고 ────────────────────────────── */}
       <HomeNoticeStrip />
+
+      {/* ── 장면 — 흩어진 공고가 한 장의 지도로 ────────── */}
+      <StatementScene />
+
+      {/* ── 장면 — 카드 한 장이 공고 한 장으로 열린다 ──── */}
+      <OpenNoticeScene />
 
       {/* ── 마감이 언제 몰리는지 ────────────────────────── */}
       <DeadlineCalendar />
@@ -374,6 +381,6 @@ export default function ConsumerHome() {
       {/* 지면의 맨 끝이자 화면의 맨 아래. 스크롤 위치와 무관하게
           가장 빨리 사라지는 정보를 늘 발치에 깔아둔다. */}
       <DeadlineTicker />
-    </>
+    </div>
   )
 }

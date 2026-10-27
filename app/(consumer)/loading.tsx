@@ -1,3 +1,5 @@
+import BrandMark from '@/components/consumer/BrandMark'
+
 /**
  * 첫 화면이 준비되는 동안.
  *
@@ -14,19 +16,7 @@ export default function Loading() {
       <div className="cs-wrap">
         <div className="cs-boot__mark">
           <span className="cs-boot__logo" aria-hidden="true">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 11.5 12 4l9 7.5" />
-              <path d="M5 10v9.5h14V10" />
-            </svg>
+            <BrandMark size={40} />
           </span>
           <span className="cs-boot__name">집캐치</span>
           <span className="cs-boot__msg">공고를 불러오는 중이에요</span>
