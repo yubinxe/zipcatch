@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { useConsumer } from './ConsumerProvider'
+import PageMasthead from './PageMasthead'
 import {
   AuthSwitch,
   EmailField,
@@ -89,30 +90,28 @@ export default function LoginView() {
 
   if (user) {
     return (
-      <div className="cs-wrap" style={{ paddingTop: 64, maxWidth: 520 }}>
-        <p className="cs-eyebrow">계정</p>
-        <h1 className="cs-page-title" style={{ marginTop: 10 }}>
-          {user.email}
-        </h1>
-        <p className="cs-sub" style={{ marginTop: 12 }}>
-          저장한 조건과 관심공고가 이 계정에 이어져 있어요.
-        </p>
+      <div className="cs-wrap cs-sb cs-sb--login">
+        <PageMasthead
+          eyebrow="Account"
+          title={<span className="cs-sb-email">{user.email}</span>}
+          lead="저장한 조건과 관심공고가 이 계정에 이어져 있어요."
+        />
+        <div className="cs-sb-gate">
+          <div className="cs-sb-gate__card">
+            <p className="cs-sb-kicker">Signed in</p>
+            <div className="cs-auth__carry">
+              <CarryItem n={savedIds.length} k="관심공고" v="저장해 둔 공고" />
+              <CarryItem n={alerts.length} k="알림 설정" v="새 공고·마감 수신 설정" />
+            </div>
 
-        <div className="cs-auth__carry" style={{ marginTop: 28 }}>
-          <CarryItem n={savedIds.length} k="관심공고" v="저장해 둔 공고" />
-          <CarryItem n={alerts.length} k="알림 설정" v="새 공고·마감 수신 설정" />
+            <Link href={next ?? '/saved'} className="cs-btn cs-btn--primary cs-btn--block cs-sb-gate__go">
+              관심공고 보기
+            </Link>
+            <button type="button" className="cs-btn cs-btn--text cs-btn--block cs-sb-gate__out" onClick={logout}>
+              로그아웃
+            </button>
+          </div>
         </div>
-
-        <Link
-          href={next ?? '/saved'}
-          className="cs-btn cs-btn--primary cs-btn--block"
-          style={{ marginTop: 28 }}
-        >
-          관심공고 보기
-        </Link>
-        <button className="cs-btn cs-btn--text cs-btn--block" style={{ marginTop: 10 }} onClick={logout}>
-          로그아웃
-        </button>
       </div>
     )
   }
@@ -120,90 +119,92 @@ export default function LoginView() {
   const regionText = profile?.regions?.length ? profile.regions.join(' · ') : null
 
   return (
-    <div className="cs-wrap cs-auth">
-      {/* 왼쪽 — 로그인하면 무엇이 이어지는지. 지금 세션에 실제로 있는 값만 적는다 */}
-      <div>
-        <p className="cs-eyebrow">계정</p>
-        <h1 className="cs-page-title" style={{ marginTop: 10 }}>
-          찾아둔 조건을
-          <br />
-          이어서 보세요
-        </h1>
-        <p className="cs-sub" style={{ marginTop: 14 }}>
-          지금 브라우저에만 있는 기록이에요. 계정을 만들면 다른 기기에서도 그대로 이어집니다.
-        </p>
+    <div className="cs-wrap cs-sb cs-sb--login">
+      <PageMasthead
+        eyebrow="Account"
+        title={
+          <>
+            찾아둔 조건을
+            <br />
+            이어서 보세요
+          </>
+        }
+        lead="지금 브라우저에만 있는 기록이에요. 계정을 만들면 다른 기기에서도 그대로 이어집니다."
+      />
 
-        <div className="cs-auth__carry" style={{ marginTop: 30 }}>
-          <CarryItem
-            n={profile ? 1 : 0}
-            k="저장한 조건"
-            v={regionText ?? '아직 조건을 입력하지 않았어요'}
+      <div className="cs-sb-gate">
+        {/* 가운데 한 장 — 입력 */}
+        <div className="cs-sb-gate__card">
+          <AuthSwitch
+            mode={mode}
+            disabled={busy}
+            onChange={m => {
+              setMode(m)
+              setSyncedMode(m)
+              setError(null)
+              // 주소도 함께 옮긴다. 이 화면을 공유하거나 새로고침해도 같은 폼이
+              // 열리고, 헤더 버튼과 이 토글이 서로 다른 말을 하지 않는다.
+              // replace 를 쓴다 — 폼을 오갔다고 뒤로가기 기록이 쌓일 일은 아니다.
+              router.replace(`/login?mode=${m}${next ? `&next=${encodeURIComponent(next)}` : ''}`, {
+                scroll: false,
+              })
+            }}
           />
-          <CarryItem n={savedIds.length} k="관심공고" v="저장해 둔 공고" />
-          <CarryItem n={alerts.length} k="알림 설정" v="새 공고·마감 수신 설정" />
+
+          <form onSubmit={submit} key={mode} className="cs-swap cs-sb-gate__form">
+            {mode === 'signup' ? (
+              <>
+                <UsernameField value={username} onChange={setUsername} disabled={busy} />
+                <EmailField value={email} onChange={setEmail} disabled={busy} />
+              </>
+            ) : (
+              <IdentifierField value={identifier} onChange={setIdentifier} disabled={busy} />
+            )}
+            <PasswordField
+              value={password}
+              onChange={setPassword}
+              mode={mode === 'signup' ? 'signup' : 'login'}
+              disabled={busy}
+            />
+
+            {error && (
+              <p className="cs-error cs-sb-gate__err" role="alert">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              className="cs-btn cs-btn--primary cs-btn--block cs-submit cs-sb-gate__go"
+              data-busy={busy}
+              disabled={busy || !ready}
+            >
+              {busy ? '확인 중…' : mode === 'signup' ? '계정 만들고 이어보기' : '로그인'}
+            </button>
+          </form>
+
+          <p className="cs-sb-gate__note">
+            이메일 인증과 비밀번호 재설정은 아직 연결 전입니다. 그 전까지 중요한 비밀번호를 재사용하지 마세요.
+          </p>
         </div>
 
-        {!profile && (
-          <Link href="/analyze" className="cs-btn cs-btn--text" style={{ marginTop: 18, padding: 0 }}>
-            조건부터 입력하기 →
-          </Link>
-        )}
-      </div>
+        {/* 아래 — 로그인하면 무엇이 이어지는지. 지금 세션에 실제로 있는 값만 적는다 */}
+        <section className="cs-sb-gate__carry" aria-labelledby="login-carry">
+          <h2 id="login-carry" className="cs-sb-gate__k">
+            계정에 이어지는 것
+          </h2>
+          <div className="cs-auth__carry">
+            <CarryItem n={profile ? 1 : 0} k="저장한 조건" v={regionText ?? '아직 조건을 입력하지 않았어요'} />
+            <CarryItem n={savedIds.length} k="관심공고" v="저장해 둔 공고" />
+            <CarryItem n={alerts.length} k="알림 설정" v="새 공고·마감 수신 설정" />
+          </div>
 
-      {/* 오른쪽 — 입력 */}
-      <div>
-        <AuthSwitch
-          mode={mode}
-          disabled={busy}
-          onChange={m => {
-            setMode(m)
-            setSyncedMode(m)
-            setError(null)
-            // 주소도 함께 옮긴다. 이 화면을 공유하거나 새로고침해도 같은 폼이
-            // 열리고, 헤더 버튼과 이 토글이 서로 다른 말을 하지 않는다.
-            // replace 를 쓴다 — 폼을 오갔다고 뒤로가기 기록이 쌓일 일은 아니다.
-            router.replace(`/login?mode=${m}${next ? `&next=${encodeURIComponent(next)}` : ''}`, {
-              scroll: false,
-            })
-          }}
-        />
-
-        <form onSubmit={submit} key={mode} className="cs-swap">
-          {mode === 'signup' ? (
-            <>
-              <UsernameField value={username} onChange={setUsername} disabled={busy} />
-              <EmailField value={email} onChange={setEmail} disabled={busy} />
-            </>
-          ) : (
-            <IdentifierField value={identifier} onChange={setIdentifier} disabled={busy} />
+          {!profile && (
+            <Link href="/analyze" className="cs-sb-gate__link">
+              조건부터 입력하기 <span aria-hidden="true">→</span>
+            </Link>
           )}
-          <PasswordField
-            value={password}
-            onChange={setPassword}
-            mode={mode === 'signup' ? 'signup' : 'login'}
-            disabled={busy}
-          />
-
-          {error && (
-            <p className="cs-error" style={{ marginTop: 18 }} role="alert">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            className="cs-btn cs-btn--primary cs-btn--block cs-submit"
-            style={{ marginTop: 24 }}
-            data-busy={busy}
-            disabled={busy || !ready}
-          >
-            {busy ? '확인 중…' : mode === 'signup' ? '계정 만들고 이어보기' : '로그인'}
-          </button>
-        </form>
-
-        <p className="cs-note" style={{ marginTop: 16 }}>
-          이메일 인증과 비밀번호 재설정은 아직 연결 전입니다. 그 전까지 중요한 비밀번호를 재사용하지 마세요.
-        </p>
+        </section>
       </div>
     </div>
   )

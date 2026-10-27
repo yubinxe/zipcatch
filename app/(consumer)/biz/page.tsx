@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import MarketRead from '@/components/consumer/MarketRead'
+import PageMasthead from '@/components/consumer/PageMasthead'
 
 export const metadata = {
   title: '사업성 판독 — 집캐치',
@@ -11,21 +12,30 @@ export default function BizPage() {
   return (
     // 다른 화면처럼 cs-wrap 안에 둔다. 처음에 cs-main(셸이 이미 쓰는 이름)만 달아서
     // 폭 제한도 좌우 여백도 없이 화면 가장자리에 글자가 붙어 있었다.
-    <div className="cs-wrap cs-mk" style={{ paddingTop: 44 }}>
-      <header className="cs-mk__head">
-        <p className="cs-mk__kicker">시행 · 분양대행 · 감정평가</p>
-        <h1 className="cs-page-title">사업성 판독</h1>
-        <p className="cs-sub cs-mk__intro">
-          소비자 화면은 공고 한 건을 열어 &ldquo;내가 넣을 자리가 있나&rdquo;를 묻습니다. 사업을
-          벌이는 쪽이 묻는 것은 반대입니다 — <b>이 동네에 지금 평당 얼마에 내고 있고, 그 값에
-          팔렸는가.</b> 답은 청약홈 공개 표 안에 이미 있는데 표가 셋으로 나뉘어 있어 아무도 붙여
-          보지 않습니다. 공고번호로 이어 붙였습니다.
-        </p>
-      </header>
+    <div className="cs-wrap cs-sb cs-sb--biz cs-mk">
+      <PageMasthead
+        eyebrow="Market Read"
+        title="사업성 판독"
+        lead={
+          <>
+            소비자 화면은 &ldquo;내가 넣을 자리가 있나&rdquo;를 묻습니다. 사업을 벌이는 쪽은 반대로 묻습니다 —{' '}
+            <b>이 동네에 지금 평당 얼마에 내고 있고, 그 값에 팔렸는가.</b> 청약홈의 나뉜 표 셋을 공고번호로 이어
+            붙였습니다.
+          </>
+        }
+      >
+        <ul className="cs-sb-mfacts" aria-label="이런 분께">
+          <li>시행</li>
+          <li>분양대행</li>
+          <li>감정평가</li>
+        </ul>
+      </PageMasthead>
 
-      <MarketRead />
+      <section className="cs-sb-sheet cs-sb-term" aria-label="시장 집계">
+        <MarketRead />
+      </section>
 
-      <p className="cs-note cs-mk__foot">
+      <p className="cs-sb-foot">
         모두 공개된 기록의 집계입니다. 앞으로 얼마에 내면 팔린다는 말은 하지 않습니다. 실제 사업
         판단은 공고문 원문과 현장 조사, 감정평가사·건축사 등 자격을 갖춘 전문가의 검토를 거쳐
         주세요. 공고문에 나오는 실무 용어는{' '}

@@ -1,7 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, type KeyboardEvent } from 'react'
+import PageMasthead from './PageMasthead'
+import TiltCard from './TiltCard'
 import { FEATURES, PASS, PLANS, priceParts, type Entitlement, type Feature, type Plan } from '@/lib/billing/plans'
 
 /**
@@ -16,6 +18,10 @@ import { FEATURES, PASS, PLANS, priceParts, type Entitlement, type Feature, type
  *  · 결제가 아직 열리지 않았다는 사실을 첫 화면에 둔다.
  *  · 준비 중인 기능에는 '준비 중'을 붙인다. 있는 척하지 않는다.
  *  · 인기·잔여 수량·카운트다운처럼 확인되지 않은 압박 문구는 쓰지 않는다.
+ *
+ * 요금제 판은 손끝을 따라 살짝 기운다(4도). 가격이 판 위로 한 겹 떠 있어
+ * 기울 때 깊이가 생긴다. 추천 하나만 주황 테로 세운다 — '집을 찾는 중이라면'
+ * 이라는 조건을 단 추천이지, 많이 팔렸다는 말이 아니다.
  */
 
 type Cycle = 'monthly' | 'annual'
@@ -87,91 +93,75 @@ export default function PricingView() {
   const groups = [...new Set(FEATURES.map(f => f.group))]
   const pass = priceParts(PASS.priceCents)
 
+  // 라디오 묶음의 약속 — 화살표로 옮기면 고른 것도 함께 바뀐다
+  const onCycleKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
+    e.preventDefault()
+    const next: Cycle = cycle === 'annual' ? 'monthly' : 'annual'
+    setCycle(next)
+    e.currentTarget.querySelector<HTMLButtonElement>(`[data-cycle="${next}"]`)?.focus()
+  }
+
   return (
-    <div className="cs-wrap cs-pr" style={{ paddingTop: 44 }}>
-      <header className="cs-pr__head">
-        <p className="cs-pr__kicker">요금제</p>
-        <h1 className="cs-pr__title">
-          찾는 건 무료로,
-          <br /> 깊이 볼 때만.
-        </h1>
-        <p className="cs-pr__sub">
-          지도·공고·계약 안전 정보는 어느 요금제에서도 닫지 않습니다. 비교·저장·분석이 더 필요할 때만 고르세요.
-        </p>
+    <div className="cs-wrap cs-sb cs-sb--pricing cs-pr">
+      <PageMasthead
+        eyebrow="Pricing"
+        title={
+          <>
+            찾는 건 무료로,
+            <br /> 깊이 볼 때만.
+          </>
+        }
+        lead="지도·공고·계약 안전 정보는 어느 요금제에서도 닫지 않습니다. 비교·저장·분석이 더 필요할 때만 고르세요."
+      >
         <p className="cs-pr__beta" role="note">
           <b>아직 결제를 받지 않습니다.</b> 지금 제공 중인 기능은 베타 기간 동안 누구나 무료로 씁니다. 아래 가격은
           출시 전에 검증 중인 안이며, 결제를 열기 전에 갱신·해지·환불 기준과 함께 다시 알려 드립니다.
         </p>
-      </header>
+      </PageMasthead>
 
-      <div className="cs-pr__cycle" role="radiogroup" aria-label="결제 주기">
-        <button type="button" role="radio" aria-checked={cycle === 'monthly'} onClick={() => setCycle('monthly')}>
-          월간
-        </button>
-        <button type="button" role="radio" aria-checked={cycle === 'annual'} onClick={() => setCycle('annual')}>
-          연간 <span>약 29% 적게</span>
-        </button>
-      </div>
+      <section className="cs-sb-sheet cs-sb-plans" aria-label="요금제">
+        <div className="cs-sb-plans__top">
+          <div className="cs-pr__cycle" role="radiogroup" aria-label="결제 주기" onKeyDown={onCycleKey}>
+            <span className="cs-pr__cycle-thumb" data-at={cycle} aria-hidden="true" />
+            <button
+              type="button"
+              role="radio"
+              aria-checked={cycle === 'monthly'}
+              tabIndex={cycle === 'monthly' ? 0 : -1}
+              data-cycle="monthly"
+              onClick={() => setCycle('monthly')}
+            >
+              월간
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={cycle === 'annual'}
+              tabIndex={cycle === 'annual' ? 0 : -1}
+              data-cycle="annual"
+              onClick={() => setCycle('annual')}
+            >
+              연간 <span>약 29% 적게</span>
+            </button>
+          </div>
+          <p className="cs-sb-plans__hint">출시 전 검증 중인 가격 · 지금은 결제 없이 무료</p>
+        </div>
 
-      <div className="cs-pr__plans">
-        {PLANS.map(plan => {
-          const cta = CTA[plan.id]
-          const featured = plan.id === 'plus'
-          return (
-            <article key={plan.id} className="cs-pr__plan" data-featured={featured || undefined}>
-              {featured && <span className="cs-pr__tag">집을 찾는 중이라면</span>}
-              <h2 className="cs-pr__name">{plan.name}</h2>
-              <p className="cs-pr__for">{plan.forWhom}</p>
-
-              {plan.monthlyCents === null ? (
-                <div className="cs-pr__price cs-pr__price--quote">
-                  <b>견적</b>
-                </div>
-              ) : (
-                <Price cents={plan.monthlyCents} cycle={cycle} plan={plan} />
-              )}
-              <PriceNote plan={plan} cycle={cycle} />
-
-              {cta.href ? (
-                <Link
-                  href={cta.href}
-                  className={`cs-btn ${featured ? 'cs-btn--primary' : 'cs-btn--ghost'} cs-pr__cta`}
-                >
-                  {cta.label}
-                </Link>
-              ) : (
-                <span className="cs-btn cs-btn--ghost cs-pr__cta" aria-disabled="true">
-                  {cta.label}
-                </span>
-              )}
-              <p className="cs-pr__cta-sub">{cta.sub}</p>
-
-              <ul className="cs-pr__list">
-                {HIGHLIGHTS[plan.id].map(id => {
-                  const f = byId.get(id)!
-                  const e = plan.entitlements[id]
-                  return (
-                    <li key={id} data-soon={f.status === 'soon' || undefined}>
-                      <span>
-                        {f.label}
-                        {typeof e === 'number' && (
-                          <em className="cs-num">
-                            {' '}
-                            {e}
-                            {f.unit}
-                          </em>
-                        )}
-                        {e === true && (id === 'compare' || id === 'alerts' || id === 'reports') && <em> 무제한</em>}
-                      </span>
-                      {f.status === 'soon' && <i>준비 중</i>}
-                    </li>
-                  )
-                })}
-              </ul>
-            </article>
-          )
-        })}
-      </div>
+        <div className="cs-pr__plans">
+          {PLANS.map(plan => {
+            const cta = CTA[plan.id]
+            const featured = plan.id === 'plus'
+            return (
+              <div key={plan.id} className="cs-sb-plancell" data-featured={featured || undefined}>
+                <TiltCard className="cs-sb-plantilt" max={4}>
+                  <PlanCard plan={plan} cta={cta} featured={featured} cycle={cycle} byId={byId} />
+                </TiltCard>
+              </div>
+            )
+          })}
+        </div>
+      </section>
 
       {/* 구독이 망설여지는 사람을 위한 문 — 자동 갱신이 없다 */}
       <section className="cs-pr__pass">
@@ -185,6 +175,9 @@ export default function PricingView() {
           </p>
         </div>
         <div className="cs-pr__pass-buy">
+          <span className="cs-pr__pass-stub" aria-hidden="true">
+            30-Day Pass
+          </span>
           <div className="cs-pr__price">
             <span className="cs-pr__cur">$</span>
             <b className="cs-num">{pass.whole}</b>
@@ -309,5 +302,75 @@ export default function PricingView() {
         </dl>
       </section>
     </div>
+  )
+}
+
+/** 요금제 한 장 — 가격이 판 위로 한 겹 떠 있다 */
+function PlanCard({
+  plan,
+  cta,
+  featured,
+  cycle,
+  byId,
+}: {
+  plan: Plan
+  cta: (typeof CTA)[Plan['id']]
+  featured: boolean
+  cycle: Cycle
+  byId: Map<Feature['id'], Feature>
+}) {
+  return (
+    <article className="cs-pr__plan" data-featured={featured || undefined}>
+      <span className="cs-sb-glare" aria-hidden="true" />
+      {featured && <span className="cs-pr__tag">집을 찾는 중이라면</span>}
+      <h2 className="cs-pr__name">{plan.name}</h2>
+      <p className="cs-pr__for">{plan.forWhom}</p>
+
+      {plan.monthlyCents === null ? (
+        <div className="cs-pr__price cs-pr__price--quote">
+          <b>견적</b>
+        </div>
+      ) : (
+        <Price cents={plan.monthlyCents} cycle={cycle} plan={plan} />
+      )}
+      <PriceNote plan={plan} cycle={cycle} />
+
+      {cta.href ? (
+        <Link
+          href={cta.href}
+          className={`cs-btn ${featured ? 'cs-btn--primary' : 'cs-btn--ghost'} cs-pr__cta`}
+        >
+          {cta.label}
+        </Link>
+      ) : (
+        <span className="cs-btn cs-btn--ghost cs-pr__cta" aria-disabled="true">
+          {cta.label}
+        </span>
+      )}
+      <p className="cs-pr__cta-sub">{cta.sub}</p>
+
+      <ul className="cs-pr__list">
+        {HIGHLIGHTS[plan.id].map(id => {
+          const f = byId.get(id)!
+          const e = plan.entitlements[id]
+          return (
+            <li key={id} data-soon={f.status === 'soon' || undefined}>
+              <span>
+                {f.label}
+                {typeof e === 'number' && (
+                  <em className="cs-num">
+                    {' '}
+                    {e}
+                    {f.unit}
+                  </em>
+                )}
+                {e === true && (id === 'compare' || id === 'alerts' || id === 'reports') && <em> 무제한</em>}
+              </span>
+              {f.status === 'soon' && <i>준비 중</i>}
+            </li>
+          )
+        })}
+      </ul>
+    </article>
   )
 }
