@@ -1,10 +1,10 @@
-/* ── 화면 머리 — 머리글에서 이어지는 마린 네이비 무대 ───────────────── */
+/* ── 화면 머리 — 머리글에서 이어지는 밤 무대 ───────────────── */
 .cs-mast {
   position: relative;
   isolation: isolate;
   margin: 0 0 clamp(36px, 4vw, 56px);
   padding: clamp(48px, 6vw, 88px) 0 clamp(40px, 4.6vw, 64px);
-  color: #E6EEF8;
+  color: #EEF0F3;
   background: var(--night);
   /* 감싸는 cs-wrap 을 넘어 화면 끝까지 */
   box-shadow: 0 0 0 100vmax var(--night);
@@ -17,15 +17,15 @@
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(60% 120% at 82% -10%, rgba(91, 143, 217, 0.22), transparent 60%),
-    radial-gradient(40% 80% at 10% 120%, rgba(37, 89, 166, 0.28), transparent 70%);
+    radial-gradient(60% 120% at 82% -10%, rgba(255, 138, 61, 0.22), transparent 60%),
+    radial-gradient(40% 80% at 10% 120%, rgba(194, 65, 12, 0.28), transparent 70%);
 }
 .cs-mast__sky span:first-child {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(to right, rgba(169, 200, 240, 0.07) 0 1px, transparent 1px) 0 0 / 64px 64px,
-    linear-gradient(to bottom, rgba(169, 200, 240, 0.07) 0 1px, transparent 1px) 0 0 / 64px 64px;
+    linear-gradient(to right, rgba(255, 178, 122, 0.07) 0 1px, transparent 1px) 0 0 / 64px 64px,
+    linear-gradient(to bottom, rgba(255, 178, 122, 0.07) 0 1px, transparent 1px) 0 0 / 64px 64px;
   mask-image: linear-gradient(to bottom, transparent, #000 40%, transparent);
 }
 .cs-mast__sky span:last-child {
@@ -34,7 +34,7 @@
   right: 0;
   bottom: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(169, 200, 240, 0.45), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 178, 122, 0.45), transparent);
 }
 .cs .cs-mast__eyebrow {
   margin: 0 0 14px;
@@ -42,7 +42,7 @@
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: #A9C8F0;
+  color: #FFB27A;
   animation: cs-mast-in 640ms var(--ease) both;
 }
 .cs .cs-mast__title {
@@ -52,7 +52,7 @@
   font-weight: 800;
   line-height: 1.12;
   letter-spacing: -0.035em;
-  color: #F4F8FD;
+  color: #FFFFFF;
   word-break: keep-all;
   animation: cs-mast-in 720ms var(--ease) 60ms both;
 }
@@ -61,10 +61,10 @@
   max-width: 40em;
   font-size: clamp(16px, 1.3vw, 18px);
   line-height: 1.7;
-  color: #B9C9DD;
+  color: #B8BEC9;
   animation: cs-mast-in 760ms var(--ease) 120ms both;
 }
-.cs-mast__lead b { color: #F4F8FD; }
+.cs-mast__lead b { color: #FFFFFF; }
 .cs-mast__extra { margin-top: 26px; animation: cs-mast-in 800ms var(--ease) 180ms both; }
 @keyframes cs-mast-in {
   from { opacity: 0; transform: translateY(18px); filter: blur(4px); }
