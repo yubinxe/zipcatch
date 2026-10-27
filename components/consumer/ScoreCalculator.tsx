@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import DrawVsScore from './DrawVsScore'
+import { guessZone } from '@/lib/consumer/draw-vs-score'
 import {
   SCORE_LIMITS,
   buildComparison,
@@ -50,7 +52,7 @@ const ITEMS = [
     unit: '년',
     max: SCORE_LIMITS.homelessYearsMax,
     points: 32,
-    rule: '1년당 2점 · 만 30세 또는 혼인신고일부터',
+    rule: '1년 미만 2점 · 1년마다 +2 · 15년 이상 32점',
   },
   {
     key: 'dependents' as const,
@@ -58,7 +60,7 @@ const ITEMS = [
     unit: '명',
     max: SCORE_LIMITS.dependentsMax,
     points: 35,
-    rule: '1명당 5점 · 본인 제외',
+    rule: '0명 5점 · 1명마다 +5 · 본인 제외',
   },
   {
     key: 'account' as const,
@@ -66,7 +68,7 @@ const ITEMS = [
     unit: '년',
     max: SCORE_LIMITS.accountYearsMax,
     points: 17,
-    rule: '1년당 1점',
+    rule: '1년 3점 · 1년마다 +1 · 15년 이상 17점',
   },
 ]
 
@@ -273,6 +275,17 @@ export default function ScoreCalculator() {
           </div>
         </section>
       </div>
+
+      <DrawVsScore
+        key={comparison.reference?.regionName ?? 'all'}
+        myScore={breakdown.total}
+        reference={
+          comparison.reference && comparison.dataSufficient
+            ? { avg: comparison.reference.avg, min: comparison.reference.min, label: comparison.reference.regionName }
+            : null
+        }
+        defaultZone={guessZone(comparison.reference?.regionName ?? '')}
+      />
 
       <p className="cs-note" style={{ marginTop: 32 }}>
         당첨 확률은 산출하지 않습니다. 검증되지 않은 계수로 만든 확률은 공식 예측처럼 읽히기 때문입니다.
