@@ -100,6 +100,26 @@ function labelKakaoChrome(box: HTMLElement | null) {
   }
 }
 
+/**
+ * 지도가 서기 전 · 열지 못했을 때 판 위에 눕는 나라.
+ *
+ * 윤곽 한 장을 다섯 겹으로 쌓아 두께를 만들고 비스듬히 눕힌다. 홈의 "One Map"
+ * 이 이 화면까지 이어져 온 것이다. 꾸밈이며 아무 위치·수치도 담지 않는다.
+ */
+function MapLand() {
+  return (
+    <div className="cs-sa-land" aria-hidden="true">
+      <div className="cs-sa-land__slab">
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+      </div>
+    </div>
+  )
+}
+
 export default function NoticeMap({
   /**
    * 조각이 제 머리(제목·설명)를 들고 나올지.
@@ -386,155 +406,162 @@ export default function NoticeMap({
     // 앵커(id)를 여기 두지 않는다. 이 조각은 /notices 와 /map 두 곳에 놓이는데,
     // /notices 에서는 바깥 감싸개가 이미 id="map" 을 들고 있어 한 화면에 같은
     // id 가 둘이 된다. 감싸개가 앵커를 맡고 조각은 모양만 맡는다.
-    <section className={heading ? 'cs-wrap cs-section' : 'cs-wrap cs-section cs-section--flush'}>
+    <section className={heading ? 'cs-section cs-sa-map' : 'cs-section cs-section--flush cs-sa-map'}>
       {heading && (
-        <header>
-          <h2 className="cs-section-title">지도로 보는 공고</h2>
-          <p className="cs-sub" style={{ marginTop: 12, marginBottom: 22 }}>
-            공고가 있는 곳부터 보여 드려요. 표시의 숫자는 접수 마감까지 남은 날이고, 붉은 쪽이 분양,
-            푸른 쪽이 임대입니다. 지도를 움직이면 옆 목록이 보이는 범위의 공고로 바뀝니다.
-          </p>
+        <header className="cs-sa-head">
+          <div className="cs-sa-head__t">
+            <span className="cs-sa-kicker">Map View</span>
+            <h2 className="cs-sa-h2">지도로 보는 공고</h2>
+            <p className="cs-sa-sub">
+              공고가 있는 곳부터 보여 드려요. 표시의 숫자는 접수 마감까지 남은 날이고, 붉은 쪽이 분양,
+              푸른 쪽이 임대입니다. 지도를 움직이면 옆 목록이 보이는 범위의 공고로 바뀝니다.
+            </p>
+          </div>
         </header>
       )}
 
-      <div className="cs-map__bar">
-        <PillChoice
-          label="범위"
-          value={scope}
-          onChange={v => setScope(v as MapScope)}
-          items={(Object.keys(MAP_SCOPE) as MapScope[]).map(k => {
-            const allow = SCOPE_PROVINCES[k]
-            const n = data
-              ? allow
-                ? data.pins.filter(p => allow.includes(p.province)).length
-                : data.pins.length
-              : undefined
-            // 건수를 함께 적어 어디에 공고가 몰려 있는지 누르기 전에 보이게 한다
-            return { value: k, label: k, count: n }
-          })}
-        />
-        <div className="cs-map__legend" aria-hidden="true">
-          <span className="cs-map__key">
-            <i className="cs-pin cs-pin--sale cs-pin--chip" />
-            분양
-          </span>
-          <span className="cs-map__key">
-            <i className="cs-pin cs-pin--rent cs-pin--chip" />
-            임대
-          </span>
-          <span className="cs-map__key">
-            <i className="cs-pin cs-pin--rent cs-pin--approx cs-pin--chip" />
-            지역 기준
-          </span>
+      <div className="cs-sa-map__console">
+        <div className="cs-map__bar">
+          <PillChoice
+            label="범위"
+            value={scope}
+            onChange={v => setScope(v as MapScope)}
+            items={(Object.keys(MAP_SCOPE) as MapScope[]).map(k => {
+              const allow = SCOPE_PROVINCES[k]
+              const n = data
+                ? allow
+                  ? data.pins.filter(p => allow.includes(p.province)).length
+                  : data.pins.length
+                : undefined
+              // 건수를 함께 적어 어디에 공고가 몰려 있는지 누르기 전에 보이게 한다
+              return { value: k, label: k, count: n }
+            })}
+          />
+          <div className="cs-map__legend" aria-hidden="true">
+            <span className="cs-map__key">
+              <i className="cs-pin cs-pin--sale cs-pin--chip" />
+              분양
+            </span>
+            <span className="cs-map__key">
+              <i className="cs-pin cs-pin--rent cs-pin--chip" />
+              임대
+            </span>
+            <span className="cs-map__key">
+              <i className="cs-pin cs-pin--rent cs-pin--approx cs-pin--chip" />
+              지역 기준
+            </span>
 
-          {/* 색을 썼으면 무슨 뜻인지 적는다. 신호등이라도 밝혀 두는 편이 낫다 */}
-          <span className="cs-map__days">
-            <span className="cs-map__legend-day">
-              <i className="cs-map__legend-dot" data-d="0" />
-              오늘 마감
+            {/* 색을 썼으면 무슨 뜻인지 적는다. 신호등이라도 밝혀 두는 편이 낫다 */}
+            <span className="cs-map__days">
+              <span className="cs-map__legend-day">
+                <i className="cs-map__legend-dot" data-d="0" />
+                오늘 마감
+              </span>
+              <span className="cs-map__legend-day">
+                <i className="cs-map__legend-dot" data-d="1" />
+                사흘 안
+              </span>
+              <span className="cs-map__legend-day">
+                <i className="cs-map__legend-dot" data-d="2" />
+                한 주 안
+              </span>
             </span>
-            <span className="cs-map__legend-day">
-              <i className="cs-map__legend-dot" data-d="1" />
-              사흘 안
-            </span>
-            <span className="cs-map__legend-day">
-              <i className="cs-map__legend-dot" data-d="2" />
-              한 주 안
-            </span>
-          </span>
+          </div>
+        </div>
+
+        <div className="cs-map">
+          {error ? (
+            <div className="cs-map__fallback">
+              <MapLand />
+              <div className="cs-sa-map__why" role="status">
+                <span className="cs-vacancy__eyebrow">지도를 열지 못했습니다</span>
+                <p className="cs-vacancy__title">{error}</p>
+                <p className="cs-vacancy__desc">지도가 없어도 공고는 목록에서 전부 보실 수 있어요.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="cs-map__stage">
+              <div className="cs-map__canvas" ref={host} role="application" aria-label="공고 지도" />
+              {/*
+                지도가 서기 전의 자리. 회색 판 대신 나라 윤곽을 먼저 세우고,
+                무엇을 기다리는지 두 줄로 따로 적는다 — 지도 엔진과 공고 위치는
+                서로 다른 곳에서 오고, 어느 쪽이 늦는지가 보여야 기다림이 덜 막막하다.
+                지도가 서면 걷힌다. 꾸며낸 진행률은 쓰지 않는다.
+              */}
+              {!ready && (
+                <div className="cs-map__shell" role="status" aria-live="polite">
+                  {/* 윤곽은 정적 파일을 가면(mask)으로 쓴다 — 문서에 직접 그리면 HTML 이 80KB 불어난다 */}
+                  <MapLand />
+                  <ul className="cs-map__shell-steps">
+                    <li data-done={!!sdk || undefined}>
+                      <i aria-hidden="true" />
+                      {sdk ? '지도 엔진 준비됨' : '지도 엔진을 받는 중'}
+                    </li>
+                    <li data-done={!!data || undefined}>
+                      <i aria-hidden="true" />
+                      {data ? `공고 위치 ${data.pins.length}건 받음` : '공고 위치를 받는 중'}
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          <aside className="cs-map__side" aria-label="보이는 범위의 공고">
+            <div className="cs-map__side-head">
+              <strong>보이는 범위의 공고</strong>
+              <span className="cs-num">{visible.length}건</span>
+            </div>
+            {visible.length === 0 ? (
+              <p className="cs-note" style={{ padding: '18px 16px' }}>
+                {error
+                  ? '지도를 열지 못해 범위를 셀 수 없어요.'
+                  : !ready
+                    ? '지도가 서면 보이는 범위의 공고를 마감 순으로 정리해요.'
+                    : scopeCount === 0
+                    ? `지금 ${scope}에는 접수 중인 공고가 없어요. 다른 범위를 눌러 보세요.`
+                    : '이 범위에는 표시된 공고가 없어요. 지도를 넓히거나 범위를 바꿔 보세요.'}
+              </p>
+            ) : (
+              <ul className="cs-map__list">
+                {visible.map(p => (
+                  <li key={p.id} data-hover={hovered === p.id} data-kind={p.kind.toLowerCase()}>
+                    <Link
+                      href={`/notices/${p.id}`}
+                      onMouseEnter={() => setHovered(p.id)}
+                      onMouseLeave={() => setHovered(null)}
+                    >
+                      <span
+                        className="cs-map__dday"
+                        data-d={
+                          p.daysLeft === null
+                            ? undefined
+                            : p.daysLeft === 0
+                              ? '0'
+                              : p.daysLeft <= 3
+                                ? '1'
+                                : p.daysLeft <= 7
+                                  ? '2'
+                                  : undefined
+                        }
+                      >
+                        {dday(p.daysLeft)}
+                      </span>
+                      <span className="cs-map__name">{p.name}</span>
+                      <span className="cs-map__meta">
+                        {p.province} · {p.housingType} · {priceLine(p)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </aside>
         </div>
       </div>
 
-      <div className="cs-map">
-        {error ? (
-          <div className="cs-map__fallback">
-            <span className="cs-vacancy__eyebrow">지도를 열지 못했습니다</span>
-            <p className="cs-vacancy__title">{error}</p>
-            <p className="cs-vacancy__desc">지도가 없어도 공고는 아래 목록에서 전부 보실 수 있어요.</p>
-          </div>
-        ) : (
-          <div className="cs-map__stage">
-            <div className="cs-map__canvas" ref={host} role="application" aria-label="공고 지도" />
-            {/*
-              지도가 서기 전의 자리. 회색 판 대신 나라 윤곽을 먼저 세우고,
-              무엇을 기다리는지 두 줄로 따로 적는다 — 지도 엔진과 공고 위치는
-              서로 다른 곳에서 오고, 어느 쪽이 늦는지가 보여야 기다림이 덜 막막하다.
-              지도가 서면 걷힌다. 꾸며낸 진행률은 쓰지 않는다.
-            */}
-            {!ready && (
-              <div className="cs-map__shell" role="status" aria-live="polite">
-                {/* 윤곽은 정적 파일로 — 문서에 직접 그리면 HTML 이 80KB 불어난다. 한 번 받으면 캐시된다 */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/maps/korea-outline.svg" alt="" aria-hidden="true" className="cs-map__shell-art" decoding="async" />
-                <ul className="cs-map__shell-steps">
-                  <li data-done={!!sdk || undefined}>
-                    <i aria-hidden="true" />
-                    {sdk ? '지도 엔진 준비됨' : '지도 엔진을 받는 중'}
-                  </li>
-                  <li data-done={!!data || undefined}>
-                    <i aria-hidden="true" />
-                    {data ? `공고 위치 ${data.pins.length}건 받음` : '공고 위치를 받는 중'}
-                  </li>
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-
-        <aside className="cs-map__side" aria-label="보이는 범위의 공고">
-          <div className="cs-map__side-head">
-            <strong>보이는 범위의 공고</strong>
-            <span className="cs-num">{visible.length}건</span>
-          </div>
-          {visible.length === 0 ? (
-            <p className="cs-note" style={{ padding: '18px 16px' }}>
-              {error
-                ? '지도를 열지 못해 범위를 셀 수 없어요.'
-                : !ready
-                  ? '지도가 서면 보이는 범위의 공고를 마감 순으로 정리해요.'
-                  : scopeCount === 0
-                  ? `지금 ${scope}에는 접수 중인 공고가 없어요. 다른 범위를 눌러 보세요.`
-                  : '이 범위에는 표시된 공고가 없어요. 지도를 넓히거나 범위를 바꿔 보세요.'}
-            </p>
-          ) : (
-            <ul className="cs-map__list">
-              {visible.map(p => (
-                <li key={p.id} data-hover={hovered === p.id} data-kind={p.kind.toLowerCase()}>
-                  <Link
-                    href={`/notices/${p.id}`}
-                    onMouseEnter={() => setHovered(p.id)}
-                    onMouseLeave={() => setHovered(null)}
-                  >
-                    <span
-                      className="cs-map__dday"
-                      data-d={
-                        p.daysLeft === null
-                          ? undefined
-                          : p.daysLeft === 0
-                            ? '0'
-                            : p.daysLeft <= 3
-                              ? '1'
-                              : p.daysLeft <= 7
-                                ? '2'
-                                : undefined
-                      }
-                    >
-                      {dday(p.daysLeft)}
-                    </span>
-                    <span className="cs-map__name">{p.name}</span>
-                    <span className="cs-map__meta">
-                      {p.province} · {p.housingType} · {priceLine(p)}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </aside>
-      </div>
-
       {data && (
-        <p className="cs-note" style={{ marginTop: 16 }}>
+        <p className="cs-note cs-sa-map__note">
           지도에 표시된 공고 {data.pins.length}건
           {data.geocoded > 0 && ` · 주소로 정확히 찍은 공고 ${data.geocoded}건`}
           {data.noAddress > 0 &&

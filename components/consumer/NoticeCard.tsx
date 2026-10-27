@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useRef, type ReactNode } from 'react'
 import type { Candidate } from '@/lib/crm/services/scoring'
 import type { Property } from '@/lib/crm/types'
 import { formatManOr } from '@/lib/crm/services/scoring'
@@ -34,6 +35,112 @@ function overageLabel(candidate: Candidate): string | null {
   return bits.length ? `${bits.join(' · ')} 초과` : null
 }
 
+/**
+ * 금액을 숫자와 단위로 가른다 — "1억 2,000만원" → ["1억 2,000", "만원"].
+ * 숫자는 크게, 단위는 작게 적어야 금액이 한눈에 읽힌다. 단위가 없는 말
+ * ('공고문 확인')은 그대로 돌려준다.
+ */
+export function splitWon(text: string): [string, string] {
+  const m = text.match(/^(.*\d)\s*(만원|억원)$/)
+  return m ? [m[1], m[2]] : [text, '']
+}
+
+/** 빈 자리의 표 — 세 겹의 판. 꾸밈이며 아무 수치도 담지 않는다 */
+export function EmptyMark() {
+  return (
+    <span className="cs-sa-empty__mark" aria-hidden="true">
+      <i />
+      <i />
+      <i />
+    </span>
+  )
+}
+
+const WEEK = '일월화수목금토'
+
+/** "2026-11-05" → "11. 05 (목)". 요일은 달력 날짜로만 센다 — 사는 곳의 시간대와 무관하다 */
+export function shortDate(iso: string) {
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return iso
+  const day = new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+  return `${String(m).padStart(2, '0')}. ${String(d).padStart(2, '0')} (${WEEK[day]})`
+}
+
+/** 남은 날을 표 한 칸으로 */
+export function ddayText(daysLeft: number | null) {
+  if (daysLeft === null) return null
+  if (daysLeft < 0) return '마감'
+  if (daysLeft === 0) return 'D-DAY'
+  return `D-${daysLeft}`
+}
+
+/**
+ * 손끝을 따라 기우는 카드.
+ *
+ * 카드 자신은 기울기·반사광·겹 밀림의 값(--rx · --ry · --mx · --my · --px · --py)만
+ * 받고, 실제로 기울이는 일은 CSS 가 맡는다(consumer-spaces.css). 그래야 떠오름(hover)과
+ * 기울기가 한 transform 안에서 합쳐지고, 손을 떼면 부드럽게 제자리로 돌아온다.
+ *
+ * 겹의 깊이는 preserve-3d 로 세우지 않는다. 입체 맥락에서는 브라우저마다 누르는
+ * 자리를 고르는 순서가 달라, 덮개 링크와 저장 단추의 앞뒤가 뒤집힐 수 있다.
+ * 겹은 평면에 둔 채 손끝 반대쪽으로 조금씩 밀어(translate) 깊이를 흉내 낸다.
+ *
+ * 손가락 화면과 움직임을 줄인 사용자에게는 걸지 않는다.
+ */
+function useDepth(on: boolean, max = 5) {
+  const ref = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!on || !el) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+
+    let frame = 0
+    let last: PointerEvent | null = null
+
+    const paint = () => {
+      frame = 0
+      if (!last) return
+      const r = el.getBoundingClientRect()
+      const px = Math.min(1, Math.max(0, (last.clientX - r.left) / r.width))
+      const py = Math.min(1, Math.max(0, (last.clientY - r.top) / r.height))
+      el.style.setProperty('--rx', `${((0.5 - py) * max * 2).toFixed(2)}deg`)
+      el.style.setProperty('--ry', `${((px - 0.5) * max * 2).toFixed(2)}deg`)
+      el.style.setProperty('--mx', `${(px * 100).toFixed(1)}%`)
+      el.style.setProperty('--my', `${(py * 100).toFixed(1)}%`)
+      // 겹마다 다르게 밀리는 거리(-1 ~ 1) — 앞에 선 겹일수록 많이 움직여 깊이가 생긴다
+      el.style.setProperty('--px', ((px - 0.5) * 2).toFixed(3))
+      el.style.setProperty('--py', ((py - 0.5) * 2).toFixed(3))
+    }
+    const onMove = (e: PointerEvent) => {
+      // 저장·비교 단추 위에서는 기울기를 멈춘다 — 누르려는 단추가 손끝 밑에서 움직이지 않게
+      if (e.target instanceof Element && e.target.closest('button, label, input')) return
+      last = e
+      el.dataset.tilt = 'on'
+      if (!frame) frame = requestAnimationFrame(paint)
+    }
+    const onLeave = () => {
+      last = null
+      if (frame) cancelAnimationFrame(frame)
+      frame = 0
+      delete el.dataset.tilt
+      el.style.removeProperty('--rx')
+      el.style.removeProperty('--ry')
+      el.style.removeProperty('--px')
+      el.style.removeProperty('--py')
+    }
+
+    el.addEventListener('pointermove', onMove)
+    el.addEventListener('pointerleave', onLeave)
+    return () => {
+      el.removeEventListener('pointermove', onMove)
+      el.removeEventListener('pointerleave', onLeave)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [on, max])
+  return ref
+}
+
 export default function NoticeCard({
   property,
   candidate,
@@ -41,6 +148,8 @@ export default function NoticeCard({
   index,
   special,
   variant = 'default',
+  depth = false,
+  pick,
 }: {
   property: Property
   candidate: Candidate | null
@@ -63,7 +172,12 @@ export default function NoticeCard({
    * 같은 자격으로 읽히기 때문이다. 지우지는 않는다. 볼지 말지는 사용자가 정한다.
    */
   variant?: 'default' | 'nearby'
+  /** 손끝을 따라 기우는 입체. 밝은 작업 지면(공고·후보·관심)에서만 켠다 */
+  depth?: boolean
+  /** 카드 바닥, 저장 단추 앞에 놓일 것(관심공고의 '비교' 담기) */
+  pick?: ReactNode
 }) {
+  const ref = useDepth(depth)
   const badge = candidate ? statusBadge(candidate.urgency) : null
   const overBudget = candidate ? candidate.budget.depositOver > 0 || candidate.budget.rentOver > 0 : false
   const overage = candidate && variant === 'nearby' ? overageLabel(candidate) : null
@@ -76,24 +190,38 @@ export default function NoticeCard({
     : 0
   const caution = candidate ? (candidate.cautions[skip] ?? candidate.cautions[0]) : null
 
+  const days = candidate?.urgency.daysLeft ?? null
+  const dday = candidate && candidate.urgency.level !== 'CLOSED' ? ddayText(days) : null
+  const isSample = property.dataOrigin === 'SYNTHETIC'
+  const [depositNum, depositUnit] = splitWon(formatManOr(property.deposit))
+
   return (
-    <article className={variant === 'nearby' ? 'cs-notice cs-notice--nearby' : 'cs-notice'}>
+    <article
+      ref={ref}
+      className={variant === 'nearby' ? 'cs-notice cs-notice--nearby' : 'cs-notice'}
+      data-depth={depth ? 'on' : undefined}
+      data-level={candidate?.urgency.level}
+    >
       <Link
         href={`/notices/${property.id}`}
         className="cs-notice__link"
         aria-label={`${property.name} 자세히 보기`}
       />
+      {/* 손끝을 따라 움직이는 반사광 — 입체를 켠 카드에서만 보인다 */}
+      <span className="cs-notice__glare" aria-hidden="true" />
 
-      {index !== undefined && (
-        <span className="cs-notice__index">{String(index + 1).padStart(3, '0')}</span>
-      )}
-
-      <div className="cs-notice__top">
-        {property.dataOrigin === 'SYNTHETIC' ? (
+      <div className="cs-notice__head">
+        {index !== undefined && (
+          <span className="cs-notice__index">{String(index + 1).padStart(3, '0')}</span>
+        )}
+        {isSample ? (
           <span className="cs-sample">예시 공고</span>
         ) : (
           <span className="cs-official">공식 공고</span>
         )}
+      </div>
+
+      <div className="cs-notice__top">
         <span className="cs-badge cs-badge--brand">{property.housingType}</span>
         {badge && (
           <span className={`cs-badge ${badge.cls}`}>
@@ -149,12 +277,25 @@ export default function NoticeCard({
           <div className="cs-notice__unknown">공급금액·면적은 모집공고문에서 확인하세요</div>
         ) : (
           <>
-            <div className="cs-notice__deposit cs-num">보증금 {formatManOr(property.deposit)}</div>
+            <div className="cs-notice__deposit cs-num">
+              <span className="cs-notice__k">보증금</span>
+              <span className="cs-notice__v" data-plain={depositUnit ? undefined : 'true'}>
+                {depositNum}
+                {depositUnit && <small>{depositUnit}</small>}
+              </span>
+            </div>
             <div className="cs-notice__rent cs-num">
-              월 임대료{' '}
-              {property.monthlyRent === null
-                ? '공고문 확인'
-                : `${property.monthlyRent.toLocaleString()}만원`}
+              <span className="cs-notice__k">월 임대료</span>
+              {property.monthlyRent === null ? (
+                <span className="cs-notice__v" data-plain="true">
+                  공고문 확인
+                </span>
+              ) : (
+                <span className="cs-notice__v">
+                  {property.monthlyRent.toLocaleString()}
+                  <small>만원</small>
+                </span>
+              )}
             </div>
           </>
         )}
@@ -173,17 +314,23 @@ export default function NoticeCard({
       <div className="cs-notice__foot">
         <div className="cs-notice__meta">
           {property.applicationEnd ? (
-            <>{property.dataOrigin === 'SYNTHETIC' ? '예시' : '공식'} 접수 마감 {property.applicationEnd}</>
+            <span className="cs-notice__due">
+              <span className="cs-notice__due-k">{isSample ? '예시' : '공식'} 접수 마감</span>
+              <span className="cs-notice__due-v cs-num">{shortDate(property.applicationEnd)}</span>
+              {dday && (
+                <span className="cs-notice__dday cs-num" data-hot={days !== null && days <= 3 ? 'true' : undefined}>
+                  {dday}
+                </span>
+              )}
+            </span>
           ) : (
-            <>접수 마감일 공고 미공개</>
+            <span className="cs-notice__due">
+              <span className="cs-notice__due-k">접수 마감일 공고 미공개</span>
+            </span>
           )}
-          <br />
-          {property.source}
-          <br />
-          <span style={{ color: 'var(--brand)', fontSize: 16, fontWeight: 600 }}>
-            자세히 보기 <span className="cs-arrow">→</span>
-          </span>
+          <span className="cs-notice__src">{property.source}</span>
         </div>
+        {pick}
         <SaveButton propertyId={property.id} />
       </div>
     </article>

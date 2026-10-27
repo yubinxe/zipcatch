@@ -1,0 +1,339 @@
+/* ============================================================
+   입체 — 첫 화면 지도 · 공사 중인 도시
+   평면 그림이 먼저 칸을 잡고, WebGL 이 첫 장을 그리면 같은 칸 위로
+   캔버스가 겹쳐 떠오른다. 칸의 크기는 평면 그림(또는 CSS 의 비율)이 정하고
+   캔버스는 그 칸을 그대로 채운다 — 바뀌는 순간 화면이 밀리지 않는다.
+   움직임을 줄여 달라고 했거나 WebGL 이 없으면 평면 그림이 그대로 남는다.
+   다른 층 뒤, 맨 마지막에 온다.
+   ============================================================ */
+
+/* ── 공통 — 캔버스와 떠 있는 글자표 ─────────────────────── */
+.cs3d-host {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.cs3d-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0;
+  transition: opacity 900ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.cs3d-tags {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 600ms ease 300ms;
+}
+
+/* 숫자 표 — 기준점(0,0)은 지역 윗면 한가운데. 표는 그 위로 줄기를 내린다 */
+.cs3d-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+.cs3d-tag[data-show='1'] { opacity: 1; }
+.cs3d-tag__in {
+  position: absolute;
+  left: 0;
+  bottom: 18px;
+  transform: translateX(-50%);
+  isolation: isolate;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 5px 9px 5px 8px;
+  border-radius: 999px;
+  /* 뒤를 흐리지 않는다 — 매 장면 다시 그려지는 캔버스 위라 흐림은 비싸고, 글자는 불투명한 바탕에서 더 또렷하다 */
+  background: rgba(9, 12, 18, 0.86);
+  border: 1px solid rgba(255, 178, 122, 0.28);
+  box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.8);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-pretendard), system-ui, sans-serif;
+  font-size: 12.5px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+/* 고른 지역의 표 — 주황 바탕을 겹쳐 두고 투명도만 바꾼다 */
+.cs3d-tag__in::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #E2581A, #C2410C);
+  box-shadow: 0 0 0 1px rgba(255, 210, 168, 0.7), 0 10px 26px -8px rgba(255, 106, 31, 0.75);
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+.cs3d-tag__in b { font-weight: 700; }
+.cs3d-tag__in i {
+  font-style: normal;
+  font-weight: 600;
+  color: #FFB27A;
+  font-variant-numeric: tabular-nums;
+}
+.cs3d-tag__in i:empty { display: none; }
+/* 줄기 — 표에서 땅으로 */
+.cs3d-tag__in::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 1px;
+  height: 18px;
+  margin-left: -0.5px;
+  background: linear-gradient(rgba(255, 178, 122, 0.7), rgba(255, 178, 122, 0));
+}
+.cs3d-tag[data-on='1'] .cs3d-tag__in { color: #fff; }
+.cs3d-tag[data-on='1'] .cs3d-tag__in::before { opacity: 1; }
+.cs3d-tag[data-on='1'] .cs3d-tag__in i { color: #FFE2C4; }
+.cs3d-tag[data-on='1'] .cs3d-tag__in::after {
+  background: linear-gradient(#FFD2A8, rgba(255, 178, 122, 0));
+}
+
+/* ── 첫 화면 지도 ─────────────────────────────────────── */
+/* 평면 지도와 입체 지도가 한 칸을 나눠 쓴다. 칸의 크기는 평면 지도가(좁은 카드에서는 아래 비율이) 정한다 */
+.cs-atlas__stage {
+  position: relative;
+  min-width: 0;
+}
+.cs-atlas__stage > .cs-atlas__map {
+  transition: opacity 700ms ease;
+}
+.cs-atlas__stage[data-3d='on'] > .cs-atlas__map {
+  opacity: 0;
+  pointer-events: none;
+}
+.cs-atlas__stage[data-3d='on'] > .cs3d-host { pointer-events: auto; }
+.cs-atlas__stage[data-3d='on'] .cs3d-canvas,
+.cs-atlas__stage[data-3d='on'] .cs3d-tags { opacity: 1; }
+
+/* 넓은 화면 — 읽기 칸은 글자 폭만큼만 두고 나머지를 지도에 내준다 */
+@media (min-width: 1280px) {
+  .cs-atlas__body {
+    grid-template-columns: minmax(0, 1.72fr) minmax(0, 1fr);
+    gap: 20px;
+  }
+  .cs-atlas__stage { margin-left: -12px; }
+}
+
+/* 마감 표기는 한 덩어리 — 좁은 칸에서 'D-' 와 숫자가 갈라지지 않게 */
+.cs-atlas__due { white-space: nowrap; }
+
+/*
+ * 좁은 카드 — 지도를 읽기 칸 옆에 반쪽으로 끼우면 150px 짜리 우표가 된다.
+ * 지도를 카드 폭 그대로 위에 세우고, 읽기 칸은 그 아래 두 줄로 접는다.
+ * 화면 폭이 아니라 카드 폭으로 정한다 — 태블릿에서 첫 화면이 두 단일 때도 카드는 좁다.
+ * 평면 지도도 같은 칸을 쓰므로 입체로 바뀌는 순간 아래가 밀리지 않는다.
+ */
+.cs-atlas {
+  container: cs-atlas / inline-size;
+}
+@container cs-atlas (max-width: 440px) {
+  .cs-atlas__body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .cs-atlas__stage {
+    /* 카드 안쪽 여백까지 지도에 내준다 — 테두리 안에서 끝까지 */
+    margin: -2px -25px 0;
+    aspect-ratio: 1 / 0.86;
+  }
+  .cs-atlas__stage > .cs-atlas__map {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    aspect-ratio: auto;
+  }
+  .cs-atlas__read {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 22px;
+    align-items: end;
+    min-height: 0;
+  }
+  .cs-atlas__read > .cs-skel,
+  .cs-atlas__read > .cs-atlas__quiet,
+  .cs-atlas__read > .cs-atlas__next,
+  .cs-atlas__read > .cs-atlas__go {
+    grid-column: 1 / -1;
+  }
+  .cs-atlas__read > .cs-atlas__place { grid-column: 1; grid-row: 1; }
+  .cs-atlas__read > .cs-atlas__figure { grid-column: 1; grid-row: 2; }
+  .cs-atlas__read > .cs-atlas__split {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: end;
+    margin: 0 0 8px;
+  }
+  .cs-atlas__stage .cs3d-tag__in {
+    font-size: 12px;
+    padding: 5px 8px;
+    bottom: 14px;
+  }
+  .cs-atlas__stage .cs3d-tag__in::after { height: 14px; }
+}
+/* 휴대폰에서는 카드 안쪽 여백이 16px 이다 */
+@media (max-width: 760px) {
+  @container cs-atlas (max-width: 440px) {
+    .cs-atlas__stage { margin: -2px -15px 0; }
+  }
+}
+
+/* ── 지금 짓고 있는 집 — 공사 중인 도시 ───────────────────── */
+/*
+ * 밤의 도시를 내다보는 창. 칸의 크기는 CSS 가 정하고, 평면 그림과 입체가
+ * 같은 칸을 겹쳐 쓴다 — 입체가 뜨는 순간에도 아래 표가 밀리지 않는다.
+ */
+.cs-sky {
+  margin: 22px 0 6px;
+}
+.cs-sky__stage {
+  position: relative;
+  aspect-ratio: 21 / 8;
+  border-radius: 16px;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(90% 70% at 50% 100%, rgba(194, 65, 12, 0.22), rgba(194, 65, 12, 0) 70%),
+    linear-gradient(180deg, #06080C 0%, #0B0E14 55%, #121823 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 40px 80px -48px rgba(0, 0, 0, 0.9);
+}
+/* 창틀 안쪽의 얇은 빛 — 유리 너머를 보는 느낌만, 장식은 더하지 않는다 */
+.cs-sky__stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -60px 80px -60px rgba(0, 0, 0, 0.6);
+  z-index: 2;
+}
+.cs-sky__stage > .cs3d-host { z-index: 1; }
+.cs-sky__flat {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 4% 4% 2%;
+  box-sizing: border-box;
+  transition: opacity 700ms ease;
+}
+.cs-sky[data-3d='on'] .cs-sky__flat { opacity: 0; }
+.cs-sky[data-3d='on'] .cs3d-host { pointer-events: auto; }
+.cs-sky[data-3d='on'] .cs3d-canvas,
+.cs-sky[data-3d='on'] .cs3d-tags { opacity: 1; }
+
+.cs-sky__ground { stroke: rgba(255, 178, 122, 0.28); stroke-width: 1.5; }
+.cs-sky__frame {
+  fill: rgba(255, 178, 122, 0.04);
+  stroke: rgba(255, 178, 122, 0.55);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.cs-sky__num,
+.cs-sky__name {
+  text-anchor: middle;
+  font-family: var(--font-pretendard), system-ui, sans-serif;
+}
+.cs-sky__num { fill: #FFB27A; font-size: 22px; font-weight: 700; }
+.cs-sky__name { fill: rgba(255, 255, 255, 0.82); font-size: 24px; font-weight: 700; }
+.cs-sky__bar { transition: opacity 200ms ease; }
+.cs-sky__bar[data-on] .cs-sky__frame { stroke: #FFD2A8; fill: rgba(255, 178, 122, 0.12); }
+.cs-sky__bar[data-on] .cs-sky__name { fill: #fff; }
+
+/* 탑 위의 표 — 지역 · 사업장 수 · 중앙값 */
+.cs3d-tag--sky .cs3d-tag__in { gap: 6px; }
+.cs3d-tag__in em {
+  font-style: normal;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.62);
+  font-variant-numeric: tabular-nums;
+}
+.cs3d-tag--sky[data-on='1'] .cs3d-tag__in em { color: rgba(255, 255, 255, 0.9); }
+
+/* 그림 읽는 법 — 표의 범례와 같은 말투로 */
+.cs-sky__cap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 20px;
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.cs-sky__cap > span { display: inline-flex; align-items: center; gap: 8px; }
+.cs-sky__cap > span[data-k]::before {
+  content: '';
+  flex: none;
+  width: 10px;
+  height: 14px;
+  border-radius: 1px;
+}
+.cs-sky__cap [data-k='h']::before {
+  width: 2px;
+  background: linear-gradient(#FFB27A, rgba(255, 178, 122, 0.2));
+}
+.cs-sky__cap [data-k='lit']::before {
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 226, 196, 0.9) 0 2px, transparent 2px 4px),
+    linear-gradient(#FFB27A, #9A3412);
+}
+.cs-sky__cap [data-k='frame']::before {
+  border: 1px dashed rgba(255, 178, 122, 0.8);
+  box-sizing: border-box;
+}
+/* 누를 수 있다는 말은 입체가 떴을 때만 — 자리는 미리 잡아 둔다 */
+.cs-sky__hint { margin-left: auto; visibility: hidden; }
+.cs-sky[data-3d='on'] .cs-sky__hint { visibility: visible; }
+
+/* 그림과 표가 같은 지역을 가리킨다 — 빛 띠를 겹쳐 두고 투명도만 바꾼다 */
+.cs-bp__list > li > .cs-bp__row { position: relative; isolation: isolate; }
+.cs-bp__list > li > .cs-bp__row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(255, 138, 61, 0.16), rgba(255, 138, 61, 0.03) 55%, rgba(255, 138, 61, 0));
+  box-shadow: inset 3px 0 0 var(--glow, #FFB27A);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+.cs-bp__list > li[data-hot] > .cs-bp__row::before { opacity: 1; }
+
+@media (max-width: 760px) {
+  .cs-sky { margin-top: 18px; }
+  .cs-sky__stage {
+    aspect-ratio: 1 / 1.02;
+    border-radius: 14px;
+  }
+  .cs-sky__flat { padding: 10% 3% 4%; }
+  .cs-sky__cap { gap: 6px 14px; font-size: 13px; }
+  .cs-sky__hint { margin-left: 0; }
+  .cs-sky .cs3d-tag__in { font-size: 11.5px; padding: 4px 7px; bottom: 12px; }
+  .cs-sky .cs3d-tag__in::after { height: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs3d-canvas,
+  .cs3d-tags,
+  .cs3d-tag,
+  .cs-sky__flat,
+  .cs3d-tag__in::before,
+  .cs-bp__list > li > .cs-bp__row::before { transition: none; }
+}
