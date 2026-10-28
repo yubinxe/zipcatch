@@ -1,4 +1,4 @@
-import { MARK_PIN } from '../BrandMark'
+import { MARK_HOUSE, MARK_ROOF } from '../BrandMark'
 
 /**
  * 폰 화면의 글리프 — 모두 인라인 SVG, currentColor 로 칠한다.
@@ -56,13 +56,12 @@ export function BatteryGlyph({ level, charging }: { level: number | null; chargi
   )
 }
 
-/** 상담 프로필 — 집캐치 마크의 핀과 고리만 흰색으로. 바탕 원은 CSS 가 칠한다 */
+/** 상담 프로필 — 집캐치 마크의 지붕과 몸채만 흰색으로. 바탕 원은 CSS 가 칠한다 */
 export function AssistantGlyph({ size = 22 }: { size?: number }) {
   return (
-    <svg {...svg} width={size} height={size} viewBox="4 3 24 26" fill="none">
-      <ellipse cx="16" cy="25.2" rx="8.2" ry="2.3" stroke="#fff" strokeOpacity="0.6" strokeWidth="1.6" />
-      <path d={MARK_PIN} fill="#fff" />
-      <circle cx="16" cy="12.5" r="2.9" style={{ fill: 'var(--accent)' }} />
+    <svg {...svg} width={size} height={size} viewBox="3 3 26 26" fill="#fff">
+      <path d={MARK_ROOF} />
+      <path d={MARK_HOUSE} fillRule="evenodd" />
     </svg>
   )
 }

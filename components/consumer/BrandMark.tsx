@@ -34,13 +34,6 @@ export const MARK_DOOR = 'M13.25 27.5v-5.75a2.75 2.75 0 0 1 5.5 0v5.75Z'
 /** 문이 뚫린 몸채 한 덩어리 — fill-rule="evenodd" 로 칠한다 */
 export const MARK_HOUSE = MARK_BODY + MARK_DOOR
 
-/**
- * @deprecated 예전 핀 마크. components/consumer/phone/glyphs.tsx(AssistantGlyph)가
- * 아직 읽는다 — 그쪽이 MARK_ROOF·MARK_HOUSE 로 옮겨 가면 지운다.
- */
-export const MARK_PIN =
-  'M16 5.2c-4.2 0-7.5 3.2-7.5 7.3 0 5.2 6 11 6.9 11.8.35.32.85.32 1.2 0 .9-.8 6.9-6.6 6.9-11.8 0-4.1-3.3-7.3-7.5-7.3Z'
-
 type Props = {
   size?: number
   className?: string
