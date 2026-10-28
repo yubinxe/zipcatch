@@ -107,7 +107,7 @@ a:focus-visible .zc-mark__light {
 }
 .cs .cs-logo__en {
   display: block;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   line-height: 1;
   /* 한글 21px 줄과 영문 8px 줄의 폭이 같아지는 자간(Pretendard 로 잰 값) */

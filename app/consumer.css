@@ -4889,7 +4889,7 @@ a.cs-pin:hover {
 /* 일정 이름 — 칸이 좁아 두 줄까지만 */
 .cs-cal2__tag {
   width: 100%;
-  font-size: 9.5px;
+  font-size: 11px;
   line-height: 1.25;
   text-align: center;
   padding: 2px 3px;
@@ -4949,7 +4949,7 @@ a.cs-pin:hover {
     min-height: 40px;
   }
   .cs-cal2__tag {
-    font-size: 8.5px;
+    font-size: 10px;
   }
 }
 

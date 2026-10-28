@@ -164,7 +164,9 @@ void main() {
   float d = length(vPos.xz - uSpot);
   float ph = fract(uTime * 0.45);
   // 퍼지는 고리는 제 블록 안에서 사라진다 — 옆 블록(특히 앞줄 탑)을 둘러 그 탑을 가리키는 것처럼 보이지 않게
-  float ring = exp(-pow((d - 0.44 - ph * 0.2) / 0.022, 2.0)) * (1.0 - ph);
+  // 제곱은 곱으로 — pow(음수, 2.0) 은 GPU 에 따라 NaN 이다
+  float rr = (d - 0.44 - ph * 0.2) / 0.022;
+  float ring = exp(-rr * rr) * (1.0 - ph);
   col += vec3(1.0, 0.45, 0.15) * (exp(-d * d * 4.0) * 0.22 + ring * 1.4) * uSpotAmt;
   // 반사는 은은하게 — 젖은 차도(13%)가 보도(6%)보다 조금 더 비친다. 선형 몇 %가 sRGB 로는 꽤 밝게 보인다
   float a = mix(0.87, 0.94, inBlock);

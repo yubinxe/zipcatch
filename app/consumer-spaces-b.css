@@ -58,7 +58,7 @@
   align-items: center;
   gap: 10px;
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: 0.2em;
@@ -388,7 +388,7 @@
   box-shadow: 0 0 18px 2px rgba(255, 138, 61, 0.35);
 }
 .cs-sb .cs-sb-close__k {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1200,7 +1200,7 @@
 }
 .cs-sb-knob__unit em {
   font-style: normal;
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--accent);
 }
@@ -2372,7 +2372,7 @@
   outline-offset: 2px;
 }
 .cs-protab__no {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.08em;
   color: var(--accent);
@@ -3120,7 +3120,7 @@
   margin: 0 -24px 22px;
   padding: 0 24px 16px;
   border-bottom: 1.5px dashed rgba(255, 178, 122, 0.3);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;

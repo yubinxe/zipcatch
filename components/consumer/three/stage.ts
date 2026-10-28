@@ -112,7 +112,9 @@ function nightEnvironment(): THREE.Scene {
           vec3 ground = vec3(0.012, 0.009, 0.008);
           vec3 c = mix(sky, zenith, smoothstep(0.1, 0.8, y));
           // 지평선의 도시 불빛 — 얇고 따뜻하게, 아래로는 금세 어두워진다
-          float band = exp(-pow((y - 0.02) / 0.09, 2.0));
+          // 제곱은 곱으로 — pow(음수, 2.0) 은 GPU 에 따라 NaN 이고, 이 하늘은 반사(환경 맵)로 장면 전체에 묻는다
+          float by = (y - 0.02) / 0.09;
+          float band = exp(-by * by);
           c += city * band;
           if (y < -0.02) c = mix(c, ground, smoothstep(-0.02, -0.25, y));
           gl_FragColor = vec4(c, 1.0);

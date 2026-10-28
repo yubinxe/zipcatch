@@ -47,7 +47,7 @@ body:has(.cs-ticker) .cs .cs-footer.cs-maker {
 /* ── 사람 ─────────────────────────────────────────────────── */
 .cs .cs-maker .cs-maker__eyebrow {
   margin: 0 0 18px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.22em;
   color: #ffb27a;
@@ -273,7 +273,7 @@ body:has(.cs-ticker) .cs .cs-footer.cs-maker {
 }
 .cs .cs-maker .cs-maker__legal .cs-maker__copy {
   margin-top: 18px;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.32);
 }

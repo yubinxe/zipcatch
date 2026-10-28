@@ -366,7 +366,9 @@ void main() {
   float d = length(vPos.xz - uSpot);
   float pool = exp(-d * d * 2.4) * uSpotAmt;
   float ph = fract(uTime * 0.32);
-  float ring = exp(-pow((d - 0.28 - ph * 2.2) / 0.03, 2.0)) * (1.0 - ph) * (1.0 - ph) * uSpotAmt;
+  // 제곱은 곱으로 — pow(음수, 2.0) 은 GPU 에 따라 NaN 이다
+  float rr = (d - 0.28 - ph * 2.2) / 0.03;
+  float ring = exp(-rr * rr) * (1.0 - ph) * (1.0 - ph) * uSpotAmt;
   vec2 sc = gl_FragCoord.xy / uRes - vec2(0.5, 0.52);
   float vig = 1.0 - smoothstep(0.32, 0.5, length(sc * vec2(1.0, 1.08)));
   fade *= vig;
@@ -402,8 +404,11 @@ varying float vRim;
 void main() {
   float flick = 0.88 + 0.12 * sin(uTime * 2.2 - vY * 12.0);
   float edge = 1.0 - smoothstep(0.7, 0.96, gl_FragCoord.y / uRes.y);
-  float a = pow(vRim, 2.4) * pow(1.0 - vY, 2.6) * uAmt * flick * edge;
-  gl_FragColor = vec4(uColor, a);
+  // pow 의 밑은 0 이상으로 묶는다. 기둥 꼭대기에서 보간된 vY 가 1 을 살짝 넘으면
+  // pow(음수) 가 NaN 이 되고, 빛 번짐(UnrealBloom)의 흐림이 그 몇 점을 화면 전체로
+  // 퍼뜨려 장면이 통째로 투명해졌다(실제 GPU 에서 첫 화면 지도가 비어 보이던 원인)
+  float a = pow(clamp(vRim, 0.0, 1.0), 2.4) * pow(clamp(1.0 - vY, 0.0, 1.0), 2.6) * uAmt * flick * edge;
+  gl_FragColor = vec4(uColor, clamp(a, 0.0, 1.0));
 }`
 
 const DUST_VS = /* glsl */ `

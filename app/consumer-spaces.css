@@ -225,7 +225,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -811,7 +811,7 @@
   min-height: 24px;
   padding: 0 8px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0;
 }
@@ -865,7 +865,7 @@
   border-radius: 50%;
   background: var(--check-soft);
   box-shadow: inset 0 0 0 1px rgba(161, 98, 7, 0.35);
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 800;
 }
 .cs-sa .cs-notice__reasons {
@@ -1065,7 +1065,7 @@
 }
 .cs-sa .cs-map__bar .cs-choose__label {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.18em;
   color: var(--glow);
@@ -1396,7 +1396,7 @@
 .cs-sa .cs-sa-map__why .cs-vacancy__eyebrow {
   margin: 0;
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.16em;
   color: var(--glow);
@@ -1546,7 +1546,7 @@
   color: var(--title);
 }
 .cs-sa-steps__n {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.16em;
   color: var(--accent);
@@ -1743,7 +1743,7 @@
   outline-offset: 3px;
 }
 .cs-sa-next__k {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.16em;
   color: var(--glow);
@@ -1877,7 +1877,7 @@
 }
 .cs-sa-ticket__k {
   margin-top: auto;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--muted);
 }
@@ -2340,7 +2340,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: #AEB5C0;
 }
@@ -2348,7 +2348,7 @@
   padding: 1px 7px;
   border-radius: 999px;
   background: rgba(255, 138, 61, 0.18);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--glow);
 }
