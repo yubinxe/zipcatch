@@ -9,6 +9,7 @@ import CostSimulator from '@/components/consumer/CostSimulator'
 import BuildProgress from '@/components/consumer/BuildProgress'
 import StatementScene from '@/components/consumer/home/StatementScene'
 import OpenNoticeScene from '@/components/consumer/home/OpenNoticeScene'
+import DecideScene from '@/components/consumer/home/DecideScene'
 
 /**
  * 자주 묻는 것.
@@ -213,6 +214,9 @@ export default function ConsumerHome() {
 
       {/* ── 장면 — 카드 한 장이 공고 한 장으로 열린다 ──── */}
       <OpenNoticeScene />
+
+      {/* ── 장면 — 두 공고를 한 줄씩 견준다 ───────────── */}
+      <DecideScene />
 
       {/* ── 마감이 언제 몰리는지 ────────────────────────── */}
       <DeadlineCalendar />

@@ -47,11 +47,6 @@ const DATA = [
     by: '소상공인시장진흥공단 · 공공데이터포털',
     note: '단지 주변 생활 상권',
   },
-  {
-    name: '대중교통 경로',
-    by: 'ODsay LAB',
-    note: '공고 단지에서 목적지까지 대중교통 경로(요청 시에만 조회)',
-  },
 ]
 
 export default function SourcesPage() {
