@@ -208,6 +208,10 @@ body:has(.cs-chat-hint) .cs-phone-fab__label {
   height: 100%;
 }
 .cs .cs-carousel__track .cs-notice__name {
+  /* 공고 확대 장면의 제목과 같은 줄바꿈 규칙 — 'A-3블록' 같은 이름이 낱말 가운데서 끊기지 않게 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -267,7 +271,7 @@ body:has(.cs-chat-hint) .cs-phone-fab__label {
 }
 
 /* ═════════════════════════════════════════════════════════
-   첫 화면 지도 — 울릉도·독도 상자
+   울릉도·독도 상자 — 공급 지도(SupplyMap)에서 쓴다. 첫 화면 지도는 상자를 두지 않는다
    ═════════════════════════════════════════════════════════ */
 .cs-atlas__stage {
   position: relative;
