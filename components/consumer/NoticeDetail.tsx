@@ -14,6 +14,7 @@ import NoticeCalendar, { marksFrom } from './NoticeCalendar'
 import NearbyStores from './NearbyStores'
 import WaitStatus from './WaitStatus'
 import { isRental, provinceOf } from '@/lib/consumer/classify'
+import { lookupLawd } from '@/lib/consumer/lawd'
 import DrawVsScore from './DrawVsScore'
 import { guessZone } from '@/lib/consumer/draw-vs-score'
 import { calculateSubscriptionScore } from '@/lib/subscription-score'
@@ -83,6 +84,8 @@ interface DetailResponse {
   special?: SpecialRead | null
   rent?: RentStat | null
   trade?: TradeStat | null
+  /** 주소로 찾은 자리. 광역 단위 공고처럼 주소가 없으면 null */
+  place?: { dong: string | null; sigungu: string | null; lawd: string | null } | null
 }
 
 export default function NoticeDetail({ id }: { id: string }) {
@@ -217,6 +220,24 @@ export default function NoticeDetail({ id }: { id: string }) {
   const supplyModels = data.supplyModels ?? []
   const trade = data.trade ?? null
   const rent = data.rent ?? null
+  /**
+   * 실거래 흐름으로 잇는 길.
+   *
+   * 주소에서 법정동코드를 얻은 공고만 잇는다 — 광역 단위 공고에 임의의 동을 붙이지
+   * 않는다. 매입·전세임대는 시 전역에서 모은 집이라 동을 넘기지 않고 시·군·구로 연다
+   * (공고 상세의 전월세 견줌자와 같은 규칙).
+   */
+  const flowHref = (() => {
+    const lawd = data.place?.lawd
+    if (!lawd || !lookupLawd(lawd)) return null
+    const t = property.housingType ?? ''
+    const spread = t.includes('매입') || t.includes('전세임대')
+    const house = spread ? 'ROW' : t.includes('오피스텔') ? 'OFFI' : 'APT'
+    const kind = isRental(t) ? 'jeonse' : 'trade'
+    const q = new URLSearchParams({ lawd, months: '12', kind, house, band: 'all' })
+    if (!spread && data.place?.dong) q.set('dong', data.place.dong)
+    return `/flow?${q}`
+  })()
 
   /**
    * 견줌자 — 주변 전용 평당가 중앙값.
@@ -699,6 +720,21 @@ export default function NoticeDetail({ id }: { id: string }) {
                   3건 미만인 달은 비웠습니다. 주변 단지의 연식·규모·브랜드 차이는 반영하지 않은 단순
                   비교이므로, 차액이 곧 이익이나 손해를 뜻하지 않습니다. 출처: 국토교통부 실거래가.
                 </p>
+              </div>
+            </section>
+          )}
+
+          {flowHref && (
+            <section className="cs-sa-doc__sec">
+              <h2 className="cs-sa-doc__h">이 지역 실거래 흐름</h2>
+              <div className="cs-sa-doc__body">
+                <p className="cs-sa-doc__note">
+                  {data.place?.sigungu ?? '이 시·군·구'}에서 최근 12개월 동안 신고된 {isRental(property.housingType ?? '') ? '전월세' : '매매'}{' '}
+                  실거래를 달마다 모아 봅니다. 중앙값과 표본 수, 출처를 함께 적습니다.
+                </p>
+                <Link className="cs-btn cs-btn--sm" href={flowHref}>
+                  이 지역 실거래 흐름 보기 →
+                </Link>
               </div>
             </section>
           )}

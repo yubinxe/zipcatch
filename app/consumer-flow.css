@@ -1,0 +1,569 @@
+/* ============================================================
+   실거래 흐름 (/flow) — 이 화면에서만 불러온다(app/(consumer)/flow/page.tsx).
+
+   밤 무대 아래 밝은 작업 지면. 숫자가 주인공이고 장식은 없다.
+   색은 consumer-night.css 토큰만. 강조는 주황 하나, 나머지는 먹과 회색.
+   클래스 접두는 cs-flow.
+   ============================================================ */
+
+.cs-flow__body {
+  /* 표의 최소 폭이 화면 전체를 밀어내지 않도록 칸을 0 까지 줄일 수 있게 둔다 */
+  grid-template-columns: minmax(0, 1fr);
+  padding-top: clamp(28px, 4vw, 48px);
+  padding-bottom: clamp(56px, 7vw, 96px);
+  display: grid;
+  gap: clamp(20px, 2.6vw, 32px);
+}
+.cs-flow h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--title);
+}
+
+/* ── 조건 ─────────────────────────────────────────────── */
+.cs-flow__controls {
+  display: grid;
+  gap: 18px;
+  padding: clamp(18px, 2.4vw, 26px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.cs-flow__where {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.cs-flow__switches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+}
+.cs-flow__field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.cs-flow__label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.cs-flow select {
+  appearance: none;
+  min-height: 44px;
+  width: 100%;
+  padding: 0 36px 0 12px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--title);
+  background:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%) right 17px top 50% / 5px 5px no-repeat,
+    linear-gradient(-45deg, transparent 50%, var(--muted) 50%) right 12px top 50% / 5px 5px no-repeat,
+    var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.cs-flow select:disabled {
+  opacity: 0.55;
+}
+.cs-flow select:focus-visible,
+.cs-flow button:focus-visible,
+.cs-flow a:focus-visible,
+.cs-flow__scroll:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cs-flow__seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+.cs-flow__seg button {
+  min-height: 38px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--body);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+.cs-flow__seg button[aria-pressed='true'] {
+  background: var(--title);
+  color: var(--paper);
+}
+
+/* ── 상태 ─────────────────────────────────────────────── */
+.cs-flow__status:empty {
+  display: none;
+}
+.cs-flow__loading {
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 14px;
+  color: var(--muted);
+  border-left: 2px solid var(--accent);
+  background: var(--surface);
+}
+.cs-flow__alert,
+.cs-flow__warn {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--body);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+}
+.cs-flow__warn {
+  border-left-color: var(--check, #a16207);
+}
+
+/* ── 요약 ─────────────────────────────────────────────── */
+.cs-flow__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  border-top: 1px solid var(--title);
+  border-bottom: 1px solid var(--line);
+}
+.cs-flow__stat {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 18px 18px 20px 0;
+}
+.cs-flow__stat + .cs-flow__stat {
+  padding-left: 18px;
+  border-left: 1px solid var(--line);
+}
+.cs-flow__stat span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.cs-flow__stat b {
+  font-size: clamp(24px, 2.6vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--title);
+}
+.cs-flow__stat b[data-dir='up'],
+.cs-flow__stat b[data-dir='down'] {
+  color: var(--accent);
+}
+.cs-flow__stat small {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.cs-flow__thin {
+  grid-column: 1 / -1;
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--check, #a16207);
+}
+
+/* ── 차트 ─────────────────────────────────────────────── */
+.cs-flow__chart,
+.cs-flow__table,
+.cs-flow__deals,
+.cs-flow__source {
+  padding: clamp(18px, 2.4vw, 28px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.cs-flow__chart-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px 20px;
+  margin-bottom: 12px;
+}
+.cs-flow__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+.cs-flow__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cs-flow__legend li::before {
+  content: '';
+  width: 14px;
+  height: 10px;
+  border-radius: 2px;
+}
+.cs-flow__legend li[data-k='median']::before {
+  height: 2px;
+  background: var(--accent);
+}
+.cs-flow__legend li[data-k='iqr']::before {
+  background: rgba(194, 65, 12, 0.16);
+}
+.cs-flow__legend li[data-k='count']::before {
+  background: #c9ced6;
+}
+.cs-flow__legend li[data-k='prov']::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--surface);
+}
+.cs-flow__readout {
+  margin: 0 0 6px;
+  min-height: 22px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--title);
+  font-variant-numeric: tabular-nums;
+}
+.cs-flow__plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.cs-flow__grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.cs-flow__axis {
+  stroke: #c9ced6;
+}
+.cs-flow__tick,
+.cs-flow__xlabel {
+  font-size: 12px;
+  fill: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.cs-flow__hit {
+  fill: transparent;
+  cursor: pointer;
+}
+g[data-on] .cs-flow__hit {
+  fill: rgba(11, 14, 20, 0.035);
+}
+.cs-flow__iqr {
+  fill: rgba(194, 65, 12, 0.14);
+}
+.cs-flow__bar {
+  fill: #c9ced6;
+  transition: fill 0.18s ease;
+}
+g[data-on] .cs-flow__bar {
+  fill: var(--title);
+}
+g[data-on] .cs-flow__xlabel {
+  fill: var(--title);
+  font-weight: 700;
+}
+g[data-prov] .cs-flow__bar {
+  fill: #e3e6ea;
+}
+.cs-flow__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.cs-flow__dot {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+.cs-flow__dot[data-prov] {
+  fill: var(--surface);
+  stroke: var(--accent);
+}
+.cs-flow__flag {
+  font-size: 11px;
+  fill: var(--accent);
+}
+.cs-flow__na {
+  font-size: 11px;
+  fill: var(--muted);
+}
+.cs-flow__months {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 12px 0 10px;
+}
+.cs-flow__months button {
+  min-height: 32px;
+  min-width: 44px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--body);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.cs-flow__months button[aria-pressed='true'] {
+  background: var(--title);
+  border-color: var(--title);
+  color: var(--paper);
+}
+
+/* ── 표 ───────────────────────────────────────────────── */
+.cs-flow__table h2,
+.cs-flow__source h2 {
+  margin-bottom: 12px;
+}
+.cs-flow__scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.cs-flow__table table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.cs-flow__table th,
+.cs-flow__table td {
+  padding: 11px 12px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line);
+}
+.cs-flow__table thead th {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  border-bottom-color: var(--title);
+}
+.cs-flow__table th:first-child,
+.cs-flow__table td:last-child {
+  text-align: left;
+}
+.cs-flow__table tbody th {
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+  font-weight: 700;
+  color: var(--title);
+  font-variant-numeric: tabular-nums;
+}
+.cs-flow__table td:last-child {
+  font-size: 12px;
+  color: var(--muted);
+}
+.cs-flow__table tbody tr {
+  cursor: pointer;
+}
+.cs-flow__table tbody tr[data-on] th,
+.cs-flow__table tbody tr[data-on] td {
+  background: #fff4ec;
+}
+
+/* ── 거래 목록 ─────────────────────────────────────────── */
+.cs-flow__deals > header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.cs-flow__deal-actions {
+  display: flex;
+  gap: 8px;
+}
+.cs-flow__deals ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-flow__deals li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cs-flow__deal-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.cs-flow__deal-main b {
+  font-size: 15px;
+  color: var(--title);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cs-flow__deal-main span,
+.cs-flow__deal-price small {
+  font-size: 13px;
+  color: var(--muted);
+}
+.cs-flow__deal-price {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  flex: none;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--title);
+}
+.cs-flow__empty {
+  margin: 0;
+  padding: 18px 0;
+  color: var(--muted);
+}
+
+/* ── 출처 ─────────────────────────────────────────────── */
+.cs-flow__source dl {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.cs-flow__source dl > div {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.cs-flow__source dt {
+  font-weight: 700;
+  color: var(--muted);
+}
+.cs-flow__source dd {
+  margin: 0;
+  color: var(--body);
+  overflow-wrap: anywhere;
+}
+.cs-flow__source code {
+  font-size: 12px;
+  color: var(--muted);
+}
+.cs-flow__limits {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ── 다음 걸음 ─────────────────────────────────────────── */
+.cs-flow__next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 32px;
+  padding: clamp(22px, 3vw, 34px);
+  color: #fff;
+  background: var(--night);
+  border-radius: 16px;
+}
+.cs-flow__next h2 {
+  color: #fff;
+}
+.cs-flow__next p {
+  margin: 6px 0 0;
+  max-width: 44em;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #b8bec9;
+}
+.cs-flow__eyebrow {
+  margin: 0 0 6px !important;
+  font-size: 12px !important;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--glow) !important;
+}
+
+/* ── 좁은 화면 ─────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .cs-flow__where {
+    grid-template-columns: 1fr 1fr;
+  }
+  .cs-flow__where .cs-flow__field:last-child {
+    grid-column: 1 / -1;
+  }
+  .cs-flow__switches {
+    display: grid;
+    gap: 14px;
+  }
+  .cs-flow__seg {
+    display: flex;
+  }
+  .cs-flow__seg button {
+    flex: 1 1 auto;
+    padding: 0 10px;
+  }
+  .cs-flow__stat,
+  .cs-flow__stat + .cs-flow__stat {
+    padding: 14px 0;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .cs-flow__stat:first-child {
+    border-top: 0;
+  }
+  .cs-flow__source dl > div {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  /* 좁은 화면에서는 차트를 줄이지 않고 옆으로 밀어 본다 — 글자가 읽히는 크기를 지킨다 */
+  .cs-flow__months button {
+    min-height: 44px;
+  }
+  .cs-flow__plot {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cs-flow__plot svg {
+    min-width: 620px;
+  }
+  .cs-flow__tick,
+  .cs-flow__xlabel {
+    font-size: 17px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-flow * {
+    transition: none !important;
+  }
+}
