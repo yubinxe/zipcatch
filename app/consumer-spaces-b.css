@@ -3580,3 +3580,129 @@
     transform: none;
   }
 }
+
+/* ═════════════════════════════════════════════════════════
+   통계 — 서울 분양 이력 (HUG 서울특별시 분양아파트 기본현황)
+   ═════════════════════════════════════════════════════════ */
+.cs-seoul {
+  padding-block: clamp(32px, 5vw, 64px) clamp(64px, 8vw, 104px);
+}
+.cs-seoul__head {
+  margin-bottom: 24px;
+}
+.cs .cs-seoul__h {
+  margin: 0;
+  font-size: clamp(26px, 2.8vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.cs-seoul__lead {
+  margin: 10px 0 0;
+  max-width: 640px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.cs-seoul__quiet {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  padding: 24px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  color: var(--muted);
+}
+.cs-seoul__quiet p { margin: 0; font-size: 16px; }
+.cs-seoul__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 22px;
+}
+.cs-seoul__kpis div {
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.cs-seoul__kpis dt { font-size: 13.5px; color: var(--muted); }
+.cs-seoul__kpis dd { margin: 6px 0 0; font-size: clamp(20px, 2vw, 26px); font-weight: 800; letter-spacing: -0.03em; color: var(--title); }
+.cs-seoul__chart {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(4px, 0.8vw, 10px);
+  height: 240px;
+  padding: 16px 16px 0;
+  border: 1px solid var(--line);
+  border-radius: 16px 16px 0 0;
+  background: var(--surface);
+}
+.cs-seoul__col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.cs-seoul__stack {
+  width: 100%;
+  max-width: 40px;
+  min-height: 2px;
+  display: flex;
+  flex-direction: column-reverse;
+  border-radius: 5px 5px 0 0;
+  overflow: hidden;
+}
+.cs-seoul__stack i { display: block; min-height: 1px; }
+[data-g='재건축'] { background: #C2410C; }
+[data-g='재개발'] { background: #FF8A3D; }
+[data-g='일반분양'] { background: #FFC59A; }
+[data-g='기타'] { background: color-mix(in srgb, var(--muted) 45%, transparent); }
+.cs-seoul__yr { padding-bottom: 8px; font-size: 12.5px; color: var(--muted); }
+.cs-seoul__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-radius: 0 0 16px 16px;
+  font-size: 13.5px;
+  color: var(--body);
+}
+.cs-seoul__legend span { display: inline-flex; align-items: center; gap: 6px; }
+.cs-seoul__legend i { width: 12px; height: 12px; border-radius: 3px; }
+.cs-seoul__legend em { margin-left: auto; font-style: normal; color: var(--muted); }
+.cs-seoul__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: clamp(20px, 3vw, 40px);
+  margin-top: 28px;
+}
+.cs .cs-seoul__h3 { margin: 0 0 12px; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+.cs-seoul__table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.cs-seoul__table th, .cs-seoul__table td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: right; }
+.cs-seoul__table th:first-child { text-align: left; }
+.cs-seoul__table thead th { font-size: 13px; color: var(--muted); font-weight: 700; }
+.cs-seoul__recent { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.cs-seoul__recent li {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 2px 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cs-seoul__recent span { grid-row: span 2; font-size: 13.5px; color: var(--muted); }
+.cs-seoul__recent b { font-size: 15px; font-weight: 700; color: var(--title); overflow-wrap: anywhere; }
+.cs-seoul__recent em { font-style: normal; font-size: 13.5px; color: var(--muted); }
+.cs-seoul__src { margin: 20px 0 0; font-size: 13.5px; color: var(--muted); }
+@media (max-width: 760px) {
+  .cs-seoul__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cs-seoul__grid { grid-template-columns: 1fr; }
+  .cs-seoul__chart { height: 200px; padding-inline: 10px; }
+  .cs-seoul__legend em { margin-left: 0; width: 100%; }
+}
