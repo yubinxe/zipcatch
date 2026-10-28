@@ -35,3 +35,12 @@ export function hasMolitKey(): boolean {
 export function hasDataPortalKey(): boolean {
   return dataPortalKey().length > 0
 }
+
+/**
+ * HUG 서울특별시 분양아파트 기본현황(공공데이터포털 15152174) — 이 서비스가 활용신청된
+ * 공공데이터포털 키. 마이홈과 같은 키로 승인돼 있어 HUG_SEOUL_API_KEY 가 없으면 MYHOME_API_KEY 로
+ * 물러선다. 공용 키(DATA_GO_KR_API_KEY)로는 부르지 않는다 — 신청되지 않은 서비스다.
+ */
+export function hugSeoulKey(): string {
+  return (process.env.HUG_SEOUL_API_KEY ?? '').trim() || (process.env.MYHOME_API_KEY ?? '').trim()
+}

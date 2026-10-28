@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import StatsView from '@/components/consumer/StatsView'
+import SeoulSupply from '@/components/consumer/SeoulSupply'
 
 export const metadata: Metadata = {
   title: '경쟁률 · 당첨통계 — 집캐치',
@@ -8,5 +9,10 @@ export const metadata: Metadata = {
 }
 
 export default function StatsPage() {
-  return <StatsView />
+  return (
+    <>
+      <StatsView />
+      <SeoulSupply />
+    </>
+  )
 }
