@@ -22,8 +22,12 @@ import type { SkyTower } from './three/skyline-scene'
  * 되는 브라우저에서만 같은 칸 위에 입체(three/Skyline3D)가 겹쳐 뜬다.
  */
 
+/** /api/progress 가 넘기는 상태 — 원문 사유 대신 이것으로 문구를 고른다 */
+type ProgressStatus = 'OK' | 'EMPTY' | 'NOT_CONFIGURED' | 'AUTH_FAILED' | 'ERROR'
+
 interface Payload {
   ok: boolean
+  status?: ProgressStatus
   reason?: string
   provinces?: ProvinceProgress[]
   columns?: ProgressColumns
@@ -156,19 +160,44 @@ export default function BuildProgress() {
   }
 
   if (!data.ok || !data.provinces) {
+    /*
+     * 상태마다 다른 말을 한다. 예전에는 API 원문 사유("등록되지 않은 서비스 입니다" 등)를
+     * 그대로 보여 줘서 이용자가 무언가를 신청해야 하는 것처럼 읽혔다. 승인은 이미 끝났다 —
+     * 신청을 권하는 말은 어느 상태에서도 쓰지 않는다. 사유 원문은 운영 응답(/api/progress)에만 남긴다.
+     */
+    const msg: Record<Exclude<ProgressStatus, 'OK' | 'EMPTY'>, { t: string; d: string; retry: boolean }> = {
+      NOT_CONFIGURED: {
+        t: '공정률 자료 연결을 마무리하고 있어요.',
+        d: 'HUG 공정률 Open API 연결이 끝나면 이 자리에 지역별 공사 진척이 나타납니다.',
+        retry: false,
+      },
+      AUTH_FAILED: {
+        t: '공정률 자료 제공처 인증을 확인하고 있어요.',
+        d: '자료를 받는 인증이 지금 통과되지 않았습니다. 운영 측에서 확인 중이에요.',
+        retry: false,
+      },
+      ERROR: {
+        t: '공정률 자료를 지금 불러오지 못했어요.',
+        d: '제공처 응답이 잠시 없습니다. 잠시 뒤 다시 시도해 주세요.',
+        retry: true,
+      },
+    }
+    const m = msg[(data.status === 'NOT_CONFIGURED' || data.status === 'AUTH_FAILED' ? data.status : 'ERROR')]
     return (
-      <div className="cs-bp cs-bp--quiet">
-        <p>공정률 자료를 지금 불러오지 못했어요.</p>
-        <p className="cs-note">{data.reason} 빈 자리를 추정치로 채우지 않습니다.</p>
-        <button
-          className="cs-btn cs-btn--sm cs-btn--ghost"
-          onClick={() => {
-            setData(null)
-            setAttempt(a => a + 1)
-          }}
-        >
-          다시 시도
-        </button>
+      <div className="cs-bp cs-bp--quiet" data-status={data.status ?? 'ERROR'}>
+        <p>{m.t}</p>
+        <p className="cs-note">{m.d} 빈 자리를 추정치로 채우지 않습니다.</p>
+        {m.retry && (
+          <button
+            className="cs-btn cs-btn--sm cs-btn--ghost"
+            onClick={() => {
+              setData(null)
+              setAttempt(a => a + 1)
+            }}
+          >
+            다시 시도
+          </button>
+        )}
       </div>
     )
   }
