@@ -1,34 +1,12 @@
 import { NextRequest } from 'next/server'
-import { dataPortalKey } from '@/lib/config/data-portal-key'
+import { monthCond, odcloudAll } from '@/lib/adapters/odcloud'
 
-const BASE = 'https://api.odcloud.kr/api'
-const KEY = dataPortalKey()
-
-async function fetchRegion(endpoint: string, month: string) {
-  const params = new URLSearchParams({
-    serviceKey: KEY,
-    page: '1',
-    perPage: '500',
-    returnType: 'JSON',
-  })
-  if (month) {
-    params.set('cond[STAT_DE::GTE]', month)
-    params.set('cond[STAT_DE::LTE]', month)
-  }
-
-  const res = await fetch(`${BASE}/ApplyhomeStatSvc/v1/${endpoint}?${params}`, {
-    next: { revalidate: 600 },
-  })
-  return res.json()
-}
-
+/** 지역별 신청·당첨자 통계 — 조건에 맞는 마지막 쪽까지 */
 export async function GET(req: NextRequest) {
   const month = req.nextUrl.searchParams.get('month') ?? ''
-
   const [applicants, winners] = await Promise.all([
-    fetchRegion('getAPTReqstAreaStat', month),
-    fetchRegion('getAPTPrzwnerAreaStat', month),
+    odcloudAll('ApplyhomeStatSvc/v1/getAPTReqstAreaStat', monthCond(month)),
+    odcloudAll('ApplyhomeStatSvc/v1/getAPTPrzwnerAreaStat', monthCond(month)),
   ])
-
-  return Response.json({ applicants: applicants.data ?? [], winners: winners.data ?? [] })
+  return Response.json({ applicants: applicants.data, winners: winners.data })
 }

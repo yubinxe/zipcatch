@@ -1,0 +1,1020 @@
+/* ============================================================
+   3.1 정밀 개선 층 — 모든 consumer-* 층 뒤에 얹는다.
+   여기에는 3.1 에서 새로 정한 것만 둔다(챗봇 자리·말풍선, 캐러셀,
+   지도 중심, 제작자 장면, 요금제 정렬). 앞 층의 같은 규칙은 이 파일이 이긴다.
+   ============================================================ */
+
+/* ── 챗봇 버튼 — 12% 크게, 화면 끝에서 한 걸음 안쪽으로 ────────── */
+:root {
+  --fab-size: 65px; /* 58 × 1.12 */
+  --fab-right: 48px;
+  --fab-bottom: 24px;
+}
+body:has(.cs-ticker) {
+  --fab-bottom: calc(var(--ticker-h) + 24px);
+}
+@media (max-width: 760px) {
+  :root {
+    --fab-size: 63px; /* 56 × 1.12 */
+    --fab-right: 24px;
+    --fab-bottom: 18px;
+  }
+  body:has(.cs-ticker) {
+    --fab-bottom: calc(var(--ticker-h) + 18px);
+  }
+}
+
+html body .cs-chat-fab.cs-phone-fab {
+  right: var(--fab-right);
+  bottom: var(--fab-bottom);
+  width: var(--fab-size);
+  height: var(--fab-size);
+}
+html body .cs-chat-fab.cs-phone-fab svg {
+  width: 26px;
+  height: 26px;
+}
+/* 폰도 버튼이 선 자리에서 들려 올라온다 */
+@media (min-width: 761px) {
+  html body .cs-chat.cs-phone .cs-phone__device {
+    right: var(--fab-right);
+  }
+}
+
+/* ── 안내 말풍선 — 버튼 왼쪽에서 말을 건다 ──────────────────── */
+.cs-chat-hint {
+  position: fixed;
+  z-index: 61;
+  right: calc(var(--fab-right) + var(--fab-size) + 14px);
+  bottom: calc(var(--fab-bottom) + var(--fab-size) / 2);
+  transform: translateY(50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 6px 6px 18px;
+  border-radius: 999px;
+  background: #fff;
+  color: #0B0E14;
+  box-shadow:
+    0 0 0 1px rgba(11, 14, 20, 0.06),
+    0 18px 40px -18px rgba(11, 14, 20, 0.55),
+    0 4px 12px -6px rgba(11, 14, 20, 0.25);
+  font-family: var(--font-pretendard), system-ui, sans-serif;
+  animation: zcHintIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+/* 꼬리 — 버튼을 가리킨다 */
+.cs-chat-hint::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 2px;
+  transform: translateY(-50%) rotate(45deg);
+}
+.cs-chat-hint__body {
+  border: 0;
+  background: none;
+  padding: 6px 4px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cs-chat-hint__body b {
+  font-weight: 800;
+  color: #C2410C;
+}
+.cs-chat-hint__close {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(11, 14, 20, 0.55);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.cs-chat-hint__close:hover {
+  background: rgba(11, 14, 20, 0.07);
+  color: #0B0E14;
+}
+.cs-chat-hint__body:focus-visible,
+.cs-chat-hint__close:focus-visible {
+  outline: 2px solid #C2410C;
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+/* 말풍선이 떠 있는 동안은 버튼의 손끝 라벨을 겹쳐 띄우지 않는다 */
+body:has(.cs-chat-hint) .cs-phone-fab__label {
+  display: none;
+}
+@keyframes zcHintIn {
+  from {
+    opacity: 0;
+    transform: translate(10px, 50%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 50%) scale(1);
+  }
+}
+/* 좁은 화면 — 버튼 위로 올라선다 */
+@media (max-width: 520px) {
+  .cs-chat-hint {
+    right: var(--fab-right);
+    bottom: calc(var(--fab-bottom) + var(--fab-size) + 14px);
+    transform: none;
+    animation-name: zcHintUp;
+  }
+  .cs-chat-hint::after {
+    right: calc(var(--fab-size) / 2 - 6px);
+    top: auto;
+    bottom: -6px;
+    transform: rotate(45deg);
+  }
+}
+@keyframes zcHintUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs-chat-hint {
+    animation: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════
+   공고 캐러셀 — 부모 폭 안에서 완결된다
+   예전 트랙은 오른쪽으로 화면 끝까지 흘렀다(margin-inline 음수 + 50% - 50vw).
+   잘린 카드가 삐져나와 보였다. 트랙은 이제 제 상자를 넘지 않는다.
+   ═════════════════════════════════════════════════════════ */
+.cs .cs-carousel {
+  --car-gap: 20px;
+  --car-per: 3;
+  min-width: 0;
+}
+@media (max-width: 1100px) {
+  .cs .cs-carousel {
+    --car-per: 2;
+  }
+}
+@media (max-width: 680px) {
+  .cs .cs-carousel {
+    --car-per: 1;
+    --car-gap: 14px;
+  }
+}
+.cs .cs-carousel__track {
+  margin-inline: 0;
+  padding: 10px 0 26px;
+  gap: var(--car-gap);
+  grid-auto-columns: calc((100% - (var(--car-per) - 1) * var(--car-gap)) / var(--car-per));
+  scroll-padding-inline: 0;
+  transition: opacity 0.32s ease;
+}
+.cs .cs-carousel__track > * {
+  min-width: 0;
+}
+/* 옮기는 동안은 스냅을 끈다 — 스냅이 중간에 잡아채면 움직임이 튄다 */
+.cs .cs-carousel__track[data-moving] {
+  scroll-snap-type: none;
+}
+/* 끝에서 처음으로 — 거꾸로 감지 않고 잠깐 어두워졌다 돌아온다 */
+.cs .cs-carousel__track[data-rewind] {
+  opacity: 0;
+  scroll-snap-type: none;
+}
+
+/* 카드 높이와 아래쪽 줄(마감·자세히 보기)을 장마다 같은 자리에 맞춘다 */
+.cs .cs-carousel__track .cs-notice {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.cs .cs-carousel__track .cs-notice__name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.5em;
+}
+
+/* 위치 — "03 / 12" · 진행 막대 · 다음 장까지 남은 시간 */
+.cs .cs-carousel__bar {
+  gap: 18px;
+}
+.cs-carousel__count {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.cs-carousel__count b {
+  font-weight: 800;
+  color: var(--title);
+}
+.cs .cs-carousel__progress {
+  position: relative;
+  height: 3px;
+}
+.cs .cs-carousel__progress i {
+  opacity: 0.45;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cs-carousel__timer {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: linear-gradient(90deg, var(--accent), var(--glow, #FFB27A));
+  transform-origin: 0 50%;
+  animation-name: zcTimer;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+@keyframes zcTimer {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.cs .cs-carousel__btn--play {
+  width: 40px;
+  height: 40px;
+}
+.cs .cs-carousel__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs .cs-carousel__track {
+    transition: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════
+   첫 화면 지도 — 울릉도·독도 상자
+   ═════════════════════════════════════════════════════════ */
+.cs-atlas__stage {
+  position: relative;
+}
+.cs-isle {
+  position: absolute;
+  /* 오른쪽 아래 — 남해 동쪽 바다. 위쪽에 두면 입체 지도가 켜질 때 강원 위를 덮는다 */
+  bottom: 4%;
+  right: 3%;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+.cs-isle__map {
+  width: clamp(34px, 11%, 52px);
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+.cs-isle__map .cs-atlas__land {
+  stroke-width: 0.4;
+}
+.cs-isle__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+}
+.cs-atlas__source a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ═════════════════════════════════════════════════════════
+   출처와 라이선스
+   ═════════════════════════════════════════════════════════ */
+.cs-src {
+  padding-block: clamp(32px, 5vw, 64px) clamp(64px, 8vw, 120px);
+  max-width: 980px;
+}
+.cs-src__block + .cs-src__block {
+  margin-top: clamp(40px, 5vw, 64px);
+}
+.cs .cs-src__h {
+  font-size: clamp(22px, 2.2vw, 28px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 14px;
+}
+.cs-src__p {
+  margin: 0 0 18px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.cs-src__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.cs-src__list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 4px 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cs-src__list b {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--title);
+}
+.cs-src__list span {
+  font-size: 15px;
+  color: var(--body);
+}
+.cs-src__list em {
+  grid-column: 1 / -1;
+  font-style: normal;
+  font-size: 14px;
+  color: var(--muted);
+}
+.cs-src__list a,
+.cs-src__grid a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cs-src__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+.cs-src__grid li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.cs-src__grid img {
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.cs-src__grid div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.cs-src__grid b {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--title);
+}
+.cs-src__grid span {
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 680px) {
+  .cs-src__list li {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════
+   마지막 장면 — 만든 사람. 화면 하나에서 완결된다
+   ═════════════════════════════════════════════════════════ */
+.cs .cs-footer.cs-maker {
+  padding: 0 0 36px;
+}
+body:has(.cs-ticker) .cs .cs-footer.cs-maker {
+  padding-bottom: calc(36px + var(--ticker-h));
+}
+.cs-maker__scene {
+  position: relative;
+  isolation: isolate;
+  /* 머리글과 아래 티커를 뺀 남은 화면을 채운다. 내용이 더 길면 늘어난다(잘리지 않게) */
+  min-height: calc(100svh - var(--header-h, 73px));
+  display: flex;
+  align-items: center;
+  padding-block: clamp(72px, 10vh, 120px);
+}
+body:has(.cs-ticker) .cs-maker__scene {
+  min-height: calc(100svh - var(--header-h, 73px) - var(--ticker-h));
+}
+/* 느리게 숨 쉬는 빛 두 덩이 — 글보다 늘 뒤에 */
+.cs-maker__glow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.cs-maker__glow i {
+  position: absolute;
+  width: 60vmax;
+  height: 60vmax;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.5;
+  animation: zcBreathe 14s ease-in-out infinite alternate;
+}
+.cs-maker__glow i:nth-child(1) {
+  left: -20vmax;
+  top: -24vmax;
+  background: radial-gradient(circle, rgba(255, 138, 61, 0.32), transparent 62%);
+}
+.cs-maker__glow i:nth-child(2) {
+  right: -24vmax;
+  bottom: -30vmax;
+  background: radial-gradient(circle, rgba(46, 84, 160, 0.34), transparent 62%);
+  animation-delay: -7s;
+}
+@keyframes zcBreathe {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(3vmax, 2vmax, 0) scale(1.08); }
+}
+.cs-maker__stage {
+  position: relative;
+  display: grid;
+  gap: clamp(28px, 4vh, 44px);
+  text-align: center;
+  justify-items: center;
+}
+.cs .cs-maker .cs-maker__eyebrow {
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+.cs .cs-maker .cs-maker__name {
+  margin: 0;
+  font-size: clamp(56px, 9vw, 128px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+.cs .cs-maker .cs-maker__name span {
+  display: block;
+  margin-top: 14px;
+  font-size: clamp(18px, 1.8vw, 24px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.55);
+}
+.cs .cs-maker .cs-maker__role {
+  margin: 22px 0 0;
+  font-size: clamp(17px, 1.5vw, 20px);
+  font-weight: 700;
+  color: #FFB27A;
+}
+.cs .cs-maker .cs-maker__line {
+  max-width: 620px;
+  margin: 14px auto 0;
+  font-size: clamp(15.5px, 1.2vw, 17px);
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* 포트폴리오와 GitHub — 같은 크기, 같은 무게 */
+.cs-maker__pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  width: min(760px, 100%);
+}
+.cs .cs-maker a.cs-maker__big {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto auto;
+  align-items: end;
+  gap: 2px 16px;
+  padding: 24px 26px;
+  border-radius: 18px;
+  text-align: left;
+  text-decoration: none;
+  color: #fff;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 30px 60px -36px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s, background 0.3s;
+}
+.cs .cs-maker a.cs-maker__big:hover,
+.cs .cs-maker a.cs-maker__big:focus-visible {
+  transform: translateY(-4px);
+  border-color: rgba(255, 178, 122, 0.55);
+  background: linear-gradient(160deg, rgba(255, 138, 61, 0.16), rgba(255, 255, 255, 0.03));
+}
+.cs-maker__big-k {
+  grid-column: 1;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #FFB27A;
+}
+.cs-maker__big b {
+  grid-column: 1;
+  font-size: clamp(22px, 2.2vw, 28px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.cs-maker__big-url {
+  grid-column: 1;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  overflow-wrap: anywhere;
+}
+.cs-maker__big-go {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #C2410C;
+  color: #fff;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cs-maker__big:hover .cs-maker__big-go {
+  transform: rotate(45deg);
+}
+
+/* 문의 · 채널 · 더 보기 */
+.cs-maker__rest {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+}
+.cs .cs-maker a.cs-maker__mail {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.cs .cs-maker a.cs-maker__mail:hover {
+  border-color: #FFB27A;
+  background: rgba(255, 138, 61, 0.1);
+}
+.cs .cs-maker .cs-maker__channels {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.cs .cs-maker .cs-maker__channels li {
+  border: 0;
+}
+.cs .cs-maker a.cs-maker__channel {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.cs .cs-maker a.cs-maker__channel::before {
+  display: none;
+}
+.cs .cs-maker .cs-maker__icon {
+  width: 32px;
+  height: 32px;
+}
+.cs .cs-maker .cs-maker__ch-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  line-height: 1.25;
+}
+.cs .cs-maker .cs-maker__ch-text b {
+  font-size: 14px;
+}
+.cs .cs-maker .cs-maker__ch-text span {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.55);
+}
+.cs .cs-maker .cs-maker__more {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cs .cs-maker .cs-maker__more a {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cs .cs-maker .cs-maker__more a:hover {
+  color: #fff;
+}
+
+/* 고지 — 장면 아래 작은 바닥줄 */
+.cs .cs-maker .cs-maker__legal {
+  position: relative;
+  padding-top: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.cs .cs-maker .cs-maker__legal p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.5);
+}
+.cs .cs-maker .cs-maker__legal a {
+  color: rgba(255, 255, 255, 0.78);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 680px) {
+  .cs-maker__scene {
+    align-items: flex-start;
+    padding-block: 64px 56px;
+  }
+  .cs-maker__pair {
+    grid-template-columns: 1fr;
+  }
+  .cs .cs-maker a.cs-maker__big {
+    padding: 20px 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs-maker__glow i {
+    animation: none;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════
+   요금제 — 네 장이 같은 줄을 나눠 쓴다(subgrid)
+   이름 · 대상 · 가격 · 청구 표기 · 버튼 · 버튼 설명 · 기능 목록 = 일곱 줄.
+   카드 → 기울기 상자 → 카드 본문까지 줄을 이어받아, 글이 긴 카드가 있어도
+   가격과 버튼이 장마다 같은 높이에 선다. 추천 카드만 위로 들어 올리던 것은 걷는다 —
+   그 12px 이 가격·버튼 줄을 어긋나게 했다.
+   ═════════════════════════════════════════════════════════ */
+.cs .cs-pr__plans {
+  grid-auto-rows: auto;
+  gap: 28px 16px;
+  align-items: stretch;
+}
+.cs .cs-sb-plancell,
+.cs .cs-sb-plantilt,
+.cs .cs-pr__plans .cs-pr__plan {
+  display: grid;
+  grid-template-rows: subgrid;
+  row-gap: 0;
+}
+.cs .cs-sb-plancell {
+  grid-row: span 7;
+  margin: 0;
+}
+.cs .cs-sb-plantilt,
+.cs .cs-pr__plans .cs-pr__plan {
+  grid-row: 1 / span 7;
+  flex: none;
+}
+.cs .cs-pr__plans .cs-pr__plan {
+  align-content: start;
+}
+@media (min-width: 1101px) {
+  .cs .cs-sb-plancell[data-featured] {
+    margin: 0;
+  }
+}
+.cs .cs-pr__plans .cs-pr__name { margin: 0 0 6px; align-self: start; }
+.cs .cs-pr__plans .cs-pr__for { margin: 0 0 18px; align-self: start; }
+.cs .cs-pr__plans .cs-pr__price { align-self: end; }
+.cs .cs-pr__plans .cs-pr__note { margin: 6px 0 18px; align-self: start; }
+.cs .cs-pr__plans .cs-pr__cta { align-self: start; width: 100%; justify-content: center; }
+.cs .cs-pr__plans .cs-pr__cta-sub { margin: 10px 0 18px; align-self: start; }
+.cs .cs-pr__plans .cs-pr__list { align-self: start; margin: 0; }
+
+/* ── 구독이 부담스럽다면 — 곁다리 주석이 아니라 또 하나의 선택지 ── */
+.cs .cs-pr__pass {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+  padding: clamp(28px, 4vw, 52px);
+  border-radius: 22px;
+}
+.cs .cs-pr__pass .cs-pr__kicker {
+  margin: 0 0 12px;
+  font-size: clamp(15px, 1.3vw, 17px);
+  font-weight: 800;
+  letter-spacing: 0;
+  color: var(--accent);
+}
+.cs .cs-pr__pass-title {
+  margin: 0;
+  font-size: clamp(32px, 3.8vw, 52px);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+}
+.cs .cs-pr__pass-sub {
+  margin: 18px 0 0;
+  max-width: 560px;
+  font-size: clamp(16.5px, 1.35vw, 19px);
+  line-height: 1.7;
+}
+.cs .cs-pr__pass-buy {
+  display: grid;
+  gap: 8px;
+  padding: clamp(22px, 2.5vw, 30px);
+  border-radius: 18px;
+}
+.cs .cs-pr__pass-buy .cs-pr__price b {
+  font-size: clamp(52px, 5.4vw, 72px);
+}
+.cs .cs-pr__pass-buy .cs-pr__note {
+  font-size: 15.5px;
+  font-weight: 600;
+}
+.cs-pr__pass-beta {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.cs .cs-pr__pass-buy .cs-pr__pass-stub {
+  font-size: 13px;
+}
+@media (max-width: 860px) {
+  .cs .cs-pr__pass {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════
+   공급 판독 — 전국 지도(코로플레스)
+   ═════════════════════════════════════════════════════════ */
+.cs-smap {
+  margin: 8px 0 clamp(32px, 4vw, 48px);
+  padding: clamp(20px, 3vw, 32px);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+}
+.cs-smap__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: 20px;
+}
+.cs .cs-smap__h {
+  margin: 0;
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+.cs-smap__basis {
+  margin: 8px 0 0;
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+.cs-smap__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--paper-2);
+}
+.cs-smap__metric {
+  border: 0;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.cs-smap__metric[aria-checked='true'] {
+  background: var(--title);
+  color: var(--surface);
+}
+.cs-smap__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 40px);
+  align-items: center;
+}
+.cs-smap__mapbox {
+  position: relative;
+  color: var(--muted);
+}
+.cs-smap__map {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+}
+.cs-smap__land {
+  stroke: var(--surface);
+  stroke-width: 1.2;
+  cursor: pointer;
+  transition: fill 0.35s ease, opacity 0.35s ease;
+}
+.cs-smap__land[data-level='none'] { fill: url(#cs-smap-none); cursor: default; }
+.cs-smap__land[data-level='1'] { fill: color-mix(in srgb, #C2410C 16%, var(--paper-2)); }
+.cs-smap__land[data-level='2'] { fill: color-mix(in srgb, #C2410C 32%, var(--paper-2)); }
+.cs-smap__land[data-level='3'] { fill: color-mix(in srgb, #C2410C 50%, var(--paper-2)); }
+.cs-smap__land[data-level='4'] { fill: color-mix(in srgb, #C2410C 70%, var(--paper-2)); }
+.cs-smap__land[data-level='5'] { fill: #C2410C; }
+/* 고른 지역 외에는 한 걸음 물러난다 */
+.cs-smap__map:has(.cs-smap__land[data-on]) .cs-smap__land:not([data-on]) {
+  opacity: 0.62;
+}
+.cs-smap__land[data-on] {
+  stroke: var(--title);
+  stroke-width: 2.2;
+}
+.cs-smap__mapbox .cs-isle__map { border-color: var(--line); }
+.cs-smap__mapbox .cs-isle__label { color: var(--muted); }
+.cs-smap__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.cs-smap__legend i {
+  width: 22px;
+  height: 10px;
+  border-radius: 3px;
+}
+.cs-smap__legend i[data-level='1'] { background: color-mix(in srgb, #C2410C 16%, var(--paper-2)); }
+.cs-smap__legend i[data-level='2'] { background: color-mix(in srgb, #C2410C 32%, var(--paper-2)); }
+.cs-smap__legend i[data-level='3'] { background: color-mix(in srgb, #C2410C 50%, var(--paper-2)); }
+.cs-smap__legend i[data-level='4'] { background: color-mix(in srgb, #C2410C 70%, var(--paper-2)); }
+.cs-smap__legend i[data-level='5'] { background: #C2410C; }
+.cs-smap__legend .cs-smap__nodata {
+  margin-left: 12px;
+  background: repeating-linear-gradient(45deg, transparent 0 3px, color-mix(in srgb, currentColor 30%, transparent) 3px 4.5px);
+  border: 1px solid var(--line);
+}
+.cs-smap__place {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--accent);
+}
+.cs-smap__big {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+}
+.cs-smap__big b {
+  font-size: clamp(52px, 6vw, 80px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: var(--title);
+}
+.cs-smap__big span {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.cs-smap__metric-note {
+  margin: 10px 0 18px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.cs-smap__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 0 0 18px;
+}
+.cs-smap__facts div {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--paper-2);
+}
+.cs-smap__facts dt {
+  font-size: 13px;
+  color: var(--muted);
+}
+.cs-smap__facts dd {
+  margin: 4px 0 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--title);
+}
+.cs .cs-smap__biz {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+}
+.cs .cs-smap__biz:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cs-smap__tablewrap {
+  margin-top: 24px;
+  overflow-x: auto;
+}
+.cs-smap__table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 14.5px;
+}
+.cs-smap__table th,
+.cs-smap__table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+.cs-smap__table thead th {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.cs-smap__table th:first-child {
+  text-align: left;
+}
+.cs-smap__table tbody tr {
+  cursor: pointer;
+}
+.cs-smap__table tbody tr[data-on] {
+  background: color-mix(in srgb, #C2410C 8%, transparent);
+}
+.cs-smap__rowbtn {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: var(--title);
+  cursor: pointer;
+}
+.cs-smap__caveat {
+  margin: 16px 0 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+@media (max-width: 860px) {
+  .cs-smap__body {
+    grid-template-columns: 1fr;
+  }
+  .cs-smap__map {
+    max-height: 420px;
+  }
+}

@@ -37,6 +37,24 @@ export function hasDataPortalKey(): boolean {
 }
 
 /**
+ * 마이홈포털(국토교통부) — 공공주택 모집공고 · 예비입주자 대기현황.
+ *
+ * 두 서비스가 같은 인증키로 활용신청돼 있다. 이 키를 따로 받았다면 MYHOME_API_KEY 로,
+ * 아니면 공용 키로 물러선다. 서버에서만 읽는다.
+ */
+export function myhomeKey(): string {
+  return (process.env.MYHOME_API_KEY ?? '').trim() || dataPortalKey()
+}
+
+/**
+ * ODsay 대중교통 경로. 서버에서만 부르고, 사용자가 '경로 보기'를 누를 때만 쓴다
+ * (무료 등급은 하루 호출 수가 적다 — 전국 일괄 호출 금지).
+ */
+export function odsayKey(): string {
+  return (process.env.ODSAY_API_KEY ?? '').trim()
+}
+
+/**
  * HUG 서울특별시 분양아파트 기본현황(공공데이터포털 15152174) — 이 서비스가 활용신청된
  * 공공데이터포털 키. 마이홈과 같은 키로 승인돼 있어 HUG_SEOUL_API_KEY 가 없으면 MYHOME_API_KEY 로
  * 물러선다. 공용 키(DATA_GO_KR_API_KEY)로는 부르지 않는다 — 신청되지 않은 서비스다.

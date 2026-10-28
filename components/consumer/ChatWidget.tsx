@@ -26,6 +26,11 @@ type Phase = 'closed' | 'open' | 'closing'
 /** 닫히는 연출의 길이 — consumer-phone.css 의 cs-phone-sleep 과 맞춘다 */
 const CLOSE_MS = 340
 
+/** 안내 말풍선 — 닫으면 이 브라우저에서는 다시 띄우지 않는다 */
+const HINT_KEY = 'zc:chat-hint-dismissed'
+/** 첫 화면을 다 읽을 틈을 준 뒤에 말을 건다 */
+const HINT_DELAY_MS = 2400
+
 const GREETING: Pick<ChatMsg, 'role' | 'text' | 'actions'> = {
   role: 'bot',
   text:
@@ -37,6 +42,8 @@ const QUICK = ['내 조건에 맞는 공고 있어요?', '자격이 되는지 �
 
 export default function ChatWidget() {
   const [phase, setPhase] = useState<Phase>('closed')
+  /** 버튼 옆 안내 말풍선. 닫았거나 한 번이라도 열어 봤으면 다시 나오지 않는다 */
+  const [hint, setHint] = useState(false)
   /** 이번 방문에서 처음 켜는가 — 처음이면 부팅 로고, 아니면 짧게 깨어난다 */
   const [boot, setBoot] = useState<'cold' | 'warm'>('cold')
   const [msgs, setMsgs] = useState<ChatMsg[]>([])
@@ -68,7 +75,29 @@ export default function ChatWidget() {
 
   /* ── 열고 닫기 ─────────────────────────────────────── */
 
+  const dismissHint = () => {
+    setHint(false)
+    try {
+      localStorage.setItem(HINT_KEY, '1')
+    } catch {
+      /* 저장소가 막힌 브라우저 — 이번 방문에서만 닫힌다 */
+    }
+  }
+
+  useEffect(() => {
+    let seen = false
+    try {
+      seen = localStorage.getItem(HINT_KEY) === '1'
+    } catch {
+      seen = false
+    }
+    if (seen) return
+    const t = setTimeout(() => setHint(true), HINT_DELAY_MS)
+    return () => clearTimeout(t)
+  }, [])
+
   const openPhone = () => {
+    dismissHint()
     // 닫히는 중에 다시 누르면 그 자리에서 다시 켠다
     if (phase === 'open') return
     returnFocus.current = true
@@ -266,6 +295,20 @@ export default function ChatWidget() {
           무엇이든 물어보세요
         </span>
       </button>
+
+      {/* 말을 거는 말풍선 — 누르면 대화가 열리고, X 로 닫으면 다시 나오지 않는다 */}
+      {hint && phase === 'closed' && (
+        <div className="cs-chat-hint" role="status">
+          <button type="button" className="cs-chat-hint__body" onClick={openPhone}>
+            <b>궁금한 점이 있다면</b> 물어보세요
+          </button>
+          <button type="button" className="cs-chat-hint__close" onClick={dismissHint} aria-label="안내 닫기">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+              <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {shown && (
         <div ref={layerRef} className="cs-chat cs-phone" data-state={phase} data-boot={boot}>

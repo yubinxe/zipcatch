@@ -130,7 +130,8 @@ export default function HomeNoticeStrip() {
             />
           )}
           <div style={officialCount === 0 ? { marginTop: 26 } : undefined}>
-          <Carousel label="지금 살펴볼 모집공고">
+          {/* 지역·유형을 바꾸면 새로 붙여 첫 장부터 다시 보인다 */}
+          <Carousel key={`${region}|${type}`} label="지금 살펴볼 모집공고">
           {rows.map((row, i) => (
             <NoticeCard
               key={row.property.id}

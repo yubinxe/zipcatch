@@ -75,3 +75,19 @@ export const REGION_BBOX_BY_CODE = Object.fromEntries(
 export const REGION_CENTROID_BY_CODE = Object.fromEntries(
   KOREA_PROVINCES.map(p => [p.code, pathBBoxCenter(p.path)]),
 )
+
+/**
+ * 첫 화면 지도의 '보는 틀' — 본토와 제주만 담는다.
+ *
+ * 원본 viewBox(0 0 524 631)는 울릉도·독도(x 512~524)까지 담느라 오른쪽 4분의 1이
+ * 비어 있다. 그대로 칸에 맞추면 본토가 왼쪽 위로 쏠려 보인다(실측: 왼쪽 40px · 위 33px).
+ * 본토(x 1~397, y 0~527)와 제주(y ~630)를 감싸고 사방에 같은 여백을 둔다.
+ * 울릉도·독도는 지우지 않는다 — KOREA_ISLAND_INSET 으로 오른쪽 위 상자에 따로 그린다.
+ */
+export const KOREA_VISUAL_VIEWBOX = '-14 -14 426 660'
+
+/** 울릉도·독도를 담는 작은 상자의 viewBox(원본 좌표 x 512~524, y 127~139 둘레) */
+export const KOREA_ISLAND_INSET = '506 121 24 24'
+
+/** 울릉도·독도가 들어 있는 경로(경북) */
+export const KOREA_ISLAND_PROVINCE = KOREA_PROVINCES.find(p => p.id === 'north-gyeongsang')

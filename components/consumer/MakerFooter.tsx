@@ -1,3 +1,5 @@
+import Reveal from './Reveal'
+
 /**
  * 바닥글 — 이 서비스를 만든 사람에게로 이어지는 길.
  *
@@ -67,79 +69,107 @@ const Arrow = () => (
   </svg>
 )
 
+const GITHUB = CHANNELS.find(c => c.key === 'github')!
+const OTHERS = CHANNELS.filter(c => c.key !== 'github')
+
+/**
+ * 마지막 장면 — 만든 사람.
+ *
+ * 화면 하나를 채우는 완결된 장면으로 끝낸다(데스크톱은 100svh 안에서, 좁은 화면은
+ * 세로로 늘어나되 잘리지 않게). 포트폴리오와 GitHub 는 같은 크기의 두 장으로 나란히 —
+ * 어느 하나가 곁다리로 보이지 않게 한다. 고지·출처는 장면 아래 작은 바닥줄로 내린다.
+ */
 export default function MakerFooter() {
   return (
     <footer className="cs-footer cs-maker">
-      <div className="cs-wrap">
-        <section className="cs-maker__card" aria-labelledby="cs-maker-name">
-          <div className="cs-maker__who">
-            <p className="cs-maker__eyebrow">MADE BY</p>
+      <section className="cs-maker__scene" aria-labelledby="cs-maker-name">
+        <div className="cs-maker__glow" aria-hidden="true">
+          <i />
+          <i />
+        </div>
+        <div className="cs-wrap cs-maker__stage">
+          <Reveal>
+            <p className="cs-maker__eyebrow">Built by</p>
             <h2 id="cs-maker-name" className="cs-maker__name">
               김유빈 <span>Yubin Kim</span>
             </h2>
-            <p className="cs-maker__role">AI 전략 컨설팅 · 자동화로 증명하는 실력</p>
+            <p className="cs-maker__role">ZIPCATCH 기획·개발 · AI 전략기획·자동화</p>
             <p className="cs-maker__line">
-              판단의 근거를 만들고 실행으로 잇습니다. 집캐치도 그렇게 직접 기획하고 만들어 배포한 서비스입니다.
+              판단의 근거를 만들고 실행으로 잇습니다. 집캐치는 데이터 수집부터 지도·3D·배포까지 직접 기획하고 만든 서비스입니다.
             </p>
+          </Reveal>
 
-            <div className="cs-maker__cta">
-              <a href={PORTFOLIO} target="_blank" rel="author noopener" className="cs-maker__primary">
-                포트폴리오 보기
+          <Reveal delay={120} className="cs-maker__pair">
+            <a href={PORTFOLIO} target="_blank" rel="author noopener" className="cs-maker__big" data-k="portfolio">
+              <span className="cs-maker__big-k">Portfolio</span>
+              <b>포트폴리오</b>
+              <span className="cs-maker__big-url">yubinxe.github.io/Portfolio</span>
+              <span className="cs-maker__big-go">
                 <Arrow />
-              </a>
-              <a
-                href="mailto:yubin120866@gmail.com?subject=%5B%EC%A7%91%EC%BA%90%EC%B9%98%5D%20%ED%98%91%EC%97%85%C2%B7%EA%B0%95%EC%9D%98%20%EB%AC%B8%EC%9D%98"
-                className="cs-maker__secondary"
-              >
-                협업·강의 문의
-              </a>
-            </div>
+              </span>
+            </a>
+            <a href={GITHUB.href} target="_blank" rel="me noopener" className="cs-maker__big" data-k="github">
+              <span className="cs-maker__big-k">GitHub</span>
+              <b>깃허브</b>
+              <span className="cs-maker__big-url">{GITHUB.handle}</span>
+              <span className="cs-maker__big-go">
+                <Arrow />
+              </span>
+            </a>
+          </Reveal>
 
+          <Reveal delay={220} className="cs-maker__rest">
+            <a
+              href="mailto:yubin120866@gmail.com?subject=%5B%EC%A7%91%EC%BA%90%EC%B9%98%5D%20%ED%98%91%EC%97%85%C2%B7%EA%B0%95%EC%9D%98%20%EB%AC%B8%EC%9D%98"
+              className="cs-maker__mail"
+            >
+              협업·강의 문의
+              <Arrow />
+            </a>
+            <ul className="cs-maker__channels" aria-label="다른 채널">
+              {OTHERS.map(c => (
+                <li key={c.key}>
+                  <a href={c.href} target="_blank" rel="me noopener" className="cs-maker__channel" data-ch={c.key}>
+                    <span className="cs-maker__icon">{c.icon}</span>
+                    <span className="cs-maker__ch-text">
+                      <b>{c.label}</b>
+                      <span>{c.handle}</span>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
             <ul className="cs-maker__more">
               <li>
                 <a href={`${PORTFOLIO}career.html`} target="_blank" rel="noopener">
-                  경력 상세 <Arrow />
+                  경력 상세
                 </a>
               </li>
               <li>
                 <a href={`${PORTFOLIO}lecture.html`} target="_blank" rel="noopener">
-                  AI · 부동산 강의 <Arrow />
+                  AI · 부동산 강의
                 </a>
               </li>
               <li>
                 <a href={`${PORTFOLIO}gallery.html`} target="_blank" rel="noopener">
-                  갤러리 <Arrow />
+                  갤러리
                 </a>
               </li>
             </ul>
-          </div>
-
-          <ul className="cs-maker__channels" aria-label="채널">
-            {CHANNELS.map(c => (
-              <li key={c.key}>
-                <a href={c.href} target="_blank" rel="me noopener" className="cs-maker__channel" data-ch={c.key}>
-                  <span className="cs-maker__icon">{c.icon}</span>
-                  <span className="cs-maker__ch-text">
-                    <b>{c.label}</b>
-                    <span>{c.handle}</span>
-                  </span>
-                  <span className="cs-maker__go">
-                    <Arrow />
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <div className="cs-maker__legal">
-          <p>
-            집캐치는 공개된 공고 정보를 정리해 보여드리는 참고 서비스입니다. 자격 판정과 당첨 여부를 확정하지 않으며, 신청
-            전 반드시 공식 모집공고문을 확인해 주세요.
-          </p>
-          <p>공고·통계 출처: 공공데이터포털 청약홈 OpenAPI · LH 청약플러스 · 한국부동산원.</p>
-          <p className="cs-maker__copy">© 2026 집캐치 · 기획·개발 김유빈</p>
+          </Reveal>
         </div>
+      </section>
+
+      <div className="cs-wrap cs-maker__legal">
+        <p>
+          집캐치는 공개된 공고 정보를 정리해 보여드리는 참고 서비스입니다. 자격 판정과 당첨 여부를 확정하지 않으며, 신청 전
+          반드시 공식 모집공고문을 확인해 주세요.
+        </p>
+        <p>
+          공고·통계 출처: 공공데이터포털 청약홈 · LH 청약플러스 · 마이홈포털 · 한국부동산원 ·{' '}
+          <a href="/sources">출처와 라이선스 전체 보기</a>
+        </p>
+        <p className="cs-maker__copy">© 2026 집캐치 · 기획·개발 김유빈</p>
       </div>
     </footer>
   )

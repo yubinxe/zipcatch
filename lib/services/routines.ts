@@ -1,6 +1,7 @@
 import * as repo from '@/lib/db/repo'
 import { fetchApplyhome } from '@/lib/adapters/applyhome'
 import { fetchLh } from '@/lib/adapters/lh'
+import { syncMyhome } from '@/lib/services/myhome-sync'
 import { runMatchingForEvent } from '@/lib/services/pipeline'
 import { daysUntil } from '@/lib/services/matching'
 import { STAGE_LABEL } from '@/lib/services/lead-scoring'
@@ -84,6 +85,13 @@ const syncNotices: RoutineDef = {
       }
       sources.push({ source, label, ok: true, fetched: res.rows.length, inserted: up.inserted, updated: up.updated })
     }
+
+    // 마이홈 — LH 공고의 빈 칸(금액·주소·접수일)을 채우고, LH 밖 공급기관 공고를 싣는다
+    const myhome = await syncMyhome()
+    sources.push({ source: 'MYHOME', label: '마이홈', ...myhome })
+    if (!myhome.ok && myhome.reason) failures.push(`마이홈: ${myhome.reason}`)
+    inserted += myhome.inserted ?? 0
+    for (const k of myhome.newKeys ?? []) newKeys.push(k)
 
     // 신규 공고만 이벤트로 올린다. 매칭·알림 폭주를 막기 위해 상한을 둔다.
     const all = await repo.listOpportunities({ includeDemo: false, limit: 1000 })

@@ -4,6 +4,7 @@ import {
   type CompetitionRow,
 } from '@/lib/adapters/applyhome-competition'
 import * as repo from '@/lib/db/repo'
+import { mapProvince, provinceOf } from '@/lib/consumer/classify'
 
 /**
  * 공급 판독 — 끝난 공고가 지금 넣을 사람에게 말해 주는 것.
@@ -44,6 +45,21 @@ export interface ResideSplit {
   share: number
 }
 
+/** 광역 한 칸의 판독 — 지표마다 뜻이 달라 하나의 점수로 합치지 않는다 */
+export interface ProvinceSupply {
+  province: string
+  /** 공고 수 */
+  notices: number
+  /** 분석한 주택형 수(1순위 기준) */
+  types: number
+  /** 마지막 구역까지 가고도 세대가 남은 주택형 수 */
+  short: number
+  /** 공급 세대 합 */
+  supply: number
+  /** 1순위 접수 합(모든 구역) */
+  applied: number
+}
+
 export interface SupplyRead {
   ok: boolean
   reason: string | null
@@ -60,6 +76,9 @@ export interface SupplyRead {
   wentToRank2: number
   /** 가장 붐빈 주택형 */
   hottest: { pblancNo: string; houseTy: string; rate: number; supply: number }[]
+  /** 광역별 판독 — 지도용. 저장소에서 지역을 찾지 못한 공고는 unplaced 로 센다 */
+  provinces: ProvinceSupply[]
+  unplaced: number
 }
 
 /**
@@ -104,6 +123,8 @@ export async function readSupply(opts: { pages?: number } = {}): Promise<SupplyR
       reside: [],
       wentToRank2: 0,
       hottest: [],
+      provinces: [],
+      unplaced: 0,
     }
   }
 
@@ -147,11 +168,14 @@ export async function readSupply(opts: { pages?: number } = {}): Promise<SupplyR
     .slice(0, 8)
 
   // 공고번호만 적으면 무슨 단지인지 알 수 없다. 저장소에서 이름을 붙인다.
-  const titles = new Map<string, { title: string; region: string }>()
+  const titles = new Map<string, { title: string; region: string; province: string }>()
   try {
     for (const o of await repo.listOpportunities({ includeDemo: false, limit: 1000 })) {
       const no = (o.external_id ?? '').split('-').pop()
-      if (no) titles.set(no, { title: o.title, region: o.region })
+      if (no) {
+        const province = mapProvince(provinceOf({ region: o.region, district: o.district ?? '' }), o.region)
+        titles.set(no, { title: o.title, region: o.region, province })
+      }
     }
   } catch {
     // 이름을 못 붙여도 판독 자체는 성립한다
@@ -186,9 +210,35 @@ export async function readSupply(opts: { pages?: number } = {}): Promise<SupplyR
     rows.filter(r => r.rank === 2 && r.applied > 0).map(r => r.pblancNo),
   ).size
 
+  // 광역별로 다시 모은다 — 같은 주택형 단위(perType), 같은 미달 기준(연쇄의 마지막 줄)
+  const byProv = new Map<string, ProvinceSupply & { _n: Set<string> }>()
+  let unplaced = 0
+  for (const v of perType.values()) {
+    const prov = titles.get(v.row.pblancNo)?.province
+    if (!prov) {
+      unplaced++
+      continue
+    }
+    let p = byProv.get(prov)
+    if (!p) {
+      p = { province: prov, notices: 0, types: 0, short: 0, supply: 0, applied: 0, _n: new Set() }
+      byProv.set(prov, p)
+    }
+    p._n.add(v.row.pblancNo)
+    p.types++
+    if (v.last.shortBy > 0) p.short++
+    p.supply += v.row.supply
+    p.applied += v.applied
+  }
+  const provinces: ProvinceSupply[] = [...byProv.values()]
+    .map(({ _n, ...p }) => ({ ...p, notices: _n.size }))
+    .sort((a, b) => b.types - a.types)
+
   return {
     ok: true,
     reason: res.ok ? null : res.reason,
+    provinces,
+    unplaced,
     scanned: res.scanned,
     notices,
     shortages,

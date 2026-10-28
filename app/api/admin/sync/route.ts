@@ -3,6 +3,7 @@ import { fetchApplyhome, isApplyhomeConfigured } from '@/lib/adapters/applyhome'
 import { fetchLh, isLhConfigured } from '@/lib/adapters/lh'
 import * as repo from '@/lib/db/repo'
 import { fillCoordinates } from '@/lib/services/geocode-fill'
+import { syncMyhome } from '@/lib/services/myhome-sync'
 
 export const dynamic = 'force-dynamic'
 /**
@@ -13,7 +14,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
 interface SourceReport {
-  source: 'APPLYHOME' | 'LH'
+  source: 'APPLYHOME' | 'LH' | 'MYHOME'
   label: string
   ok: boolean
   reason: string | null
@@ -29,6 +30,7 @@ interface SourceReport {
  *
  *  - 청약홈(ApplyHome) — 분양 모집공고
  *  - LH 청약플러스      — 임대 모집공고
+ *  - 마이홈포털          — LH 공고의 빈 칸(금액·주소·접수일) 보강 + LH 밖 공급기관 공고
  *
  * 한쪽이 실패해도 다른 쪽은 저장한다. 실패는 그대로 보고하며 예시 데이터로 덮지 않는다.
  */
@@ -69,6 +71,28 @@ export async function POST() {
       errors: upsert.errors,
     })
   }
+
+  // 마이홈은 LH 가 저장된 뒤에 돈다 — LH 행이 있어야 빈 칸을 채울 수 있다
+  const myhome = await syncMyhome().catch(err => ({
+    ok: false,
+    reason: err instanceof Error ? err.message : String(err),
+    fetched: 0,
+    enriched: 0,
+    inserted: 0,
+    updated: 0,
+    newKeys: [],
+  }))
+  sources.push({
+    source: 'MYHOME',
+    label: `마이홈 공공주택 공고 (LH 보강 ${myhome.enriched}건)`,
+    ok: myhome.ok,
+    reason: myhome.reason ?? null,
+    fetched: myhome.fetched,
+    inserted: myhome.inserted,
+    updated: myhome.updated + myhome.enriched,
+    failed: 0,
+    errors: [],
+  })
 
   /*
    * 새로 들어온 공고의 좌표를 여기서 찾아 둔다.

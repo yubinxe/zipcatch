@@ -1,26 +1,9 @@
 import { NextRequest } from 'next/server'
-import { dataPortalKey } from '@/lib/config/data-portal-key'
+import { monthCond, odcloudAll } from '@/lib/adapters/odcloud'
 
-const BASE = 'https://api.odcloud.kr/api'
-const KEY = dataPortalKey()
-
+/** 지역별 청약 경쟁률 통계 — 조건에 맞는 건을 마지막 쪽까지 받는다(lib/adapters/odcloud) */
 export async function GET(req: NextRequest) {
-  const sp = req.nextUrl.searchParams
-  const month = sp.get('month') ?? ''
-
-  const params = new URLSearchParams({
-    serviceKey: KEY,
-    page: '1',
-    perPage: '500',
-    returnType: 'JSON',
-  })
-  if (month) {
-    params.set('cond[STAT_DE::GTE]', month)
-    params.set('cond[STAT_DE::LTE]', month)
-  }
-
-  const url = `${BASE}/ApplyhomeStatSvc/v1/getAPTCmpetrtAreaStat?${params}`
-  const res = await fetch(url, { next: { revalidate: 600 } })
-  const data = await res.json()
+  const month = req.nextUrl.searchParams.get('month') ?? ''
+  const data = await odcloudAll('ApplyhomeStatSvc/v1/getAPTCmpetrtAreaStat', monthCond(month))
   return Response.json(data)
 }

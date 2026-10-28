@@ -74,7 +74,7 @@ const PROVINCE: Record<string, string> = {
   전국: '전국',
 }
 
-function shortProvince(raw: string | undefined): string {
+export function shortProvince(raw: string | undefined): string {
   const s = (raw ?? '').trim()
   return PROVINCE[s] ?? s
 }

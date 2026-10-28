@@ -69,3 +69,14 @@ export function isRental(housingType: string): boolean {
 export function kindRank(housingType: string): number {
   return isRental(housingType) ? 1 : 0
 }
+
+/**
+ * 지도의 칸 이름(17개 광역). 2026년 출범한 전남광주통합특별시는 자료에서 '전남·광주'
+ * 하나로 오지만 지도는 광주와 전남을 따로 그린다. 통합시 안에서 '…구'로 끝나는 곳은
+ * 옛 광주광역시의 자치구(동·서·남·북·광산구)뿐이라, 그 규칙으로만 가른다 —
+ * 근거 없이 아무 칸에 두지 않는다.
+ */
+export function mapProvince(province: string, region?: string | null): string {
+  if (province !== '전남·광주') return province
+  return /구$/.test((region ?? '').trim()) ? '광주' : '전남'
+}
