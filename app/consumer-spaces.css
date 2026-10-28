@@ -1,0 +1,3117 @@
+/* 집캐치 3.0 — spaces 층. consumer-immersive.css 뒤에 온다 */
+/* ============================================================
+   하위 화면 A — 공고 · 공고 상세 · 내 후보 · 관심공고 · 비교 · 지도
+
+   모든 화면은 같은 문으로 들어선다: 밤 무대(PageMasthead)가 열리고, 그 아래
+   밝은 작업 지면이 무대 바닥 위로 한 장 떠올라 이어진다. 문은 같고 방이 다르다.
+
+     공고        카탈로그 홀 — 거르기 판 + 손끝을 따라 기우는 카드
+     공고 상세   문서 책상 — 종이 한 장의 문서 + 붙어 따라오는 요점 레일
+     내 후보     추천 목록 — 한 줄 판독 + 두 층의 카드
+     관심공고    감시판 — 남은 날 활주로 + 비교 담기
+     비교        사양서 — 기둥처럼 선 열 머리 + 다른 줄만 남기는 표
+     지도        상황실 — 밤 판 위의 지도와 범위 목록
+
+   규칙
+   - 색은 consumer-night.css 의 토큰만 쓴다. 주황은 마감과 행동에만
+   - 모서리: 단추 6px · 카드 16px. 알약(999px)은 칩·표지에만
+   - 움직임은 transform · opacity · filter 만. 움직임을 줄인 사용자에게는 걸지 않는다
+   - 클래스 접두는 cs-sa-. 기존 부품(cs-notice · cs-chip …)은 .cs-sa 안에서만 다시 칠한다
+   ============================================================ */
+
+/* ── 0. 이 층의 토큰 ─────────────────────────────────────── */
+.cs-sa {
+  --sa-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --sa-rise: clamp(52px, 6vw, 84px);
+  --sa-lift-1: 0 1px 2px rgba(11, 14, 20, 0.04), 0 12px 32px -22px rgba(11, 14, 20, 0.3);
+  --sa-lift-2: 0 2px 4px rgba(11, 14, 20, 0.04), 0 36px 64px -34px rgba(11, 14, 20, 0.5),
+    0 18px 38px -30px rgba(194, 65, 12, 0.42);
+  --sa-panel: 0 1px 2px rgba(11, 14, 20, 0.05), 0 40px 80px -48px rgba(11, 14, 20, 0.6);
+  --sa-top: calc(var(--header-h) + 20px);
+}
+@media (max-width: 760px) {
+  .cs-sa {
+    /* 휴대폰 머리글은 두 줄(로고 · 메뉴)이다 */
+    --sa-top: 128px;
+  }
+}
+
+/* 무대 아래 여백은 이 층이 정한다 — 작업 지면이 무대 바닥 위로 올라선다 */
+.cs-sa > .cs-mast {
+  margin-bottom: 0;
+}
+
+/* 이 지면의 글은 전역 단락 리듬(.cs-main p + p)을 따르지 않는다 */
+.cs-sa .cs-sa-tally,
+.cs-sa .cs-sa-facts li {
+  margin: 0;
+}
+
+/* ── 1. 무대 위의 요약 — 숫자 · 표지 · 단추 ─────────────────── */
+.cs-sa-mrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 22px 40px;
+}
+.cs-sa .cs-sa-tally {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 0;
+  color: #fff;
+}
+.cs-sa-tally__n {
+  font-size: clamp(46px, 5vw, 68px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  /* 굴러가는 띠는 칸 밖을 자른다 — 빛은 글자 모양을 따라 바깥에서 두른다 */
+  filter: drop-shadow(0 0 22px rgba(255, 138, 61, 0.42));
+}
+.cs-sa .cs-sa-tally__k {
+  max-width: 13em;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #BEC4CE;
+}
+
+.cs-sa-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.cs-sa .cs-mast .cs-btn {
+  min-height: 50px;
+  padding: 0 22px;
+  font-size: 16px;
+}
+.cs-sa .cs-mast .cs-btn.cs-btn--ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+.cs-sa .cs-mast .cs-btn.cs-btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 178, 122, 0.6);
+}
+.cs-sa .cs-mast .cs-btn:focus-visible,
+.cs-sa .cs-mast a:focus-visible,
+.cs-sa .cs-mast button:focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: 3px;
+}
+
+/* 무대 위 표지 — 조건·사실을 알약으로 */
+.cs-sa .cs-sa-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-sa .cs-sa-facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: #D5D9E0;
+}
+.cs-sa .cs-sa-facts li b {
+  font-weight: 700;
+  color: #fff;
+}
+.cs-sa .cs-sa-facts li > span:first-child:not(:only-child) {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: rgba(255, 178, 122, 0.9);
+}
+.cs-sa-facts__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--glow);
+  box-shadow: 0 0 10px 2px rgba(255, 138, 61, 0.7);
+}
+.cs-sa .cs-sa-facts li[data-dim='true'] {
+  color: rgba(213, 217, 224, 0.62);
+  border-style: dashed;
+}
+/* 무대 위의 글 단추 — 표지 줄 끝에 붙는다 */
+.cs-sa .cs-sa-mlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--glow);
+  text-decoration: none;
+}
+.cs-sa .cs-sa-mlink:hover {
+  color: #fff;
+}
+.cs-sa-mlink i {
+  font-style: normal;
+  transition: transform 0.3s var(--sa-ease);
+}
+.cs-sa-mlink:hover i {
+  transform: translateX(3px);
+}
+
+/* 무대 위 숫자 판 — 네 칸을 괘선으로 나눈다 */
+.cs-sa .cs-sa-kpis {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 4), minmax(0, auto));
+  justify-content: start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-sa .cs-sa-kpis li {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 4px clamp(18px, 2.6vw, 34px) 4px 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+.cs-sa .cs-sa-kpis li + li {
+  padding-left: clamp(18px, 2.6vw, 34px);
+}
+.cs-sa .cs-sa-kpis li:last-child {
+  border-right: 0;
+}
+.cs-sa-kpis__n {
+  font-size: clamp(30px, 3.2vw, 42px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+.cs-sa-kpis__n i {
+  margin: 0 3px;
+  font-style: normal;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.35);
+}
+.cs-sa-kpis li[data-hot='true'] .cs-sa-kpis__n {
+  color: var(--glow);
+  text-shadow: 0 0 28px rgba(255, 138, 61, 0.55);
+}
+.cs-sa .cs-sa-kpis__k {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #AEB5C0;
+  white-space: nowrap;
+}
+
+/* ── 2. 작업 지면의 공통 부품 ─────────────────────────────── */
+/* 영문 이름표 — 무대의 눈썹과 같은 말투를 밝은 지면에서 */
+.cs-sa-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.cs-sa-kicker::before {
+  content: '';
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+/* 절의 머리 — 이름표 · 제목 · 오른쪽의 보조 */
+.cs-sa-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin: 0 0 22px;
+}
+.cs-sa-head__t {
+  display: grid;
+  gap: 10px;
+}
+.cs-sa .cs-sa-h2 {
+  margin: 0;
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.035em;
+  color: var(--title);
+  word-break: keep-all;
+}
+.cs-sa .cs-sa-h2 .cs-num {
+  color: var(--accent);
+}
+.cs-sa .cs-sa-sub {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+/* 비어 있을 때 — 세 겹의 판이 비스듬히 떠 있다. 경고가 아니라 '아직'이다 */
+.cs-sa .cs-sa-empty {
+  display: grid;
+  justify-items: center;
+  padding: clamp(48px, 7vw, 84px) 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background:
+    radial-gradient(60% 80% at 50% 0%, rgba(255, 178, 122, 0.12), transparent 70%),
+    var(--surface);
+  box-shadow: var(--sa-lift-1);
+  text-align: center;
+}
+.cs-sa .cs-sa-empty .cs-empty__title {
+  margin: 0 0 8px;
+  font-size: clamp(20px, 2vw, 24px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  word-break: keep-all;
+}
+.cs-sa .cs-sa-empty .cs-empty__desc {
+  margin: 0;
+  max-width: 40ch;
+  font-size: 16px;
+}
+.cs-sa-empty__acts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 26px;
+}
+.cs-sa .cs-sa-empty__acts .cs-btn {
+  min-height: 50px;
+  font-size: 16px;
+}
+.cs-sa-empty__mark {
+  position: relative;
+  display: block;
+  width: 92px;
+  height: 76px;
+  margin: 0 auto 26px;
+  transform: perspective(520px) rotateX(58deg) rotateZ(-36deg);
+  transform-style: preserve-3d;
+}
+.cs-sa-empty__mark i {
+  position: absolute;
+  inset: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  box-shadow: 0 14px 22px -14px rgba(11, 14, 20, 0.5);
+}
+.cs-sa-empty__mark i:nth-child(2) {
+  transform: translateZ(13px);
+}
+.cs-sa-empty__mark i:nth-child(3) {
+  transform: translateZ(26px);
+  border-color: rgba(194, 65, 12, 0.45);
+  background: linear-gradient(135deg, #fff 30%, #FFE7D6);
+  box-shadow: 0 0 0 1px rgba(255, 178, 122, 0.2), 0 18px 30px -16px rgba(194, 65, 12, 0.55);
+}
+.cs-sa-empty__mark i:nth-child(3)::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  top: 22%;
+  width: 34%;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--accent);
+  box-shadow: 0 10px 0 -1px rgba(194, 65, 12, 0.3);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cs-sa-empty__mark i:nth-child(3) {
+    animation: cs-sa-float 5s ease-in-out infinite;
+  }
+}
+@keyframes cs-sa-float {
+  0%,
+  100% {
+    transform: translateZ(26px);
+  }
+  50% {
+    transform: translateZ(34px);
+  }
+}
+
+/* 불러오지 못했을 때 — 붉은 띠가 아니라 다시 할 일을 적은 판 */
+.cs-sa .cs-sa-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+  padding: 20px 22px;
+  border: 1px solid rgba(194, 65, 12, 0.28);
+  border-radius: 16px;
+  background: linear-gradient(90deg, var(--accent-soft), #fff 70%);
+  color: var(--title);
+  font-size: 16px;
+  font-weight: 600;
+}
+.cs-sa .cs-sa-error::before {
+  content: '!';
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  flex: none;
+}
+.cs-sa .cs-sa-error > span {
+  flex: 1 1 18em;
+}
+.cs-sa .cs-sa-error .cs-btn {
+  min-height: 44px;
+  font-size: 15px;
+}
+
+/* 기다리는 칸 — 밝은 지면의 결로 */
+.cs-sa .cs-skel {
+  background: linear-gradient(90deg, #ECEEF1 25%, #F6F7F9 50%, #ECEEF1 75%);
+  background-size: 200% 100%;
+  border-radius: 16px;
+}
+.cs-sa .cs-sa-skel {
+  height: 344px;
+}
+
+/* 지면 맨 아래의 출처·주의 */
+.cs-sa .cs-sa-foot {
+  margin: 28px 0 0;
+  max-width: 82ch;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* 예시만 남았을 때의 안내 — 지면 위 한 장으로 */
+.cs-sa .cs-vacancy {
+  padding: 26px 28px 28px;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--title);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--sa-lift-1);
+}
+
+/* ── 3. 거르기 판 — 무대 바닥 위로 떠오른 한 장 ──────────────── */
+.cs-sa-console {
+  position: relative;
+  z-index: 2;
+  margin-top: calc(var(--sa-rise) * -1);
+  padding: 18px clamp(18px, 2.4vw, 28px) 8px;
+  border: 1px solid rgba(11, 14, 20, 0.08);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--sa-panel);
+}
+.cs-sa-console__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding-bottom: 12px;
+}
+.cs-sa .cs-sa-console__hint {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.cs-sa-reset {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--title);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.cs-sa-reset:hover {
+  border-color: var(--title);
+  background: #fff;
+}
+.cs-sa-reset:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cs-sa .cs-sa-console__none {
+  margin: 0;
+  padding: 4px 0 14px;
+  font-size: 14.5px;
+  color: var(--muted);
+}
+.cs-sa-console__skel {
+  display: grid;
+  gap: 12px;
+  padding: 8px 0 16px;
+}
+.cs-sa-console__skel span {
+  height: 40px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ECEEF1 25%, #F6F7F9 50%, #ECEEF1 75%);
+  background-size: 200% 100%;
+  animation: csShimmer 1.4s linear infinite;
+}
+.cs-sa-console__skel span:last-child {
+  width: 72%;
+}
+
+.cs-sa .cs-filter {
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+.cs-sa .cs-filter__label {
+  padding-top: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: var(--title);
+}
+.cs-sa .cs-filter__chips {
+  gap: 8px;
+}
+.cs-sa .cs-chip {
+  position: relative;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 15px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--body);
+  box-shadow: 0 1px 1px rgba(11, 14, 20, 0.03);
+  transition: transform 0.35s var(--sa-ease), background 0.25s, border-color 0.25s, color 0.25s, box-shadow 0.35s;
+}
+/* 눈에 보이는 칸은 40px, 손끝이 닿는 자리는 44px */
+.cs-sa .cs-chip::before {
+  content: '';
+  position: absolute;
+  inset: -2px 0;
+}
+.cs-sa .cs-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(11, 14, 20, 0.36);
+  box-shadow: 0 8px 16px -12px rgba(11, 14, 20, 0.45);
+}
+.cs-sa .cs-chip[data-on='true'] {
+  border-color: var(--night);
+  background: linear-gradient(180deg, #1A212E, var(--night));
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 20px -12px rgba(11, 14, 20, 0.7);
+}
+.cs-sa .cs-chip__n {
+  min-width: 1.4em;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+}
+.cs-sa .cs-chip[data-on='true'] .cs-chip__n {
+  color: var(--glow);
+  opacity: 1;
+}
+.cs-sa .cs-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .cs-sa .cs-filter {
+    grid-template-columns: 40px minmax(0, 1fr);
+    column-gap: 10px;
+  }
+  /* 칩 줄은 판의 오른쪽 끝까지 흘리고, 끝을 흐려 더 있다는 것을 알린다 */
+  .cs-sa .cs-filter__chips {
+    margin-right: calc(clamp(18px, 2.4vw, 28px) * -1);
+    padding: 2px clamp(18px, 2.4vw, 28px) 2px 0;
+    -webkit-mask: linear-gradient(90deg, #000 82%, transparent);
+    mask: linear-gradient(90deg, #000 82%, transparent);
+  }
+  .cs-sa .cs-sa-console__hint {
+    display: none;
+  }
+}
+
+/* 거른 결과 한 줄 */
+.cs-sa-resbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  margin: clamp(30px, 3.4vw, 44px) 0 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.cs-sa-resbar__n {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--title);
+}
+.cs-sa .cs-sa-resbar__k {
+  font-size: 14.5px;
+  color: var(--muted);
+}
+.cs-sa .cs-sa-resbar__sort {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--body);
+}
+/* 차례를 말하는 작은 표 — 길이가 줄어드는 세 줄 */
+.cs-sa-resbar__sort::before {
+  content: '';
+  width: 14px;
+  height: 10px;
+  background:
+    linear-gradient(var(--accent), var(--accent)) 0 0 / 100% 2px no-repeat,
+    linear-gradient(var(--body), var(--body)) 0 4px / 70% 2px no-repeat,
+    linear-gradient(var(--body), var(--body)) 0 8px / 40% 2px no-repeat;
+}
+
+/* ── 4. 공고 카드 ─────────────────────────────────────────── */
+/*
+ * 구조(머리 · 금액 두 칸 · 마감 줄)는 어디서나 같다 — 홈의 밤 띠에서도 토큰만
+ * 뒤집혀 그대로 선다. 입체(기울기 · 반사광 · 겹)는 밝은 작업 지면에서만 켠다.
+ */
+.cs-notice__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  min-height: 28px;
+  margin-bottom: 12px;
+  padding-right: 64px;
+}
+.cs-notice__head .cs-notice__index {
+  display: inline-block;
+  margin: 0;
+}
+.cs-notice__glare {
+  display: none;
+}
+/* 금액 — 숫자는 크게, 단위는 작게, 이름표는 위에 */
+.cs-notice__price {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 4px 18px;
+  min-height: 0;
+}
+.cs-notice__price:has(.cs-notice__unknown) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.cs-notice__price > div {
+  min-width: 0;
+}
+.cs-notice__k {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--muted);
+}
+.cs-notice__v {
+  display: block;
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--title);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cs-notice__rent .cs-notice__v {
+  font-size: 21px;
+  font-weight: 750;
+}
+.cs-notice__v small {
+  margin-left: 2px;
+  font-size: 0.52em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--body);
+}
+.cs-notice__v[data-plain='true'] {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+}
+.cs-notice__rent {
+  margin-top: 0;
+}
+/* 바닥 — 마감 줄과 출처, 오른쪽에 저장 */
+.cs-notice__foot {
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 18px;
+}
+.cs-notice__meta {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  line-height: 1.35;
+}
+.cs-notice__due {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.cs-notice__due-k {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cs-notice__due-v {
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  color: var(--title);
+}
+.cs-notice__dday {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+.cs-notice__dday[data-hot='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+.cs-notice__src {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 홈의 밤 띠 — 마감 표지를 빛으로 */
+.cs-home .cs-notice__dday {
+  background: rgba(255, 138, 61, 0.16);
+  color: var(--glow);
+}
+.cs-home .cs-notice__dday[data-hot='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* 밝은 작업 지면의 카드 */
+.cs-sa .cs-notice-grid {
+  gap: clamp(16px, 1.8vw, 24px);
+}
+.cs-sa .cs-notice {
+  --rx: 0deg;
+  --ry: 0deg;
+  --lift: 0px;
+  isolation: isolate;
+  padding: 22px 22px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff 55%, #FCFCFD);
+  box-shadow: var(--sa-lift-1);
+  transform: perspective(1100px) rotateX(var(--rx)) rotateY(var(--ry)) translate3d(0, var(--lift), 0);
+  transition: transform 0.8s var(--sa-ease), box-shadow 0.6s var(--sa-ease), border-color 0.3s;
+}
+.cs-sa .cs-notice:hover {
+  --lift: -6px;
+  border-color: rgba(11, 14, 20, 0.16);
+  box-shadow: var(--sa-lift-2);
+}
+.cs-sa .cs-notice:active {
+  --lift: -2px;
+}
+.cs-sa .cs-notice__index {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+.cs-sa .cs-notice:hover .cs-notice__index {
+  letter-spacing: 0.12em;
+  color: var(--accent);
+}
+/* 표지 — 같은 높이의 알약 한 줄 */
+.cs-sa .cs-notice__top {
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.cs-sa :is(.cs-notice, .cs-sa-rail) .cs-badge {
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.cs-sa :is(.cs-notice, .cs-sa-rail) .cs-badge--brand {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--title);
+}
+.cs-sa .cs-notice :is(.cs-official, .cs-sample) {
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.cs-sa .cs-notice__name {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.36;
+  letter-spacing: -0.035em;
+  min-height: 0;
+  word-break: keep-all;
+}
+.cs-sa .cs-notice__where {
+  margin: 6px 0 0;
+  font-size: 14.5px;
+  color: var(--muted);
+}
+.cs-sa .cs-notice__sp {
+  margin: 14px 0 0;
+}
+.cs-sa .cs-notice__price {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.cs-sa .cs-notice__unknown {
+  font-size: 15px;
+  color: var(--muted);
+}
+/* 확인할 것 — 상자가 아니라 한 줄. 모든 카드에 같은 말이 붙는 일이 많아 크게 세우면 목록이 노랗게 덮인다 */
+.cs-sa .cs-notice__caution {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--check);
+}
+.cs-sa .cs-notice__caution::before {
+  content: '!';
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--check-soft);
+  box-shadow: inset 0 0 0 1px rgba(161, 98, 7, 0.35);
+  font-size: 12.5px;
+  font-weight: 800;
+}
+.cs-sa .cs-notice__reasons {
+  min-height: 0;
+  gap: 6px;
+  margin: 14px 0 0;
+}
+.cs-sa .cs-notice__reasons li {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+.cs-sa .cs-notice__reasons li::before {
+  width: 10px;
+  margin-top: 10px;
+  background: var(--accent);
+}
+.cs-sa .cs-notice__foot {
+  margin-top: auto;
+  padding-top: 16px;
+}
+.cs-sa .cs-notice .cs-save {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  transition: transform 0.35s var(--sa-ease), background 0.2s, color 0.2s, border-color 0.2s;
+}
+.cs-sa .cs-notice .cs-save:hover {
+  transform: scale(1.06);
+}
+.cs-sa .cs-notice .cs-save:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cs-sa .cs-notice__link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+/* 마감이 사흘 안 — 카드 윗변에 주황 한 줄 */
+.cs-sa .cs-notice:is([data-level='TODAY'], [data-level='IMMINENT'])::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 22px;
+  right: 22px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+  box-shadow: 0 4px 14px -2px rgba(194, 65, 12, 0.55);
+}
+.cs-sa .cs-notice[data-level='CLOSED'] {
+  background: var(--paper);
+}
+.cs-sa .cs-notice[data-level='CLOSED'] :is(.cs-notice__name, .cs-notice__v) {
+  color: var(--muted);
+}
+
+/* 입체 — 손끝을 따라 기울고, 겹이 서로 다른 거리만큼 밀려 깊이가 생긴다 */
+.cs-sa .cs-notice[data-depth='on'] {
+  --px: 0;
+  --py: 0;
+}
+.cs-sa .cs-notice[data-depth='on'][data-tilt] {
+  transition: transform 0.2s linear, box-shadow 0.6s var(--sa-ease), border-color 0.3s;
+}
+.cs-sa .cs-notice[data-depth='on'] :is(.cs-notice__name, .cs-notice__price, .cs-emblem, .cs-regionmark) {
+  transition: translate 0.8s var(--sa-ease), transform 0.8s var(--sa-ease);
+}
+.cs-sa .cs-notice[data-depth='on'][data-tilt] :is(.cs-notice__name, .cs-notice__price, .cs-emblem, .cs-regionmark) {
+  transition: translate 0.2s linear, transform 0.8s var(--sa-ease);
+}
+.cs-sa .cs-notice[data-depth='on'] .cs-notice__name {
+  translate: calc(var(--px) * 2px) calc(var(--py) * 1.5px);
+}
+.cs-sa .cs-notice[data-depth='on'] .cs-notice__price {
+  translate: calc(var(--px) * 4px) calc(var(--py) * 3px);
+}
+.cs-sa .cs-notice[data-depth='on'] :is(.cs-emblem, .cs-regionmark) {
+  translate: calc(var(--px) * 9px) calc(var(--py) * 7px);
+}
+.cs-sa .cs-notice[data-depth='on']:hover :is(.cs-emblem, .cs-regionmark) {
+  transform: translateY(-3px) scale(1.06);
+  filter: drop-shadow(0 10px 12px rgba(11, 14, 20, 0.18));
+}
+.cs-sa .cs-notice[data-depth='on'] .cs-notice__glare {
+  display: block;
+  position: absolute;
+  inset: 0;
+  /* 카드 바탕 위, 글자 아래 — 빛이 글자를 씻어 내지 않게 */
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(480px circle at var(--mx, 50%) var(--my, 0%), rgba(255, 178, 122, 0.2), transparent 44%),
+    linear-gradient(115deg, transparent 36%, rgba(255, 226, 196, 0.28) 48%, transparent 58%);
+  background-size: 100% 100%, 260% 100%;
+  background-position: 0 0, calc(100% - var(--mx, 50%)) 0;
+  opacity: 0;
+  transition: opacity 0.5s var(--sa-ease);
+}
+/* 테두리를 따라 도는 빛 — 손끝이 있는 쪽 모서리만 달아오른다 */
+.cs-sa .cs-notice[data-depth='on']::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%), rgba(194, 65, 12, 0.9), rgba(255, 155, 82, 0.35) 45%, transparent 72%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.5s var(--sa-ease);
+}
+.cs-sa .cs-notice[data-depth='on']:hover .cs-notice__glare,
+.cs-sa .cs-notice[data-depth='on']:hover::after {
+  opacity: 1;
+}
+
+/* 참고 후보 층 — 내려앉은 판 위의 괘선 카드. 기울지 않는다 */
+.cs-sa .cs-notice--nearby {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(11, 14, 20, 0.14);
+  box-shadow: none;
+}
+.cs-sa .cs-notice--nearby:hover {
+  --lift: -3px;
+  background: #fff;
+  box-shadow: var(--sa-lift-1);
+}
+
+/* 들어설 때 — 카드가 차례로 떠오른다(translate 만, 기울기 transform 과 겹치지 않게) */
+@media (prefers-reduced-motion: no-preference) {
+  .cs-sa-grid > * {
+    animation: cs-sa-rise 900ms var(--sa-ease) backwards;
+  }
+  .cs-sa-grid > :nth-child(2) { animation-delay: 60ms; }
+  .cs-sa-grid > :nth-child(3) { animation-delay: 120ms; }
+  .cs-sa-grid > :nth-child(4) { animation-delay: 180ms; }
+  .cs-sa-grid > :nth-child(5) { animation-delay: 240ms; }
+  .cs-sa-grid > :nth-child(6) { animation-delay: 300ms; }
+  .cs-sa-grid > :nth-child(7) { animation-delay: 360ms; }
+  .cs-sa-grid > :nth-child(8) { animation-delay: 420ms; }
+  .cs-sa-grid > :nth-child(n + 9) { animation-delay: 480ms; }
+}
+@keyframes cs-sa-rise {
+  from {
+    opacity: 0;
+    translate: 0 32px;
+  }
+}
+
+/* ── 5. 지도 — 밤 판 위의 상황실 ─────────────────────────── */
+.cs-sa-mapdock {
+  margin-top: clamp(56px, 7vw, 96px);
+}
+.cs-sa .cs-sa-map {
+  padding-top: 0;
+}
+.cs-sa .cs-sa-map > header {
+  margin-bottom: 22px;
+}
+.cs-sa-map__console {
+  position: relative;
+  isolation: isolate;
+  padding: 14px;
+  border-radius: 20px;
+  background:
+    radial-gradient(70% 60% at 85% 0%, rgba(255, 138, 61, 0.14), transparent 70%),
+    linear-gradient(180deg, var(--night-2), var(--night));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset, 0 50px 90px -50px rgba(11, 14, 20, 0.85),
+    0 30px 60px -40px rgba(194, 65, 12, 0.35);
+  color: #D5D9E0;
+}
+/* 판의 윗변에 지평선의 빛 한 줄 */
+.cs-sa-map__console::before {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 178, 122, 0.7), transparent);
+}
+.cs-sa .cs-map__bar {
+  align-items: center;
+  gap: 12px 20px;
+  margin: 0 0 14px;
+  padding: 4px 6px 0;
+}
+.cs-sa .cs-map__bar .cs-choose {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cs-sa .cs-map__bar .cs-choose__label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--glow);
+}
+.cs-sa .cs-map__bar .cs-choose__rail {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.cs-sa .cs-map__bar .cs-pill {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #C9CED6;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: none;
+}
+.cs-sa .cs-map__bar .cs-pill:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+.cs-sa .cs-map__bar .cs-pill[data-on='true'] {
+  background: linear-gradient(180deg, #FFFFFF, #ECEEF1);
+  color: var(--night);
+  box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.8);
+}
+.cs-sa .cs-map__bar .cs-pill:focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: 2px;
+}
+.cs-sa .cs-map__bar .cs-pill * {
+  color: inherit;
+}
+.cs-sa .cs-map__legend {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 0;
+}
+.cs-sa .cs-map__key,
+.cs-sa .cs-map__legend-day {
+  font-size: 13px;
+  font-weight: 600;
+  color: #AEB5C0;
+}
+.cs-sa .cs-map__days {
+  border-left-color: rgba(255, 255, 255, 0.12);
+}
+.cs-sa .cs-map__legend-dot {
+  border-color: var(--night);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.cs-sa .cs-map {
+  gap: 14px;
+}
+.cs-sa .cs-map__stage {
+  position: relative;
+}
+.cs-sa .cs-map__canvas {
+  border: 0;
+  border-radius: 12px;
+  background: #151C28;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.cs-sa .cs-map__side {
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.cs-sa .cs-map__side-head {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 15px;
+}
+.cs-sa .cs-map__side-head .cs-num {
+  font-weight: 800;
+  color: var(--glow);
+}
+.cs-sa .cs-map__side .cs-note {
+  color: #AEB5C0;
+}
+.cs-sa .cs-map__list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.cs-sa .cs-map__list a {
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 4px 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.2s;
+}
+.cs-sa .cs-map__list li[data-hover='true'] a,
+.cs-sa .cs-map__list a:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.cs-sa .cs-map__list a:focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: -2px;
+}
+.cs-sa .cs-map__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+.cs-sa .cs-map__meta {
+  font-size: 13px;
+  color: #AEB5C0;
+}
+.cs-sa .cs-map__dday {
+  justify-self: start;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 800;
+  color: #C9CED6;
+}
+.cs-sa .cs-map__list li .cs-map__dday[data-d] {
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+/* 밤 판 위의 두 색 — 분양은 빛, 임대는 옅은 쪽빛 */
+.cs-sa .cs-map__list li[data-kind='sale'] .cs-map__dday {
+  color: var(--glow);
+}
+.cs-sa .cs-map__list li[data-kind='rent'] .cs-map__dday {
+  color: var(--cal-rent-soft);
+}
+.cs-sa .cs-map__list li .cs-map__dday[data-d='0'] {
+  color: #fff;
+  background: var(--accent);
+}
+.cs-sa .cs-map__list li .cs-map__dday[data-d='1'] {
+  color: #FFD9B8;
+  background: rgba(255, 138, 61, 0.22);
+}
+.cs-sa .cs-map__list li .cs-map__dday[data-d='2'] {
+  color: #B9F0CC;
+  background: rgba(74, 222, 128, 0.16);
+}
+
+/* 지도가 서기 전 · 열지 못했을 때 — 비스듬히 누운 나라가 판 위에 떠 있다 */
+.cs-sa-land {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background:
+    radial-gradient(60% 55% at 50% 58%, rgba(255, 138, 61, 0.16), transparent 70%),
+    linear-gradient(180deg, #121823, #0B0E14);
+  perspective: 1100px;
+  pointer-events: none;
+}
+/* 바닥의 모눈 — 지평선 쪽으로 물러난다 */
+.cs-sa-land::before {
+  content: '';
+  position: absolute;
+  left: -40%;
+  right: -40%;
+  bottom: -30%;
+  height: 90%;
+  background:
+    linear-gradient(rgba(255, 178, 122, 0.12) 1px, transparent 1px) 0 0 / 64px 64px,
+    linear-gradient(90deg, rgba(255, 178, 122, 0.12) 1px, transparent 1px) 0 0 / 64px 64px;
+  transform: rotateX(68deg);
+  transform-origin: 50% 100%;
+  -webkit-mask: linear-gradient(to top, #000 10%, transparent 85%);
+  mask: linear-gradient(to top, #000 10%, transparent 85%);
+}
+.cs-sa-land__slab {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: min(46%, 330px);
+  aspect-ratio: 524 / 631;
+  transform: translate(-50%, -50%) rotateX(42deg) rotateZ(-8deg);
+  transform-style: preserve-3d;
+}
+.cs-sa-land__slab i {
+  position: absolute;
+  inset: 0;
+  -webkit-mask: url('/maps/korea-outline.svg') center / contain no-repeat;
+  mask: url('/maps/korea-outline.svg') center / contain no-repeat;
+}
+/* 아래 겹일수록 어둡게 — 겹 사이가 두께로 보인다 */
+.cs-sa-land__slab i:nth-child(1) {
+  transform: translateZ(-26px);
+  background: rgba(0, 0, 0, 0.55);
+  filter: blur(14px);
+}
+.cs-sa-land__slab i:nth-child(2) { transform: translateZ(0); background: #3A1D0E; }
+.cs-sa-land__slab i:nth-child(3) { transform: translateZ(3px); background: #6B2E0E; }
+.cs-sa-land__slab i:nth-child(4) { transform: translateZ(6px); background: #8E390C; }
+.cs-sa-land__slab i:nth-child(5) {
+  transform: translateZ(9px);
+  background:
+    radial-gradient(40% 30% at 32% 24%, rgba(255, 226, 196, 0.9), transparent 70%),
+    linear-gradient(160deg, #FFB27A, #C2410C 70%);
+  filter: drop-shadow(0 0 18px rgba(255, 138, 61, 0.45));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cs-sa-land__slab {
+    animation: cs-sa-slab 1400ms var(--sa-ease) backwards;
+  }
+  .cs-sa-land__slab i:nth-child(5) {
+    animation: cs-sa-breathe 4.8s ease-in-out infinite;
+  }
+}
+@keyframes cs-sa-slab {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -40%) rotateX(60deg) rotateZ(-20deg) scale(0.9);
+  }
+}
+@keyframes cs-sa-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.82;
+  }
+}
+
+/* 열지 못했을 때는 나라를 왼쪽으로 비켜 세우고 이유를 오른쪽 아래에 */
+.cs-sa .cs-map__fallback .cs-sa-land__slab {
+  left: 32%;
+}
+@media (max-width: 760px) {
+  /* 좁은 판에서는 나라를 위에, 이유를 그 아래에 — 겹치지 않게 쌓는다 */
+  .cs-sa .cs-map .cs-map__fallback {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 0;
+    padding-top: 230px;
+  }
+  .cs-sa .cs-map .cs-map__fallback .cs-sa-land__slab {
+    left: 50%;
+    top: 118px;
+    width: 150px;
+  }
+  .cs-sa .cs-map .cs-map__fallback .cs-sa-map__why {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    max-width: none;
+    margin: 0 10px 10px;
+  }
+}
+
+/* 기다림 — 판 위에 두 줄 */
+.cs-sa .cs-map__shell {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 18px;
+  background: none;
+  border: 0;
+  pointer-events: none;
+}
+.cs-sa .cs-map__shell-steps {
+  position: relative;
+  margin: 0;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(11, 14, 20, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  color: #D5D9E0;
+  font-size: 14px;
+}
+.cs-sa .cs-map__shell-steps li {
+  color: inherit;
+  font-size: 14px;
+}
+.cs-sa .cs-map__shell-steps i {
+  border-color: rgba(255, 255, 255, 0.2);
+  border-top-color: var(--glow);
+}
+.cs-sa .cs-map__shell-steps li[data-done] i {
+  border-color: var(--glow);
+  background: var(--glow);
+  box-shadow: inset 0 0 0 2px var(--night);
+}
+/* 판의 그림이 나라를 대신 그린다 */
+.cs-sa .cs-map__shell-art {
+  display: none;
+}
+
+/* 열지 못했을 때 — 이유는 판 위의 한 장에, 나라는 그 뒤에 */
+.cs-sa .cs-map__fallback {
+  position: relative;
+  min-height: var(--map-h);
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  overflow: hidden;
+}
+.cs-sa-map__why {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  margin-left: auto;
+  z-index: 2;
+  display: grid;
+  gap: 6px;
+  max-width: 420px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: rgba(11, 14, 20, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 24px 50px -30px rgba(0, 0, 0, 0.9);
+}
+.cs-sa .cs-sa-map__why .cs-vacancy__eyebrow {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--glow);
+}
+.cs-sa .cs-sa-map__why .cs-vacancy__title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+.cs-sa .cs-sa-map__why .cs-vacancy__desc {
+  margin: 0;
+  font-size: 14px;
+  color: #AEB5C0;
+}
+.cs-sa .cs-sa-map__note {
+  margin: 16px 2px 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.cs-sa .cs-sa-map__note .cs-btn--text {
+  min-height: 0;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--title);
+}
+
+/* 카카오가 그리는 표시 — 밤 판 위에서도 같은 문법 */
+.cs-sa a.cs-pin {
+  transition: transform 0.25s var(--sa-ease);
+}
+.cs-sa a.cs-pin:hover {
+  transform: translateY(-2px) scale(1.06);
+}
+
+/* ── 6. 떠오르는 첫 장 — 무대 바닥 위에 걸친다 ────────────────── */
+.cs-sa-deck {
+  position: relative;
+  z-index: 2;
+  margin-top: calc(var(--sa-rise) * -1);
+  padding: clamp(20px, 2.6vw, 30px);
+  border: 1px solid rgba(11, 14, 20, 0.08);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--sa-panel);
+}
+/* 안에 이미 판(빈 자리 · 오류)을 든 경우 — 겉 판은 그림자만 */
+.cs-sa-deck--plain {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.cs-sa .cs-sa-deck--plain > .cs-sa-empty {
+  box-shadow: var(--sa-panel);
+}
+.cs-sa-deck--plain > .cs-sa-error {
+  box-shadow: var(--sa-panel);
+}
+.cs-sa-deck__skel {
+  display: grid;
+  gap: 14px;
+}
+.cs-sa-deck__skel span {
+  height: 18px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #ECEEF1 25%, #F6F7F9 50%, #ECEEF1 75%);
+  background-size: 200% 100%;
+  animation: csShimmer 1.4s linear infinite;
+}
+.cs-sa-deck__skel span:first-child {
+  width: 30%;
+  height: 12px;
+}
+.cs-sa-deck__skel span:nth-child(2) {
+  width: 78%;
+  height: 26px;
+}
+.cs-sa-deck__skel span:nth-child(3) {
+  width: 56%;
+}
+.cs-sa-sec {
+  margin-top: clamp(44px, 5vw, 64px);
+}
+.cs-sa-gap {
+  margin-top: clamp(36px, 4vw, 52px);
+}
+.cs-sa .cs-sa-grid[data-after-note='true'] {
+  margin-top: 22px;
+}
+.cs-sa .cs-sa-head__aside {
+  max-width: 44ch;
+  font-size: 14.5px;
+}
+.cs-sa .cs-sa-head__aside b {
+  color: var(--title);
+}
+.cs-sa .cs-sa-inline-note {
+  margin: -6px 0 18px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.cs-sa .cs-sa-foot--tight {
+  margin-top: 14px;
+  padding-top: 0;
+  border-top: 0;
+}
+.cs-sa-mrow--facts {
+  align-items: center;
+  gap: 14px 22px;
+  /* 무대 오른쪽의 동네를 가리지 않게 — 넓은 화면에서는 글 격자 안에서 줄을 바꾼다 */
+  max-width: 700px;
+}
+
+/* 차례 세 칸 — 조건이 없을 때 무엇이 일어나는지 */
+.cs-sa .cs-sa-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin-left: 0;
+  margin-right: 0;
+  list-style: none;
+}
+.cs-sa .cs-sa-steps li {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  margin: 0;
+  padding: 4px clamp(16px, 2vw, 28px);
+  border-left: 1px solid var(--line);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.cs-sa .cs-sa-steps li:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.cs-sa .cs-sa-steps b {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--title);
+}
+.cs-sa-steps__n {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+}
+
+/* 한 줄 판독 */
+.cs-sa-brief {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px clamp(24px, 4vw, 56px);
+}
+.cs-sa-brief__body {
+  display: grid;
+  gap: 12px;
+}
+.cs-sa .cs-sa-brief__text {
+  margin: 0;
+  max-width: 46ch;
+  font-size: clamp(18px, 1.6vw, 21px);
+  font-weight: 600;
+  line-height: 1.6;
+  letter-spacing: -0.02em;
+  color: var(--title);
+  word-break: keep-all;
+}
+.cs-sa-brief__nums {
+  display: flex;
+  gap: 0;
+  margin: 0;
+}
+.cs-sa-brief__nums > div {
+  display: grid;
+  gap: 6px;
+  padding: 0 clamp(18px, 2.2vw, 28px);
+  border-left: 1px solid var(--line);
+}
+.cs-sa-brief__nums dt {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.cs-sa-brief__nums dd {
+  margin: 0;
+  font-size: clamp(34px, 3.4vw, 44px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  color: var(--title);
+}
+.cs-sa-brief__nums > div:first-child dd {
+  color: var(--accent);
+}
+
+/* 참고 후보 — 한 단 내려앉은 판 */
+.cs-sa .cs-sa-lower {
+  margin-top: clamp(48px, 5vw, 68px);
+  padding: clamp(24px, 3.4vw, 40px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background:
+    repeating-linear-gradient(135deg, rgba(11, 14, 20, 0.018) 0 2px, transparent 2px 10px),
+    var(--paper-2);
+  box-shadow: inset 0 2px 10px -6px rgba(11, 14, 20, 0.18);
+}
+.cs-sa .cs-sa-lower .cs-nearby__eyebrow {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.cs-sa .cs-sa-lower .cs-nearby__title {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  word-break: keep-all;
+}
+.cs-sa .cs-sa-lower .cs-nearby__desc {
+  font-size: 15.5px;
+}
+
+/* 다음 행동 — 작은 밤 무대. 지평선의 빛과 바닥 모눈이 같은 말투로 */
+.cs-sa .cs-sa-cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin-top: clamp(48px, 5vw, 68px);
+  padding: clamp(32px, 4.4vw, 56px);
+  border-radius: 20px;
+  background:
+    radial-gradient(70% 90% at 82% 120%, rgba(255, 122, 48, 0.36), transparent 62%),
+    linear-gradient(180deg, var(--night-2), var(--night));
+  color: #D5D9E0;
+  box-shadow: 0 40px 80px -50px rgba(11, 14, 20, 0.85);
+}
+.cs-sa-cta::before {
+  content: '';
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  bottom: -40%;
+  z-index: -1;
+  height: 90%;
+  background:
+    linear-gradient(rgba(255, 178, 122, 0.14) 1px, transparent 1px) 0 0 / 56px 56px,
+    linear-gradient(90deg, rgba(255, 178, 122, 0.14) 1px, transparent 1px) 0 0 / 56px 56px;
+  transform: perspective(600px) rotateX(64deg);
+  transform-origin: 50% 100%;
+  -webkit-mask: linear-gradient(to top, #000 15%, transparent 80%);
+  mask: linear-gradient(to top, #000 15%, transparent 80%);
+}
+.cs-sa-cta::after {
+  content: '';
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 178, 122, 0.6), transparent);
+}
+.cs-sa .cs-sa-cta .cs-sa-kicker {
+  color: var(--glow);
+}
+.cs-sa .cs-sa-cta__t {
+  margin: 14px 0 0;
+  max-width: 18em;
+  font-size: clamp(26px, 3vw, 40px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.045em;
+  color: #fff;
+  word-break: keep-all;
+}
+.cs-sa .cs-sa-cta__d {
+  margin: 14px 0 0;
+  max-width: 52ch;
+  font-size: 16px;
+  line-height: 1.7;
+  color: #BEC4CE;
+}
+.cs-sa-cta__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+.cs-sa .cs-sa-cta .cs-btn {
+  min-height: 50px;
+  font-size: 16px;
+}
+.cs-sa .cs-sa-cta .cs-btn.cs-btn--ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #fff;
+}
+.cs-sa .cs-sa-cta :is(a, button):focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: 3px;
+}
+
+/* ── 7. 관심공고 — 감시판 ─────────────────────────────────── */
+.cs-sa-watch {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 2fr);
+  gap: clamp(18px, 2.4vw, 28px);
+  align-items: stretch;
+}
+/* 가장 급한 공고 — 밤의 한 장 */
+.cs-sa .cs-sa-next {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 22px 22px 20px;
+  border-radius: 14px;
+  background:
+    radial-gradient(90% 80% at 100% 0%, rgba(255, 138, 61, 0.32), transparent 60%),
+    linear-gradient(160deg, #1A212E, var(--night));
+  color: #D5D9E0;
+  text-decoration: none;
+  box-shadow: 0 24px 44px -28px rgba(11, 14, 20, 0.9);
+  transition: transform 0.6s var(--sa-ease), box-shadow 0.6s var(--sa-ease);
+}
+.cs-sa a.cs-sa-next:hover {
+  transform: perspective(900px) translateY(-3px) rotateX(5deg) rotateY(-3deg);
+  box-shadow: 0 32px 54px -28px rgba(11, 14, 20, 0.95), 0 18px 40px -30px rgba(194, 65, 12, 0.7);
+}
+.cs-sa a.cs-sa-next:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.cs-sa-next__k {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--glow);
+}
+.cs-sa-next__d {
+  font-size: clamp(40px, 4vw, 54px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  color: #fff;
+  filter: drop-shadow(0 0 18px rgba(255, 138, 61, 0.45));
+}
+.cs-sa-next__n {
+  margin-top: 6px;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: -0.03em;
+  color: #fff;
+  word-break: keep-all;
+}
+.cs-sa-next__m {
+  font-size: 13.5px;
+  color: #AEB5C0;
+}
+.cs-sa-next__go {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  font-size: 20px;
+  color: var(--glow);
+  transition: transform 0.4s var(--sa-ease);
+}
+.cs-sa a.cs-sa-next:hover .cs-sa-next__go {
+  transform: translateX(4px);
+}
+.cs-sa .cs-sa-next[data-quiet='true'] .cs-sa-next__n {
+  font-size: 16px;
+}
+
+/* 남은 날 활주로 — 마감이 가까운 표부터 한 줄로 */
+.cs-sa-runway {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+.cs-sa-runway__k {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--title);
+}
+.cs-sa .cs-sa-runway__rail {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  padding: 4px 2px 14px;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.cs-sa .cs-sa-runway__rail li {
+  flex: none;
+  margin: 0;
+  scroll-snap-align: start;
+}
+.cs-sa-ticket {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  width: 170px;
+  min-height: 112px;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fff, #FAFAFB);
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(11, 14, 20, 0.04);
+  transition: transform 0.5s var(--sa-ease), box-shadow 0.5s var(--sa-ease), border-color 0.3s;
+}
+/* 표의 오른쪽 가장자리 — 끊어 쓰는 표처럼 점선 */
+.cs-sa-ticket::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  right: 34px;
+  border-right: 1px dashed var(--line);
+  opacity: 0;
+}
+.cs-sa-ticket:hover {
+  transform: perspective(700px) translateY(-4px) rotateX(8deg);
+  border-color: rgba(11, 14, 20, 0.2);
+  box-shadow: 0 18px 30px -22px rgba(11, 14, 20, 0.5);
+}
+.cs-sa-ticket:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cs-sa-ticket__d {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  color: var(--title);
+}
+.cs-sa-ticket[data-urgent='true'] {
+  border-color: rgba(194, 65, 12, 0.4);
+  background: linear-gradient(180deg, #FFF6F0, #fff);
+}
+.cs-sa-ticket[data-urgent='true'] .cs-sa-ticket__d {
+  color: var(--accent);
+}
+.cs-sa-ticket__n {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  color: var(--title);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cs-sa-ticket__k {
+  margin-top: auto;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.cs-sa-ticket[data-kind='sale'] .cs-sa-ticket__k::before,
+.cs-sa-ticket[data-kind='rent'] .cs-sa-ticket__k::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--cal-sale);
+  vertical-align: 1px;
+}
+.cs-sa-ticket[data-kind='rent'] .cs-sa-ticket__k::before {
+  background: var(--cal-rent);
+}
+.cs-sa .cs-sa-runway__none,
+.cs-sa .cs-sa-watch__note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.cs-sa .cs-sa-watch__note {
+  grid-column: 1 / -1;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+/* 받는 알림 */
+.cs-sa .cs-sa-alerts {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-sa .cs-sa-alerts li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--sa-lift-1);
+}
+.cs-sa-alerts__ic {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--night);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+/* 종 모양 대신 빛 한 점 — 켜져 있다는 뜻 */
+.cs-sa-alerts__ic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--glow);
+  box-shadow: 0 0 12px 3px rgba(255, 138, 61, 0.65);
+}
+.cs-sa-alerts__t {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.cs-sa .cs-sa-alerts__t b {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--title);
+}
+.cs-sa .cs-sa-alerts__t span {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+/* 담기 감싸개가 칸의 높이를 받아 카드에 넘긴다 — 한 줄의 카드 높이가 맞는다 */
+.cs-sa .cs-pick {
+  display: grid;
+}
+
+/* 카드 바닥의 '비교' 담기 — 저장 단추 곁에 선다 */
+.cs-sa .cs-pick__box {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  z-index: 2;
+  flex: none;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.35s var(--sa-ease);
+}
+.cs-sa .cs-pick__box:hover {
+  transform: translateY(-1px);
+}
+.cs-sa .cs-pick__box:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cs-sa .cs-pick__box:has(input:disabled) {
+  opacity: 0.5;
+}
+.cs-sa .cs-pick[data-on='true'] .cs-pick__box {
+  background: var(--night);
+  border-color: var(--night);
+  color: #fff;
+}
+.cs-sa .cs-pick[data-on='true'] .cs-notice {
+  border-color: var(--night);
+  box-shadow: 0 0 0 1px var(--night), var(--sa-lift-2);
+}
+
+/* 담기 단추가 붙은 카드 — 마감 줄은 한 줄을 다 쓰고, 단추는 그 아래 오른쪽에 */
+.cs-sa .cs-notice__foot:has(.cs-pick__box) {
+  flex-wrap: wrap;
+  row-gap: 12px;
+}
+.cs-sa .cs-notice__foot:has(.cs-pick__box) .cs-notice__meta {
+  flex: 1 1 100%;
+}
+.cs-sa .cs-notice__foot:has(.cs-pick__box) > :last-child {
+  margin-left: auto;
+}
+
+/* 비교 담은 공고 — 화면 아래에 붙는 밤의 도크 */
+.cs-sa .cs-sa-dock {
+  bottom: max(16px, env(safe-area-inset-bottom));
+  gap: 12px 16px;
+  margin-top: 32px;
+  padding: 10px 10px 10px 20px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #1A212E, var(--night));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 30px 60px -30px rgba(11, 14, 20, 0.9);
+  color: #fff;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cs-sa .cs-sa-dock {
+    animation: cs-sa-dock 700ms var(--sa-ease) backwards;
+  }
+}
+@keyframes cs-sa-dock {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+}
+.cs-sa .cs-sa-dock .cs-pickbar__n {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--glow);
+}
+.cs-sa .cs-sa-dock__slots {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-sa .cs-sa-dock__slots li {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  padding: 7px 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.58);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cs-sa .cs-sa-dock__slots li[data-on='true'] {
+  border-style: solid;
+  border-color: rgba(255, 178, 122, 0.4);
+  background: rgba(255, 138, 61, 0.1);
+  color: #fff;
+}
+.cs-sa .cs-sa-dock .cs-pickbar__clear {
+  min-height: 44px;
+  color: #C9CED6;
+}
+.cs-sa .cs-sa-dock .cs-pickbar__hint {
+  margin-left: 0;
+  font-size: 13.5px;
+  color: #AEB5C0;
+}
+.cs-sa .cs-sa-dock .cs-btn {
+  margin-left: 0;
+  min-height: 44px;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.cs-sa .cs-sa-dock :is(a, button):focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: 2px;
+}
+
+/* ── 8. 비교 — 사양서 ─────────────────────────────────────── */
+.cs-sa-cmpbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 28px;
+}
+.cs-sa-cmpbar__nums {
+  display: grid;
+  gap: 4px;
+}
+.cs-sa .cs-sa-cmpbar__lead {
+  margin: 0;
+  font-size: clamp(18px, 1.7vw, 22px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--title);
+}
+.cs-sa-cmpbar__lead b {
+  font-size: 1.3em;
+  font-weight: 800;
+}
+.cs-sa-cmpbar__hot {
+  color: var(--accent);
+}
+.cs-sa .cs-sa-cmpbar__sub {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--muted);
+}
+.cs-sa .cs-cmp__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 0;
+}
+/* 켜고 끄는 단추 — 스위치 모양 */
+.cs-sa-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 14px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--title);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.cs-sa-switch:hover {
+  border-color: rgba(11, 14, 20, 0.36);
+}
+.cs-sa-switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cs-sa-switch__track {
+  position: relative;
+  width: 36px;
+  height: 22px;
+  border-radius: 999px;
+  background: #D5D9DF;
+  transition: background 0.3s var(--sa-ease);
+}
+.cs-sa-switch__track span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(11, 14, 20, 0.35);
+  transition: transform 0.4s var(--sa-ease);
+}
+.cs-sa-switch[data-active='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.cs-sa-switch[data-active='true'] .cs-sa-switch__track {
+  background: var(--accent);
+}
+.cs-sa-switch[data-active='true'] .cs-sa-switch__track span {
+  transform: translateX(14px);
+}
+.cs-sa .cs-sa-backlink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--title);
+  text-decoration: underline;
+  text-decoration-color: rgba(11, 14, 20, 0.25);
+  text-underline-offset: 5px;
+}
+.cs-sa .cs-sa-backlink:hover {
+  text-decoration-color: var(--accent);
+}
+
+/* 사양표 */
+.cs-sa .cs-sa-spec {
+  margin-top: clamp(24px, 3vw, 36px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--sa-lift-1);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+.cs-sa .cs-sa-spec .cs-cmp__table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+.cs-sa .cs-sa-spec .cs-cmp__table th,
+.cs-sa .cs-sa-spec .cs-cmp__table td {
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+  line-height: 1.5;
+  vertical-align: top;
+  text-align: left;
+}
+.cs-sa .cs-sa-spec thead th {
+  padding: 14px 10px 14px;
+  border-bottom: 0;
+  background: var(--paper);
+  vertical-align: bottom;
+}
+.cs-sa .cs-sa-spec thead th:first-child {
+  padding-left: 18px;
+}
+.cs-sa .cs-sa-spec .cs-cmp__rowhead {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 136px;
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  box-shadow: 1px 0 0 var(--line);
+}
+.cs-sa .cs-sa-spec thead .cs-cmp__rowhead {
+  background: var(--paper);
+}
+.cs-sa .cs-sa-spec .cs-cmp__cell {
+  font-weight: 600;
+  color: var(--title);
+  font-variant-numeric: tabular-nums;
+  word-break: keep-all;
+}
+.cs-sa .cs-sa-spec .cs-cmp__cell[data-dim='true'] {
+  font-weight: 500;
+  color: var(--muted);
+}
+/* 다른 줄 — 줄 머리에 주황 막대, 칸은 따뜻하게 */
+.cs-sa .cs-sa-spec tbody tr[data-diff='true'] .cs-cmp__rowhead {
+  color: var(--title);
+  box-shadow: inset 3px 0 0 var(--accent), 1px 0 0 var(--line);
+}
+.cs-sa .cs-sa-spec tbody tr[data-diff='true'] .cs-cmp__cell {
+  background: linear-gradient(90deg, rgba(255, 241, 232, 0.55), rgba(255, 241, 232, 0.2));
+}
+.cs-sa .cs-sa-spec tbody tr[data-diff='false'] .cs-cmp__cell:not([data-dim='true']) {
+  color: var(--body);
+  font-weight: 500;
+}
+.cs-sa .cs-sa-spec tbody tr:hover .cs-cmp__cell {
+  background: var(--paper);
+}
+/* 열을 짚으면 그 열이 밝아진다 — 공고 하나를 세로로 읽는 손 */
+.cs-sa .cs-sa-spec table:has(tbody td:nth-child(2):hover) :is(td, th):nth-child(2),
+.cs-sa .cs-sa-spec table:has(tbody td:nth-child(3):hover) :is(td, th):nth-child(3),
+.cs-sa .cs-sa-spec table:has(tbody td:nth-child(4):hover) :is(td, th):nth-child(4) {
+  background-color: rgba(255, 241, 232, 0.7);
+}
+.cs-sa .cs-sa-spec tfoot td,
+.cs-sa .cs-sa-spec tfoot th {
+  border-bottom: 0;
+  background: var(--paper);
+}
+.cs-sa .cs-cmp__acts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.cs-sa .cs-cmp__link {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--title);
+  text-underline-offset: 4px;
+}
+.cs-sa .cs-cmp__mark {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+/* 열 머리 — 밤의 기둥 한 장씩. 표 위로 솟아 있다 */
+.cs-sa-colcard {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  gap: 6px;
+  min-height: 122px;
+  padding: 14px 14px 16px;
+  border-radius: 12px;
+  background:
+    radial-gradient(100% 70% at 100% 0%, rgba(255, 138, 61, 0.24), transparent 60%),
+    linear-gradient(170deg, #1A212E, var(--night));
+  box-shadow: 0 18px 30px -20px rgba(11, 14, 20, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  transform: perspective(900px) rotateX(0deg);
+  transition: transform 0.6s var(--sa-ease), box-shadow 0.6s var(--sa-ease);
+}
+.cs-sa-colcard::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 178, 122, 0.8), transparent);
+}
+.cs-sa-colcard[data-hot='true']::after {
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+}
+.cs-sa .cs-sa-spec thead th:hover .cs-sa-colcard {
+  transform: perspective(900px) translateY(-3px) rotateX(6deg);
+  box-shadow: 0 26px 36px -22px rgba(11, 14, 20, 0.9), 0 14px 30px -24px rgba(194, 65, 12, 0.7);
+}
+.cs-sa-colcard__k {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #AEB5C0;
+}
+.cs-sa-colcard__k b {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(255, 138, 61, 0.18);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--glow);
+}
+.cs-sa-colcard[data-hot='true'] .cs-sa-colcard__k b {
+  background: var(--accent);
+  color: #fff;
+}
+.cs-sa .cs-sa-colcard .cs-cmp__name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.38;
+  letter-spacing: -0.03em;
+  color: #fff;
+  text-decoration: none;
+}
+.cs-sa .cs-sa-colcard .cs-cmp__name:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.cs-sa .cs-sa-colcard .cs-cmp__name:focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: 2px;
+}
+.cs-sa .cs-sa-colcard .cs-cmp__sub {
+  margin-top: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: #AEB5C0;
+}
+.cs-sa .cs-sa-notes {
+  display: grid;
+  gap: 10px;
+  margin: 22px 0 0;
+}
+.cs-sa .cs-sa-notes > div {
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr);
+  gap: 12px;
+}
+.cs-sa .cs-sa-notes dt {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--title);
+}
+.cs-sa .cs-sa-notes dd {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.cs-sa .cs-sa-spec--skel {
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+  overflow: hidden;
+}
+.cs-sa .cs-sa-spec--skel span {
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #ECEEF1 25%, #F6F7F9 50%, #ECEEF1 75%);
+  background-size: 200% 100%;
+  animation: csShimmer 1.4s linear infinite;
+}
+.cs-sa .cs-sa-spec--skel span:first-child {
+  height: 110px;
+  border-radius: 12px;
+}
+
+/* ── 9. 공고 상세 — 문서 책상 ─────────────────────────────── */
+/* 무대 제목의 자리 — 기다리는 동안 빛나는 막대 */
+.cs-sa-ph {
+  display: block;
+  width: min(11em, 80%);
+  height: 0.9em;
+  margin: 0.1em 0;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06) 25%, rgba(255, 255, 255, 0.16) 50%, rgba(255, 255, 255, 0.06) 75%);
+  background-size: 200% 100%;
+  animation: csShimmer 1.6s linear infinite;
+}
+.cs-sa-ph--line {
+  width: min(22em, 90%);
+  height: 1.1em;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cs-sa-fadein {
+    display: inline-block;
+    animation: cs-sa-fade 700ms var(--sa-ease) backwards;
+  }
+}
+@keyframes cs-sa-fade {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(10px);
+  }
+}
+.cs-sa .cs-sa-facts li[data-tone='hot'] {
+  border-color: rgba(255, 138, 61, 0.5);
+  background: rgba(194, 65, 12, 0.22);
+  color: #fff;
+}
+.cs-sa .cs-sa-facts li[data-tone='sample'] {
+  border-color: rgba(255, 178, 122, 0.6);
+  border-style: dashed;
+  color: var(--glow);
+}
+
+.cs-sa-dossier {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 344px);
+  align-items: start;
+  gap: clamp(20px, 2.4vw, 32px);
+  margin-top: calc(var(--sa-rise) * -1);
+}
+.cs-sa-rail {
+  grid-column: 2;
+  grid-row: 1;
+  position: sticky;
+  top: var(--sa-top);
+}
+.cs-sa-doc {
+  grid-column: 1;
+  grid-row: 1;
+}
+.cs-sa-rail__card {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid rgba(11, 14, 20, 0.08);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--sa-panel);
+}
+/* 마감 — 레일의 머리. 주황은 여기서만 크게 */
+.cs-sa-due {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 4px 12px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.cs-sa-due__k {
+  grid-column: 1 / -1;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.cs-sa-due__v {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+  color: var(--title);
+}
+.cs-sa-due__d {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+.cs-sa-due__d[data-hot='true'] {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 10px 20px -10px rgba(194, 65, 12, 0.8);
+}
+.cs-sa-due__d[data-closed='true'] {
+  background: var(--paper-2);
+  color: var(--muted);
+}
+.cs-sa-due[data-closed='true'] .cs-sa-due__v {
+  color: var(--muted);
+}
+
+/* 일정 줄 — 세로 선 위의 네 점 */
+.cs-sa .cs-sa-track {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0 0 0 22px;
+  list-style: none;
+}
+.cs-sa-track::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.cs-sa .cs-sa-track li {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  font-size: 14px;
+}
+.cs-sa-track li::before {
+  content: '';
+  position: absolute;
+  left: -22px;
+  top: 5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #C5CAD2;
+  background: #fff;
+  box-sizing: border-box;
+}
+.cs-sa-track__k {
+  font-weight: 700;
+  color: var(--body);
+}
+.cs-sa-track__v {
+  font-weight: 700;
+  color: var(--title);
+  white-space: nowrap;
+}
+.cs-sa-track li[data-state='done']::before {
+  border-color: var(--title);
+  background: var(--title);
+}
+.cs-sa-track li[data-state='done'] :is(.cs-sa-track__k, .cs-sa-track__v) {
+  color: var(--muted);
+  font-weight: 600;
+}
+.cs-sa-track li[data-state='next']::before {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(194, 65, 12, 0.16);
+}
+.cs-sa-track li[data-state='next'] .cs-sa-track__k {
+  color: var(--accent);
+}
+.cs-sa-track li[data-state='none'] .cs-sa-track__v {
+  font-weight: 500;
+  color: var(--muted);
+}
+.cs-sa-track li[data-state='none']::before {
+  border-style: dashed;
+}
+
+/* 금액 · 면적 · 세대 — 두 칸씩 */
+.cs-sa .cs-sa-facts2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--line);
+  overflow: hidden;
+}
+.cs-sa .cs-sa-facts2 > div {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 12px 14px;
+  background: #fff;
+}
+.cs-sa .cs-sa-facts2 > div:has(dd[data-wide='true']) {
+  grid-column: 1 / -1;
+}
+.cs-sa .cs-sa-facts2 dt {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.cs-sa .cs-sa-facts2 dd {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.035em;
+  color: var(--title);
+  word-break: keep-all;
+}
+.cs-sa-unk {
+  font-size: 14.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--muted);
+}
+.cs-sa .cs-sa-rail__over {
+  margin: 0;
+}
+.cs-sa-rail__acts {
+  display: grid;
+  gap: 8px;
+}
+.cs-sa .cs-sa-rail__acts .cs-btn {
+  width: 100%;
+  min-height: 48px;
+  font-size: 15.5px;
+}
+/* 하트 + 이름표 — 이름표를 눌러도 단추가 눌린다 */
+.cs-sa .cs-sa-savebtn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 2px 14px 2px 2px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--title);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.cs-sa .cs-sa-savebtn:hover {
+  border-color: var(--accent);
+}
+.cs-sa .cs-sa-savebtn .cs-save {
+  border: 0;
+  background: transparent;
+}
+.cs-sa .cs-sa-savebtn .cs-save:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+.cs-sa .cs-sa-savebtn[data-on='true'] {
+  border-color: rgba(194, 65, 12, 0.4);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.cs-sa .cs-sa-rail__ok {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--ok-soft, #EAF6EE);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ok);
+}
+.cs-sa .cs-sa-rail__src {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* 문서 — 종이 한 장. 아래로 종이 두 장이 비친다 */
+.cs-sa-doc {
+  position: relative;
+  min-width: 0;
+  padding: clamp(26px, 3.6vw, 48px) clamp(22px, 3.6vw, 52px) clamp(30px, 4vw, 52px) clamp(22px, 6vw, 96px);
+  border: 1px solid rgba(11, 14, 20, 0.08);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow:
+    0 10px 0 -5px #F9FAFB,
+    0 10px 0 -4px var(--line),
+    0 20px 0 -10px #F3F4F6,
+    0 20px 0 -9px var(--line),
+    var(--sa-panel);
+  counter-reset: sa-sec;
+  margin-bottom: 20px;
+}
+.cs-sa-doc__sec {
+  position: relative;
+  counter-increment: sa-sec;
+  padding: clamp(26px, 3vw, 36px) 0;
+  border-top: 1px solid var(--line);
+}
+.cs-sa-doc__sec:first-child {
+  padding-top: 4px;
+  border-top: 0;
+}
+/* 여백의 절 번호 */
+.cs-sa-doc__sec::before {
+  content: counter(sa-sec, decimal-leading-zero);
+  position: absolute;
+  left: calc(clamp(22px, 6vw, 96px) * -1 + clamp(0px, 2.2vw, 30px));
+  top: clamp(30px, 3.2vw, 40px);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.cs-sa-doc__sec:first-child::before {
+  top: 8px;
+}
+.cs-sa .cs-sa-doc__h,
+.cs-sa .cs-sa-doc .cs-section-title {
+  margin: 0 0 16px;
+  font-size: clamp(21px, 1.9vw, 25px);
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.035em;
+  color: var(--title);
+}
+.cs-sa .cs-sa-doc__lead {
+  margin: -8px 0 14px;
+  font-size: 15px;
+  color: var(--muted);
+}
+.cs-sa .cs-sa-doc__note,
+.cs-sa .cs-sa-doc .cs-note {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.cs-sa .cs-sa-doc__note {
+  margin: 14px 0 0;
+}
+.cs-sa .cs-sa-doc .cs-pro__p {
+  font-size: 16px;
+}
+.cs-sa .cs-sa-doc .cs-models {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+.cs-sa .cs-sa-doc .cs-table {
+  width: 100%;
+  margin: 0;
+}
+.cs-sa .cs-sa-doc .cs-table thead th {
+  background: var(--paper);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.cs-sa .cs-sa-doc .cs-table td {
+  font-size: 15px;
+}
+.cs-sa .cs-sa-doc .cs-table th:first-child,
+.cs-sa .cs-sa-doc .cs-table td:first-child {
+  padding-left: 16px;
+}
+.cs-sa .cs-sa-doc .cs-table th:last-child,
+.cs-sa .cs-sa-doc .cs-table td:last-child {
+  padding-right: 16px;
+}
+/* 문서 안의 판(카드)은 종이 위에 놓인 붙임 — 테두리만 남긴다 */
+.cs-sa .cs-sa-doc .cs-card {
+  box-shadow: none;
+  border-color: var(--line);
+}
+
+/* 일정 · 준비 목록 */
+.cs-sa .cs-sa-sched {
+  display: grid;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-sa .cs-sa-sched li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cs-sa .cs-sa-sched li:last-child {
+  border-bottom: 0;
+}
+.cs-sa-sched__t {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--title);
+}
+.cs-sa-sched__h {
+  display: block;
+  margin-top: 3px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.cs-sa-sched__d {
+  flex: none;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--body);
+}
+.cs-sa-sched__d[data-none='true'] {
+  font-weight: 500;
+  color: var(--muted);
+}
+.cs-sa .cs-sa-sched[data-kind='prep'] li {
+  padding-left: 18px;
+  position: relative;
+}
+.cs-sa .cs-sa-sched[data-kind='prep'] li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 22px;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  border: 1.5px solid var(--accent);
+}
+.cs-sa .cs-sa-check__k {
+  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--check);
+}
+.cs-sa .cs-sa-check {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+}
+.cs-sa .cs-sa-check li {
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--body);
+}
+.cs-sa .cs-sa-cta--doc {
+  margin: clamp(10px, 2vw, 20px) 0 0;
+  margin-left: calc(clamp(22px, 6vw, 96px) * -1 + clamp(22px, 3.6vw, 52px));
+}
+
+/* 들어설 때 — 문서는 책상에 내려앉듯, 레일은 옆에서 미끄러져 */
+@media (prefers-reduced-motion: no-preference) {
+  .cs-sa-doc {
+    transform-origin: 50% 0;
+    animation: cs-sa-sheet 1100ms var(--sa-ease) 120ms backwards;
+  }
+  .cs-sa-rail {
+    animation: cs-sa-side 1000ms var(--sa-ease) 260ms backwards;
+  }
+  .cs-sa-deck,
+  .cs-sa-console,
+  .cs-sa-map__console {
+    animation: cs-sa-deck-in 1000ms var(--sa-ease) 160ms backwards;
+  }
+}
+@keyframes cs-sa-sheet {
+  from {
+    opacity: 0;
+    transform: perspective(1600px) translateY(70px) rotateX(9deg);
+  }
+}
+@keyframes cs-sa-side {
+  from {
+    opacity: 0;
+    translate: 28px 0;
+  }
+}
+@keyframes cs-sa-deck-in {
+  from {
+    opacity: 0;
+    transform: perspective(1400px) translateY(44px) rotateX(7deg);
+  }
+}
+
+/* ── 10. 지도 화면 — 판이 무대 바닥에 걸친다 ─────────────────── */
+.cs-sa--map .cs-sa-map__console {
+  margin-top: calc(var(--sa-rise) * -1);
+  z-index: 2;
+}
+
+/* ── 11. 좁은 화면 ───────────────────────────────────────── */
+@media (max-width: 1080px) {
+  .cs-sa-dossier {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cs-sa-rail,
+  .cs-sa-doc {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .cs-sa-rail {
+    position: static;
+  }
+  .cs-sa-rail__card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+  .cs-sa-due,
+  .cs-sa-rail__acts,
+  .cs-sa .cs-sa-rail__src,
+  .cs-sa .cs-sa-rail__over {
+    grid-column: 1 / -1;
+  }
+  .cs-sa-rail__acts {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .cs-sa {
+    --sa-rise: 44px;
+  }
+  .cs-sa .cs-mast {
+    padding-bottom: 132px;
+  }
+  .cs-sa-mrow {
+    gap: 18px;
+  }
+  .cs-sa-acts {
+    width: 100%;
+  }
+  .cs-sa .cs-mast .cs-sa-acts .cs-btn {
+    flex: 1 1 0;
+    padding: 0 14px;
+  }
+  .cs-sa .cs-sa-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 18px;
+  }
+  .cs-sa .cs-sa-kpis li,
+  .cs-sa .cs-sa-kpis li + li {
+    padding: 0 12px 0 0;
+    border-right: 0;
+  }
+  .cs-sa .cs-sa-kpis li:nth-child(even) {
+    padding-left: 16px;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .cs-sa .cs-notice {
+    padding: 20px 18px 16px;
+  }
+  .cs-sa .cs-notice__name {
+    font-size: 19.5px;
+  }
+  .cs-notice__v {
+    font-size: 24px;
+  }
+  .cs-notice__rent .cs-notice__v {
+    font-size: 19px;
+  }
+  .cs-sa-resbar__sort {
+    margin-left: 0;
+  }
+  .cs-sa .cs-sa-steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .cs-sa .cs-sa-steps li,
+  .cs-sa .cs-sa-steps li:first-child {
+    padding: 0 0 0 14px;
+    border-left: 2px solid var(--line);
+  }
+  .cs-sa-brief {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cs-sa-brief__nums > div:first-child {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .cs-sa-watch {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cs-sa .cs-sa-dock {
+    /* 오른쪽 아래의 상담 단추 위로 비켜 선다 */
+    bottom: 86px;
+    border-radius: 14px;
+    padding: 12px;
+  }
+  .cs-sa .cs-sa-dock__slots {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .cs-sa .cs-sa-dock .cs-btn,
+  .cs-sa .cs-sa-dock .cs-pickbar__hint {
+    margin-left: auto;
+  }
+  .cs-sa .cs-sa-alerts li {
+    flex-wrap: wrap;
+  }
+  .cs-sa .cs-sa-notes > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .cs-sa .cs-sa-spec .cs-cmp__rowhead {
+    width: 92px;
+    font-size: 13px;
+  }
+  .cs-sa .cs-sa-spec .cs-cmp__table {
+    min-width: calc(92px + 2 * 168px);
+  }
+  .cs-sa .cs-sa-spec[data-cols='3'] .cs-cmp__table {
+    min-width: calc(92px + 3 * 168px);
+  }
+  .cs-sa .cs-sa-spec .cs-cmp__table th,
+  .cs-sa .cs-sa-spec .cs-cmp__table td {
+    padding: 12px 12px;
+    font-size: 14px;
+  }
+  .cs-sa-rail__card {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px;
+  }
+  .cs-sa-doc {
+    padding: 22px 18px 26px;
+  }
+  .cs-sa-doc__sec::before {
+    position: static;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .cs-sa .cs-sa-cta--doc {
+    margin-left: 0;
+  }
+  .cs-sa .cs-sa-cta {
+    padding: 28px 22px;
+  }
+  .cs-sa .cs-map__bar .cs-choose {
+    width: 100%;
+  }
+  /* 범례가 판 위에 이미 있다 — 휴대폰에서는 무대의 표지를 접는다 */
+  .cs-sa--map .cs-mast .cs-sa-facts {
+    display: none;
+  }
+  .cs-sa .cs-sa-map__console {
+    padding: 10px;
+    margin-left: calc(var(--pad-page) * -0.5);
+    margin-right: calc(var(--pad-page) * -0.5);
+  }
+}
+
+/* ── 12. 움직임을 줄인 사용자 — 기울지 않고, 떠오르지 않는다 ──── */
+@media (prefers-reduced-motion: reduce) {
+  .cs-sa .cs-notice,
+  .cs-sa .cs-notice:hover {
+    --lift: 0px;
+    transform: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .cs-sa .cs-notice[data-depth='on'] :is(.cs-notice__name, .cs-notice__price, .cs-emblem, .cs-regionmark) {
+    translate: none;
+    transform: none;
+  }
+  .cs-sa .cs-chip:hover,
+  .cs-sa-ticket:hover,
+  .cs-sa a.cs-sa-next:hover,
+  .cs-sa .cs-pick__box:hover,
+  .cs-sa .cs-sa-spec thead th:hover .cs-sa-colcard {
+    transform: none;
+  }
+  .cs-sa-ph,
+  .cs-sa-deck__skel span,
+  .cs-sa-console__skel span,
+  .cs-sa .cs-sa-spec--skel span {
+    animation: none;
+  }
+}

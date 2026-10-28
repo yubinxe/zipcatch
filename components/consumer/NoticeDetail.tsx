@@ -6,7 +6,8 @@ import type { Candidate, UrgencyInfo } from '@/lib/crm/services/scoring'
 import { formatMan } from '@/lib/crm/services/scoring'
 import type { Property, Task } from '@/lib/crm/types'
 import type { SpecialRead } from '@/lib/adapters/applyhome-special'
-import { statusBadge } from './NoticeCard'
+import { ddayText, shortDate, statusBadge } from './NoticeCard'
+import PageMasthead from './PageMasthead'
 import SpecialSupply from './SpecialSupply'
 import SaveButton from './SaveButton'
 import NoticeCalendar, { marksFrom } from './NoticeCalendar'
@@ -83,7 +84,7 @@ interface DetailResponse {
 }
 
 export default function NoticeDetail({ id }: { id: string }) {
-  const { alerts, profile } = useConsumer()
+  const { alerts, profile, savedIds } = useConsumer()
   const gate = useSignupGate()
   const [data, setData] = useState<DetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -92,6 +93,8 @@ export default function NoticeDetail({ id }: { id: string }) {
   const [region, setRegion] = useState<RegionStat | null>(null)
   /** 근처에서 최근에 끝난 청약 — 지역 평균보다 가까운 참고다 */
   const [nearby, setNearby] = useState<NearbyItem[]>([])
+  /** 공고를 받은 날(한국 시각). 일정 줄에서 지난 날과 다가올 날을 가른다 */
+  const [today, setToday] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -102,7 +105,9 @@ export default function NoticeDetail({ id }: { id: string }) {
         return r.json()
       })
       .then((json: DetailResponse) => {
-        if (alive) setData(json)
+        if (!alive) return
+        setData(json)
+        setToday(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date()))
       })
       .catch((err: unknown) => {
         if (alive) setError(err instanceof Error ? err.message : '공고를 불러오지 못했어요.')
@@ -156,22 +161,52 @@ export default function NoticeDetail({ id }: { id: string }) {
 
   if (loading) {
     return (
-      <div className="cs-wrap" style={{ paddingTop: 44, maxWidth: 860 }}>
-        <div className="cs-skel" style={{ height: 40, width: '60%', marginBottom: 20 }} />
-        <div className="cs-skel" style={{ height: 260 }} />
+      <div className="cs-wrap cs-sa cs-sa--detail">
+        <PageMasthead
+          eyebrow="NOTICE FILE"
+          title={
+            <>
+              <span className="cs-sa-ph" aria-hidden="true" />
+              <span className="cs-sr">공고를 불러오는 중입니다</span>
+            </>
+          }
+          lead={<span className="cs-sa-ph cs-sa-ph--line" aria-hidden="true" />}
+        />
+        <div className="cs-sa-dossier" aria-hidden="true">
+          <div className="cs-sa-rail">
+            <div className="cs-sa-rail__card cs-sa-deck__skel">
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+          <div className="cs-sa-doc cs-sa-deck__skel">
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
       </div>
     )
   }
 
   if (error || !data) {
     return (
-      <div className="cs-wrap" style={{ paddingTop: 64, maxWidth: 620 }}>
-        <div className="cs-empty">
-          <div className="cs-empty__title">{error ?? '공고를 불러오지 못했어요'}</div>
-          <Link href="/notices" className="cs-btn cs-btn--primary" style={{ marginTop: 24 }}>
-            공고 목록으로
-          </Link>
-        </div>
+      <div className="cs-wrap cs-sa cs-sa--detail">
+        <PageMasthead
+          eyebrow="NOTICE FILE"
+          title={error ?? '공고를 불러오지 못했어요'}
+          lead="공고가 정정·취소되었거나 주소가 바뀌었을 수 있어요. 목록에서 다시 찾아 주세요."
+        >
+          <div className="cs-sa-acts">
+            <Link href="/notices" className="cs-btn cs-btn--primary">
+              공고 목록으로
+            </Link>
+            <Link href="/saved" className="cs-btn cs-btn--ghost">
+              관심공고 보기
+            </Link>
+          </div>
+        </PageMasthead>
       </div>
     )
   }
@@ -234,705 +269,751 @@ export default function NoticeDetail({ id }: { id: string }) {
   const official = schedule.filter(t => t.source === 'OFFICIAL')
   const recommended = schedule.filter(t => t.source === 'RECOMMENDED')
 
+  const saved = savedIds.includes(property.id)
+  const days = urgency.daysLeft
+  const dday = closed ? null : ddayText(days)
+  /** 일정 줄 — 공고문에 적힌 날만. 지난 날은 접고, 다가올 첫 날에 불을 켠다 */
+  const track = [
+    { k: '접수 시작', v: property.applicationStart },
+    { k: '접수 마감', v: property.applicationEnd },
+    { k: '당첨자 발표', v: property.resultDate },
+    { k: '계약 시작', v: property.contractStart },
+  ]
+  const nextIdx = today ? track.findIndex(t => t.v !== null && t.v >= today) : -1
+  const where = [property.district, property.region].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(' ')
+
   return (
-    // 카드 한 장이 펼쳐지듯 열린다 (consumer-immersive.css · cs-open-in)
-    <div className="cs-wrap cs-open-in" style={{ paddingTop: 32, maxWidth: 860 }}>
-      <Link href="/results" className="cs-btn cs-btn--text" style={{ paddingLeft: 0, marginBottom: 12 }}>
-        ← 후보 목록으로
-      </Link>
-
-      <div className="cs-badge-row" style={{ marginBottom: 14 }}>
-        <span className="cs-badge cs-badge--brand">{property.housingType}</span>
-        <span className={`cs-badge ${badge.cls}`}>{badge.text}</span>
-        {/* 예시일 때만 예시라고 적는다. 예전에는 조건 없이 늘 찍혀서, 청약홈에서
-            받아온 진짜 공고에도 '예시 데이터' 가 붙어 있었다. 데이터를 의심하게
-            만드는 표시는 틀렸을 때 가장 비싸다. */}
-        {isSample ? (
-          <span className="cs-sample">예시 데이터</span>
-        ) : (
-          <span className="cs-badge">{property.source}</span>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
-          <h1 className="cs-page-title">{property.name}</h1>
-          <p className="cs-sub" style={{ marginTop: 10 }}>
-            {property.address}
-          </p>
-        </div>
-        <SaveButton propertyId={property.id} />
-      </div>
-
-      {/* 비용 */}
-      <div className="cs-card" style={{ marginTop: 28 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 24 }}>
-          <div>
-            {/* 분양 공고에 '보증금' 을 묻는 것부터 어긋난다. 분양가가 있으면
-                그것을 적고, 이름도 분양가로 바꾼다 */}
-            <div className="cs-note">
-              {property.deposit === null && span.price ? '분양가' : '보증금'}
-            </div>
-            <div className="cs-num" style={{ fontSize: 26, fontWeight: 700, color: 'var(--title)', marginTop: 6 }}>
-              {property.deposit !== null ? (
-                formatMan(property.deposit)
-              ) : span.price ? (
-                <span style={{ fontSize: 22 }}>{span.price}</span>
-              ) : (
-                <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--muted)' }}>공고문 확인</span>
+    <div className="cs-wrap cs-sa cs-sa--detail">
+      <PageMasthead
+        eyebrow="NOTICE FILE"
+        title={<span className="cs-sa-fadein">{property.name}</span>}
+        lead={property.address || where || undefined}
+      >
+        <div className="cs-sa-mrow cs-sa-mrow--facts">
+          <ul className="cs-sa-facts" aria-label="공고 표지">
+            <li>
+              <b>{property.housingType}</b>
+            </li>
+            <li data-tone={badge.cls === 'cs-badge--urgent' ? 'hot' : undefined}>
+              {(badge.cls === 'cs-badge--urgent' || badge.cls === 'cs-badge--ok') && (
+                <span className="cs-sa-facts__dot" aria-hidden="true" />
               )}
+              {badge.text}
+            </li>
+            {/* 예시일 때만 예시라고 적는다. 예전에는 조건 없이 늘 찍혀서, 청약홈에서
+                받아온 진짜 공고에도 '예시 데이터' 가 붙어 있었다. 데이터를 의심하게
+                만드는 표시는 틀렸을 때 가장 비싸다. */}
+            {isSample ? <li data-tone="sample">예시 데이터</li> : <li>{property.source}</li>}
+          </ul>
+          <Link href="/results" className="cs-sa-mlink">
+            <i aria-hidden="true">←</i> 후보 목록으로
+          </Link>
+        </div>
+      </PageMasthead>
+
+      <div className="cs-sa-dossier">
+        {/* ── 요점 레일 — 문서를 내려 읽는 동안 옆에 붙어 따라온다(넓은 화면) ── */}
+        <aside className="cs-sa-rail" aria-label="공고 요점">
+          <div className="cs-sa-rail__card">
+            <div className="cs-sa-due" data-closed={closed ? 'true' : undefined}>
+              <span className="cs-sa-due__k">{isSample ? '예시 접수 마감' : '접수 마감'}</span>
+              <span className="cs-sa-due__v cs-num">
+                {property.applicationEnd ? shortDate(property.applicationEnd) : '공고 미공개'}
+              </span>
+              {dday ? (
+                <span className="cs-sa-due__d cs-num" data-hot={days !== null && days <= 3 ? 'true' : undefined}>
+                  {dday}
+                </span>
+              ) : closed ? (
+                <span className="cs-sa-due__d" data-closed="true">
+                  접수 마감
+                </span>
+              ) : null}
             </div>
-          </div>
-          {/* 분양가가 잡힌 공고에 '월 임대료 공고문 확인' 은 답이 없는 칸이
-              아니라 물음 자체가 틀린 칸이다. 접는다. */}
-          {!(property.monthlyRent === null && span.price) && (
-            <div>
-              <div className="cs-note">월 임대료</div>
-              <div className="cs-num" style={{ fontSize: 26, fontWeight: 700, color: 'var(--title)', marginTop: 6 }}>
-                {property.monthlyRent === null ? (
-                  <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--muted)' }}>공고문 확인</span>
-                ) : (
-                  `${property.monthlyRent.toLocaleString()}만원`
-                )}
+
+            <ol className="cs-sa-track" aria-label="공고 일정">
+              {track.map((t, i) => (
+                <li
+                  key={t.k}
+                  data-state={
+                    t.v === null ? 'none' : today && t.v < today ? 'done' : i === nextIdx ? 'next' : undefined
+                  }
+                >
+                  <span className="cs-sa-track__k">{t.k}</span>
+                  <span className="cs-sa-track__v cs-num">{t.v ? shortDate(t.v) : '공고 미공개'}</span>
+                </li>
+              ))}
+            </ol>
+
+            {/* 비용 */}
+            <dl className="cs-sa-facts2">
+              <div>
+                {/* 분양 공고에 '보증금' 을 묻는 것부터 어긋난다. 분양가가 있으면
+                    그것을 적고, 이름도 분양가로 바꾼다 */}
+                <dt>{property.deposit === null && span.price ? '분양가' : '보증금'}</dt>
+                <dd className="cs-num" data-wide={property.deposit === null && span.price ? 'true' : undefined}>
+                  {property.deposit !== null ? (
+                    formatMan(property.deposit)
+                  ) : span.price ? (
+                    span.price
+                  ) : (
+                    <span className="cs-sa-unk">공고문 확인</span>
+                  )}
+                </dd>
               </div>
-            </div>
-          )}
-          <div>
-            <div className="cs-note">전용면적</div>
-            <div className="cs-num" style={{ fontSize: 26, fontWeight: 700, color: 'var(--title)', marginTop: 6 }}>
-              {property.area !== null ? (
-                `${property.area}㎡`
-              ) : span.area ? (
-                span.area
-              ) : (
-                <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--muted)' }}>공고문 확인</span>
+              {/* 분양가가 잡힌 공고에 '월 임대료 공고문 확인' 은 답이 없는 칸이
+                  아니라 물음 자체가 틀린 칸이다. 접는다. */}
+              {!(property.monthlyRent === null && span.price) && (
+                <div>
+                  <dt>월 임대료</dt>
+                  <dd className="cs-num">
+                    {property.monthlyRent === null ? (
+                      <span className="cs-sa-unk">공고문 확인</span>
+                    ) : (
+                      `${property.monthlyRent.toLocaleString()}만원`
+                    )}
+                  </dd>
+                </div>
+              )}
+              <div>
+                <dt>전용면적</dt>
+                <dd className="cs-num">
+                  {property.area !== null ? (
+                    `${property.area}㎡`
+                  ) : span.area ? (
+                    span.area
+                  ) : (
+                    <span className="cs-sa-unk">공고문 확인</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>공급 세대</dt>
+                <dd className="cs-num">{property.supplyCount}세대</dd>
+              </div>
+            </dl>
+
+            {candidate && (candidate.budget.depositOver > 0 || candidate.budget.rentOver > 0) && (
+              <div className="cs-notice__caution cs-sa-rail__over">
+                입력하신 예산보다
+                {candidate.budget.depositOver > 0 && ` 보증금 ${formatMan(candidate.budget.depositOver)}`}
+                {candidate.budget.rentOver > 0 && ` 월세 ${candidate.budget.rentOver}만원`} 높습니다.
+              </div>
+            )}
+
+            <div className="cs-sa-rail__acts">
+              {/* 단추는 하트 하나지만 이름표까지 눌린다 — 레일에서는 무엇을 하는 단추인지 글로 적는다 */}
+              <label className="cs-sa-savebtn" data-on={saved ? 'true' : undefined}>
+                <SaveButton propertyId={property.id} />
+                <span aria-hidden="true">{saved ? '관심공고에 담았어요' : '관심공고에 저장'}</span>
+              </label>
+              {!closed && !hasDeadlineAlert && (
+                <button
+                  type="button"
+                  className="cs-btn cs-btn--primary"
+                  onClick={() =>
+                    gate.open({ kind: 'ALERT_DEADLINE', propertyId: property.id, propertyName: property.name })
+                  }
+                >
+                  마감 알림 받기
+                </button>
+              )}
+              {hasDeadlineAlert && <p className="cs-sa-rail__ok">마감 알림 수신 설정을 저장했어요</p>}
+              {property.sourceUrl && (
+                <a
+                  href={property.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="cs-btn cs-btn--ghost"
+                >
+                  모집공고문 원문 <span aria-hidden="true">↗</span>
+                  <span className="cs-sr">(새 창)</span>
+                </a>
               )}
             </div>
-          </div>
-          <div>
-            <div className="cs-note">공급 세대</div>
-            <div className="cs-num" style={{ fontSize: 26, fontWeight: 700, color: 'var(--title)', marginTop: 6 }}>
-              {property.supplyCount}세대
-            </div>
-          </div>
-        </div>
-
-        {candidate && (candidate.budget.depositOver > 0 || candidate.budget.rentOver > 0) && (
-          <div className="cs-notice__caution" style={{ marginTop: 20 }}>
-            입력하신 예산보다
-            {candidate.budget.depositOver > 0 && ` 보증금 ${formatMan(candidate.budget.depositOver)}`}
-            {candidate.budget.rentOver > 0 && ` 월세 ${candidate.budget.rentOver}만원`} 높습니다.
-          </div>
-        )}
-      </div>
-
-      {/* 특별공급 결과를 주택형 표보다 먼저 세운다. 접수 중인 공고에서
-          오늘 판단을 바꿀 수 있는 숫자는 이것 하나뿐이다. */}
-      {data.special && (
-        <SpecialSupply data={data.special} open={!closed} />
-      )}
-
-      {/* 주택형별 공급 — 총계만으로는 "내가 넣을 평형이 몇 세대이고 얼마인가"에
-          답할 수 없다. 답하지 못하면 결국 공고문 PDF 를 열게 된다. */}
-      {supplyModels.length > 0 && (
-        <section style={{ marginTop: 32 }}>
-          <h2 className="cs-section-title" style={{ fontSize: 24 }}>
-            주택형별 공급
-          </h2>
-          <div className="cs-card cs-models" style={{ marginTop: 18 }}>
-            <table className="cs-table">
-              <thead>
-                <tr>
-                  <th>주택형</th>
-                  <th>공급면적</th>
-                  <th className="cs-table__r">분양가</th>
-                  <th className="cs-table__r">평당</th>
-                  <th className="cs-table__r">세대</th>
-                </tr>
-              </thead>
-              <tbody>
-                {supplyModels.map(m => (
-                  <tr key={m.name}>
-                    <td className="cs-table__key">{m.name}</td>
-                    <td className="cs-num">
-                      {/* 원자료는 83.978 처럼 소수가 길다. 그대로 적으면 정밀해
-                          보이지만 읽히지 않는다 — 한 자리로 줄인다 */}
-                      {m.supplyArea === null ? '—' : `${m.supplyArea.toFixed(1)}㎡`}
-                      {m.exclusiveArea !== null && (
-                        <span className="cs-table__sub">전용 {m.exclusiveArea}㎡</span>
-                      )}
-                    </td>
-                    <td className="cs-num cs-table__r">
-                      {m.topAmount === null ? '공고문 확인' : formatMan(m.topAmount)}
-                    </td>
-                    <td className="cs-num cs-table__r">
-                      {m.perPyeong === null ? '—' : `${m.perPyeong.toLocaleString()}만원`}
-                    </td>
-                    <td className="cs-num cs-table__r">
-                      {m.households === null ? '—' : `${m.households.toLocaleString()}`}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="cs-note" style={{ marginTop: 14 }}>
-              분양가는 주택형별 최고가 기준이고, 평당은 공급면적으로 나눈 값입니다. 층·동별 금액과
-              옵션은 공고문에서 확인해 주세요.
+            <p className="cs-sa-rail__src">
+              공급기관 {property.source}
+              <br />
+              공고번호 <span className="cs-num">{property.announcementId}</span>
             </p>
           </div>
-        </section>
-      )}
+        </aside>
 
-      {/* 주변 전월세 — 임대 공고는 금액을 내놓지 않는다. 공고의 값을 알 수 없다면
-          적어도 그 동네가 얼마인지는 말해 줄 수 있다. */}
-      {rent && (
-        <section style={{ marginTop: 32 }}>
-          <h2 className="cs-section-title" style={{ fontSize: 24 }}>
-            주변 전월세 시세
-          </h2>
-          <div className="cs-card" style={{ marginTop: 18 }}>
-            <p className="cs-pro__p" style={{ marginBottom: 18 }}>
-              <strong>{rent.scope}</strong> 최근 {rent.months}개월 <strong>{rent.total.toLocaleString()}건</strong>의
-              전월세 신고를 면적대로 나눠 셌습니다.
-            </p>
+        {/* ── 문서 — 종이 한 장. 절마다 왼쪽 여백에 번호가 선다 ── */}
+        <article className="cs-sa-doc" aria-label="공고 내용">
+          {/* 특별공급 결과를 주택형 표보다 먼저 세운다. 접수 중인 공고에서
+              오늘 판단을 바꿀 수 있는 숫자는 이것 하나뿐이다. */}
+          {data.special && (
+            <section className="cs-sa-doc__sec">
+              <SpecialSupply data={data.special} open={!closed} />
+            </section>
+          )}
 
-            <div className="cs-models">
-              <table className="cs-table">
-                <thead>
-                  <tr>
-                    <th>전용면적</th>
-                    <th className="cs-table__r">전세 보증금</th>
-                    <th className="cs-table__r">월세 (보증금 / 월)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rent.bands.map(b => (
-                    <tr key={b.key}>
-                      <td className="cs-table__key">{b.key}</td>
-                      <td className="cs-num cs-table__r">
-                        {b.jeonse.deposit === null ? (
-                          <span style={{ color: 'var(--muted)' }}>—</span>
-                        ) : (
-                          <>
-                            {formatMan(b.jeonse.deposit)}
-                            <span className="cs-table__sub">{b.jeonse.count}건</span>
-                          </>
-                        )}
-                      </td>
-                      <td className="cs-num cs-table__r">
-                        {b.wolse.rent === null ? (
-                          <span style={{ color: 'var(--muted)' }}>—</span>
-                        ) : (
-                          <>
-                            {formatMan(b.wolse.deposit ?? 0)} / {b.wolse.rent.toLocaleString()}만원
-                            <span className="cs-table__sub">{b.wolse.count}건</span>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <p className="cs-note" style={{ marginTop: 16 }}>
-              각 칸은 그 면적대의 중앙값이고, 전세와 월세를 갈라 셌습니다. 월세는 보증금과 월세를
-              서로 맞바꿀 수 있어 한 숫자로 묶지 않고 따로 적었습니다. 공공임대는 이 시세보다 낮게
-              공급되는 것이 일반적이지만, 이 공고의 실제 조건은 모집공고문에서 확인해 주세요.
-              출처: 국토교통부 전월세 실거래.
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* 주변 실거래 — 분양가가 싼지 비싼지는 그 숫자만 봐서는 알 수 없다 */}
-      {bench && (
-        <section style={{ marginTop: 32 }}>
-          <h2 className="cs-section-title" style={{ fontSize: 24 }}>
-            주변 아파트 매매 실거래
-          </h2>
-          <div className="cs-card" style={{ marginTop: 18 }}>
-            <p className="cs-pro__p" style={{ marginBottom: 18 }}>
-              <strong>{bench.scope}</strong> 최근 {trade!.months}개월 <strong>{bench.count}건</strong>의 전용 평당
-              중앙값은 <strong>{bench.per.toLocaleString()}만원</strong>입니다.
-            </p>
-
-            {supplyModels.length > 0 && (
+          {/* 주택형별 공급 — 총계만으로는 "내가 넣을 평형이 몇 세대이고 얼마인가"에
+              답할 수 없다. 답하지 못하면 결국 공고문 PDF 를 열게 된다. */}
+          {supplyModels.length > 0 && (
+            <section className="cs-sa-doc__sec">
+              <h2 className="cs-sa-doc__h">주택형별 공급</h2>
               <div className="cs-models">
                 <table className="cs-table">
                   <thead>
                     <tr>
                       <th>주택형</th>
+                      <th>공급면적</th>
                       <th className="cs-table__r">분양가</th>
-                      <th className="cs-table__r">주변 시세 환산액</th>
-                      <th className="cs-table__r">차이</th>
+                      <th className="cs-table__r">평당</th>
+                      <th className="cs-table__r">세대</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {supplyModels.map(m => {
-                      if (m.exclusiveArea === null || m.topAmount === null) return null
-                      const around = Math.round(bench.per * (m.exclusiveArea / 3.3058))
-                      const gap = m.topAmount - around
-                      return (
-                        <tr key={m.name}>
-                          <td className="cs-table__key">
-                            {m.name}
+                    {supplyModels.map(m => (
+                      <tr key={m.name}>
+                        <td className="cs-table__key">{m.name}</td>
+                        <td className="cs-num">
+                          {/* 원자료는 83.978 처럼 소수가 길다. 그대로 적으면 정밀해
+                              보이지만 읽히지 않는다 — 한 자리로 줄인다 */}
+                          {m.supplyArea === null ? '—' : `${m.supplyArea.toFixed(1)}㎡`}
+                          {m.exclusiveArea !== null && (
                             <span className="cs-table__sub">전용 {m.exclusiveArea}㎡</span>
-                          </td>
-                          <td className="cs-num cs-table__r">{formatMan(m.topAmount)}</td>
-                          <td className="cs-num cs-table__r">{formatMan(around)}</td>
-                          <td className="cs-num cs-table__r">
-                            <span className="cs-gap" data-over={gap > 0}>
-                              {gap > 0 ? '+' : gap < 0 ? '−' : ''}
-                              {formatMan(Math.abs(gap))}
-                            </span>
-                          </td>
-                        </tr>
-                      )
-                    })}
+                          )}
+                        </td>
+                        <td className="cs-num cs-table__r">
+                          {m.topAmount === null ? '공고문 확인' : formatMan(m.topAmount)}
+                        </td>
+                        <td className="cs-num cs-table__r">
+                          {m.perPyeong === null ? '—' : `${m.perPyeong.toLocaleString()}만원`}
+                        </td>
+                        <td className="cs-num cs-table__r">
+                          {m.households === null ? '—' : `${m.households.toLocaleString()}`}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-            )}
-
-            {trade!.presale?.medianPerPyeong && (
-              <div className="cs-bench">
-                <div className="cs-bench__k">분양권 전매와 견주면</div>
-                <p className="cs-pro__p" style={{ margin: '0 0 12px' }}>
-                  같은 시·군·구에서 최근 {trade!.presale.months}개월 <strong>{trade!.presale.count}건</strong>의
-                  분양권·입주권이 손바뀜했고, 전용 평당 중앙값은{' '}
-                  <strong>{trade!.presale.medianPerPyeong.toLocaleString()}만원</strong>입니다.
+              <p className="cs-sa-doc__note">
+                분양가는 주택형별 최고가 기준이고, 평당은 공급면적으로 나눈 값입니다. 층·동별 금액과
+                옵션은 공고문에서 확인해 주세요.
+              </p>
+            </section>
+          )}
+          {/* 주변 전월세 — 임대 공고는 금액을 내놓지 않는다. 공고의 값을 알 수 없다면
+              적어도 그 동네가 얼마인지는 말해 줄 수 있다. */}
+          {rent && (
+            <section className="cs-sa-doc__sec">
+              <h2 className="cs-sa-doc__h">
+                주변 전월세 시세
+              </h2>
+              <div className="cs-sa-doc__body">
+                <p className="cs-pro__p" style={{ marginBottom: 18 }}>
+                  <strong>{rent.scope}</strong> 최근 {rent.months}개월 <strong>{rent.total.toLocaleString()}건</strong>의
+                  전월세 신고를 면적대로 나눠 셌습니다.
                 </p>
+
                 <div className="cs-models">
                   <table className="cs-table">
                     <thead>
                       <tr>
-                        <th>주택형</th>
-                        <th className="cs-table__r">분양가</th>
-                        <th className="cs-table__r">전매 시세 환산액</th>
-                        <th className="cs-table__r">차이</th>
+                        <th>전용면적</th>
+                        <th className="cs-table__r">전세 보증금</th>
+                        <th className="cs-table__r">월세 (보증금 / 월)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {supplyModels.map(m => {
-                        if (m.exclusiveArea === null || m.topAmount === null) return null
-                        const around = Math.round(trade!.presale!.medianPerPyeong! * (m.exclusiveArea / 3.3058))
-                        const gap = m.topAmount - around
-                        return (
-                          <tr key={`ps-${m.name}`}>
-                            <td className="cs-table__key">{m.name}</td>
-                            <td className="cs-num cs-table__r">{formatMan(m.topAmount)}</td>
-                            <td className="cs-num cs-table__r">{formatMan(around)}</td>
-                            <td className="cs-num cs-table__r">
-                              <span className="cs-gap" data-over={gap > 0}>
-                                {gap > 0 ? '+' : gap < 0 ? '−' : ''}
-                                {formatMan(Math.abs(gap))}
-                              </span>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                <p className="cs-note" style={{ marginTop: 12 }}>
-                  매매 실거래에는 지은 지 오래된 단지도 섞여 있어, 새로 분양하는 집을 그것과만 견주면
-                  대체로 비싸게 나옵니다. 분양권은 아직 짓는 중인 물건이라 같은 줄에 섭니다. 두 값이
-                  크게 다를 수 있으니 무엇과 견준 숫자인지 함께 보아 주세요.
-                </p>
-              </div>
-            )}
-
-            {trade!.monthly.length >= 3 && (
-              <div className="cs-trend">
-                <div className="cs-trend__head">
-                  <span className="cs-note">전용 평당 중앙값 {trade!.months}개월</span>
-                  <span className="cs-num cs-trend__delta" data-up={
-                    trade!.monthly[trade!.monthly.length - 1].medianPerPyeong >= trade!.monthly[0].medianPerPyeong
-                  }>
-                    {trade!.monthly[0].month.replace('-', '.')} {trade!.monthly[0].medianPerPyeong.toLocaleString()}만
-                    {' → '}
-                    {trade!.monthly[trade!.monthly.length - 1].month.replace('-', '.')}{' '}
-                    {trade!.monthly[trade!.monthly.length - 1].medianPerPyeong.toLocaleString()}만
-                  </span>
-                </div>
-                {(() => {
-                  const ms = trade!.monthly
-                  const lo = Math.min(...ms.map(m => m.medianPerPyeong))
-                  const hi = Math.max(...ms.map(m => m.medianPerPyeong))
-                  const span = hi - lo || 1
-                  return (
-                    <div className="cs-trend__bars">
-                      {ms.map(m => (
-                        <div key={m.month} className="cs-trend__col" title={`${m.month} · ${m.medianPerPyeong.toLocaleString()}만원 · ${m.count}건`}>
-                          <div
-                            className="cs-trend__bar"
-                            style={{ height: `${18 + ((m.medianPerPyeong - lo) / span) * 82}%` }}
-                          />
-                          <span className="cs-trend__m">{m.month.slice(5)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                })()}
-              </div>
-            )}
-
-            <p className="cs-note" style={{ marginTop: 16 }}>
-              환산액 = 주변 전용 평당 중앙값 × 이 주택형의 전용 평수. 해제된 거래는 뺐고, 거래가
-              3건 미만인 달은 비웠습니다. 주변 단지의 연식·규모·브랜드 차이는 반영하지 않은 단순
-              비교이므로, 차액이 곧 이익이나 손해를 뜻하지 않습니다. 출처: 국토교통부 실거래가.
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* 이 지역의 최근 청약 결과 — 과거이고, 이 공고의 결과를 예측하지 않는다 */}
-      {region && (region.competition || region.scores.length > 0) && (
-        <section style={{ marginTop: 32 }}>
-          <h2 className="cs-section-title" style={{ fontSize: 24 }}>
-            이 지역의 최근 청약 결과
-          </h2>
-          <div className="cs-card" style={{ marginTop: 18 }}>
-            {region.competition && (
-              <>
-                <div className="cs-rate">
-                  <span className="cs-rate__n">{region.competition.rate.toLocaleString()} : 1</span>
-                  <span className="cs-rate__k">
-                    {region.province} 1순위 경쟁률 · 최근 {region.months}개월 합계
-                  </span>
-                  <span className="cs-note">
-                    공급 {region.competition.supply.toLocaleString()}세대 · 신청{' '}
-                    {region.competition.applied.toLocaleString()}건
-                  </span>
-                </div>
-
-                {region.competition.monthly.length >= 3 && (() => {
-                  const ms = region.competition.monthly
-                  const hi = Math.max(...ms.map(m => m.rate), 1)
-                  return (
-                    <div className="cs-trend" style={{ marginTop: 22 }}>
-                      <div className="cs-trend__head">
-                        <span className="cs-note">달별 경쟁률 · 점선이 1 : 1(미달 경계)</span>
-                      </div>
-                      <div className="cs-trend__bars cs-trend__bars--line">
-                        <span className="cs-trend__one" style={{ bottom: `${(1 / hi) * 100}%` }} />
-                        {ms.map(m => (
-                          <div
-                            key={m.month}
-                            className="cs-trend__col"
-                            title={`${m.month} · ${m.rate} : 1 · 공급 ${m.supply.toLocaleString()}세대`}
-                          >
-                            <div
-                              className="cs-trend__bar"
-                              data-under={m.rate < 1}
-                              style={{ height: `${Math.max(4, (m.rate / hi) * 100)}%` }}
-                            />
-                            <span className="cs-trend__m">{m.month.slice(5)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })()}
-              </>
-            )}
-
-            {region.scores.length > 0 && (
-              <div className="cs-scores">
-                <div className="cs-note" style={{ marginBottom: 10 }}>
-                  가점제 당첨 가점 — 0점·미발표는 뺐습니다
-                </div>
-                {region.scores.map(sc => (
-                  <div key={sc.kind} className="cs-scores__row">
-                    <span className="cs-scores__k">{sc.kind}</span>
-                    <span className="cs-num cs-scores__v">
-                      최저 {sc.lowest ?? '—'} · 평균 {sc.average ?? '—'} · 최고 {sc.highest ?? '—'}점
-                      <span className="cs-scores__n">({sc.months}개월)</span>
-                    </span>
-                  </div>
-                ))}
-                <Link href="/score" className="cs-btn cs-btn--sm cs-btn--ghost" style={{ marginTop: 14 }}>
-                  내 가점 계산해 비교하기
-                </Link>
-              </div>
-            )}
-
-            {nearby.length > 0 && (
-              <div className="cs-near">
-                <div className="cs-note" style={{ marginBottom: 10 }}>
-                  근처에서 최근에 끝난 청약 — 같은 시·군·구를 먼저, 모자라면 같은 시·도에서
-                </div>
-                <div className="cs-models">
-                  <table className="cs-table">
-                    <thead>
-                      <tr>
-                        <th>단지</th>
-                        <th className="cs-table__r">1순위 경쟁률</th>
-                        <th className="cs-table__r">공급 · 신청</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {nearby.map(nb => (
-                        <tr key={`${nb.name}-${nb.resultDate}`}>
-                          <td className="cs-table__key">
-                            {nb.name}
-                            <span className="cs-table__sub">
-                              {nb.area} · {nb.kind}
-                              {nb.resultDate && ` · 발표 ${nb.resultDate}`}
-                              {nb.scope === 'REGION' && ' · 같은 시·군·구'}
-                            </span>
+                      {rent.bands.map(b => (
+                        <tr key={b.key}>
+                          <td className="cs-table__key">{b.key}</td>
+                          <td className="cs-num cs-table__r">
+                            {b.jeonse.deposit === null ? (
+                              <span style={{ color: 'var(--muted)' }}>—</span>
+                            ) : (
+                              <>
+                                {formatMan(b.jeonse.deposit)}
+                                <span className="cs-table__sub">{b.jeonse.count}건</span>
+                              </>
+                            )}
                           </td>
                           <td className="cs-num cs-table__r">
-                            {/* 공급보다 신청이 적으면 경쟁률이 아니라 미달이다 */}
-                            <span className="cs-gap" data-over={!nb.under}>
-                              {nb.under ? `미달 ${nb.rate} : 1` : `${nb.rate} : 1`}
-                            </span>
-                          </td>
-                          <td className="cs-num cs-table__r">
-                            {nb.supply.toLocaleString()}세대 · {nb.applied.toLocaleString()}건
+                            {b.wolse.rent === null ? (
+                              <span style={{ color: 'var(--muted)' }}>—</span>
+                            ) : (
+                              <>
+                                {formatMan(b.wolse.deposit ?? 0)} / {b.wolse.rent.toLocaleString()}만원
+                                <span className="cs-table__sub">{b.wolse.count}건</span>
+                              </>
+                            )}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
+
+                <p className="cs-sa-doc__note">
+                  각 칸은 그 면적대의 중앙값이고, 전세와 월세를 갈라 셌습니다. 월세는 보증금과 월세를
+                  서로 맞바꿀 수 있어 한 숫자로 묶지 않고 따로 적었습니다. 공공임대는 이 시세보다 낮게
+                  공급되는 것이 일반적이지만, 이 공고의 실제 조건은 모집공고문에서 확인해 주세요.
+                  출처: 국토교통부 전월세 실거래.
+                </p>
               </div>
+            </section>
+          )}
+
+          {/* 주변 실거래 — 분양가가 싼지 비싼지는 그 숫자만 봐서는 알 수 없다 */}
+          {bench && (
+            <section className="cs-sa-doc__sec">
+              <h2 className="cs-sa-doc__h">
+                주변 아파트 매매 실거래
+              </h2>
+              <div className="cs-sa-doc__body">
+                <p className="cs-pro__p" style={{ marginBottom: 18 }}>
+                  <strong>{bench.scope}</strong> 최근 {trade!.months}개월 <strong>{bench.count}건</strong>의 전용 평당
+                  중앙값은 <strong>{bench.per.toLocaleString()}만원</strong>입니다.
+                </p>
+
+                {supplyModels.length > 0 && (
+                  <div className="cs-models">
+                    <table className="cs-table">
+                      <thead>
+                        <tr>
+                          <th>주택형</th>
+                          <th className="cs-table__r">분양가</th>
+                          <th className="cs-table__r">주변 시세 환산액</th>
+                          <th className="cs-table__r">차이</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {supplyModels.map(m => {
+                          if (m.exclusiveArea === null || m.topAmount === null) return null
+                          const around = Math.round(bench.per * (m.exclusiveArea / 3.3058))
+                          const gap = m.topAmount - around
+                          return (
+                            <tr key={m.name}>
+                              <td className="cs-table__key">
+                                {m.name}
+                                <span className="cs-table__sub">전용 {m.exclusiveArea}㎡</span>
+                              </td>
+                              <td className="cs-num cs-table__r">{formatMan(m.topAmount)}</td>
+                              <td className="cs-num cs-table__r">{formatMan(around)}</td>
+                              <td className="cs-num cs-table__r">
+                                <span className="cs-gap" data-over={gap > 0}>
+                                  {gap > 0 ? '+' : gap < 0 ? '−' : ''}
+                                  {formatMan(Math.abs(gap))}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {trade!.presale?.medianPerPyeong && (
+                  <div className="cs-bench">
+                    <div className="cs-bench__k">분양권 전매와 견주면</div>
+                    <p className="cs-pro__p" style={{ margin: '0 0 12px' }}>
+                      같은 시·군·구에서 최근 {trade!.presale.months}개월 <strong>{trade!.presale.count}건</strong>의
+                      분양권·입주권이 손바뀜했고, 전용 평당 중앙값은{' '}
+                      <strong>{trade!.presale.medianPerPyeong.toLocaleString()}만원</strong>입니다.
+                    </p>
+                    <div className="cs-models">
+                      <table className="cs-table">
+                        <thead>
+                          <tr>
+                            <th>주택형</th>
+                            <th className="cs-table__r">분양가</th>
+                            <th className="cs-table__r">전매 시세 환산액</th>
+                            <th className="cs-table__r">차이</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {supplyModels.map(m => {
+                            if (m.exclusiveArea === null || m.topAmount === null) return null
+                            const around = Math.round(trade!.presale!.medianPerPyeong! * (m.exclusiveArea / 3.3058))
+                            const gap = m.topAmount - around
+                            return (
+                              <tr key={`ps-${m.name}`}>
+                                <td className="cs-table__key">{m.name}</td>
+                                <td className="cs-num cs-table__r">{formatMan(m.topAmount)}</td>
+                                <td className="cs-num cs-table__r">{formatMan(around)}</td>
+                                <td className="cs-num cs-table__r">
+                                  <span className="cs-gap" data-over={gap > 0}>
+                                    {gap > 0 ? '+' : gap < 0 ? '−' : ''}
+                                    {formatMan(Math.abs(gap))}
+                                  </span>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="cs-sa-doc__note">
+                      매매 실거래에는 지은 지 오래된 단지도 섞여 있어, 새로 분양하는 집을 그것과만 견주면
+                      대체로 비싸게 나옵니다. 분양권은 아직 짓는 중인 물건이라 같은 줄에 섭니다. 두 값이
+                      크게 다를 수 있으니 무엇과 견준 숫자인지 함께 보아 주세요.
+                    </p>
+                  </div>
+                )}
+
+                {trade!.monthly.length >= 3 && (
+                  <div className="cs-trend">
+                    <div className="cs-trend__head">
+                      <span className="cs-note">전용 평당 중앙값 {trade!.months}개월</span>
+                      <span className="cs-num cs-trend__delta" data-up={
+                        trade!.monthly[trade!.monthly.length - 1].medianPerPyeong >= trade!.monthly[0].medianPerPyeong
+                      }>
+                        {trade!.monthly[0].month.replace('-', '.')} {trade!.monthly[0].medianPerPyeong.toLocaleString()}만
+                        {' → '}
+                        {trade!.monthly[trade!.monthly.length - 1].month.replace('-', '.')}{' '}
+                        {trade!.monthly[trade!.monthly.length - 1].medianPerPyeong.toLocaleString()}만
+                      </span>
+                    </div>
+                    {(() => {
+                      const ms = trade!.monthly
+                      const lo = Math.min(...ms.map(m => m.medianPerPyeong))
+                      const hi = Math.max(...ms.map(m => m.medianPerPyeong))
+                      const span = hi - lo || 1
+                      return (
+                        <div className="cs-trend__bars">
+                          {ms.map(m => (
+                            <div key={m.month} className="cs-trend__col" title={`${m.month} · ${m.medianPerPyeong.toLocaleString()}만원 · ${m.count}건`}>
+                              <div
+                                className="cs-trend__bar"
+                                style={{ height: `${18 + ((m.medianPerPyeong - lo) / span) * 82}%` }}
+                              />
+                              <span className="cs-trend__m">{m.month.slice(5)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+
+                <p className="cs-sa-doc__note">
+                  환산액 = 주변 전용 평당 중앙값 × 이 주택형의 전용 평수. 해제된 거래는 뺐고, 거래가
+                  3건 미만인 달은 비웠습니다. 주변 단지의 연식·규모·브랜드 차이는 반영하지 않은 단순
+                  비교이므로, 차액이 곧 이익이나 손해를 뜻하지 않습니다. 출처: 국토교통부 실거래가.
+                </p>
+              </div>
+            </section>
+          )}
+
+          {/* 이 지역의 최근 청약 결과 — 과거이고, 이 공고의 결과를 예측하지 않는다 */}
+          {region && (region.competition || region.scores.length > 0) && (
+            <section className="cs-sa-doc__sec">
+              <h2 className="cs-sa-doc__h">
+                이 지역의 최근 청약 결과
+              </h2>
+              <div className="cs-sa-doc__body">
+                {region.competition && (
+                  <>
+                    <div className="cs-rate">
+                      <span className="cs-rate__n">{region.competition.rate.toLocaleString()} : 1</span>
+                      <span className="cs-rate__k">
+                        {region.province} 1순위 경쟁률 · 최근 {region.months}개월 합계
+                      </span>
+                      <span className="cs-note">
+                        공급 {region.competition.supply.toLocaleString()}세대 · 신청{' '}
+                        {region.competition.applied.toLocaleString()}건
+                      </span>
+                    </div>
+
+                    {region.competition.monthly.length >= 3 && (() => {
+                      const ms = region.competition.monthly
+                      const hi = Math.max(...ms.map(m => m.rate), 1)
+                      return (
+                        <div className="cs-trend" style={{ marginTop: 22 }}>
+                          <div className="cs-trend__head">
+                            <span className="cs-note">달별 경쟁률 · 점선이 1 : 1(미달 경계)</span>
+                          </div>
+                          <div className="cs-trend__bars cs-trend__bars--line">
+                            <span className="cs-trend__one" style={{ bottom: `${(1 / hi) * 100}%` }} />
+                            {ms.map(m => (
+                              <div
+                                key={m.month}
+                                className="cs-trend__col"
+                                title={`${m.month} · ${m.rate} : 1 · 공급 ${m.supply.toLocaleString()}세대`}
+                              >
+                                <div
+                                  className="cs-trend__bar"
+                                  data-under={m.rate < 1}
+                                  style={{ height: `${Math.max(4, (m.rate / hi) * 100)}%` }}
+                                />
+                                <span className="cs-trend__m">{m.month.slice(5)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </>
+                )}
+
+                {region.scores.length > 0 && (
+                  <div className="cs-scores">
+                    <div className="cs-note" style={{ marginBottom: 10 }}>
+                      가점제 당첨 가점 — 0점·미발표는 뺐습니다
+                    </div>
+                    {region.scores.map(sc => (
+                      <div key={sc.kind} className="cs-scores__row">
+                        <span className="cs-scores__k">{sc.kind}</span>
+                        <span className="cs-num cs-scores__v">
+                          최저 {sc.lowest ?? '—'} · 평균 {sc.average ?? '—'} · 최고 {sc.highest ?? '—'}점
+                          <span className="cs-scores__n">({sc.months}개월)</span>
+                        </span>
+                      </div>
+                    ))}
+                    <Link href="/score" className="cs-btn cs-btn--sm cs-btn--ghost" style={{ marginTop: 14 }}>
+                      내 가점 계산해 비교하기
+                    </Link>
+                  </div>
+                )}
+
+                {nearby.length > 0 && (
+                  <div className="cs-near">
+                    <div className="cs-note" style={{ marginBottom: 10 }}>
+                      근처에서 최근에 끝난 청약 — 같은 시·군·구를 먼저, 모자라면 같은 시·도에서
+                    </div>
+                    <div className="cs-models">
+                      <table className="cs-table">
+                        <thead>
+                          <tr>
+                            <th>단지</th>
+                            <th className="cs-table__r">1순위 경쟁률</th>
+                            <th className="cs-table__r">공급 · 신청</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {nearby.map(nb => (
+                            <tr key={`${nb.name}-${nb.resultDate}`}>
+                              <td className="cs-table__key">
+                                {nb.name}
+                                <span className="cs-table__sub">
+                                  {nb.area} · {nb.kind}
+                                  {nb.resultDate && ` · 발표 ${nb.resultDate}`}
+                                  {nb.scope === 'REGION' && ' · 같은 시·군·구'}
+                                </span>
+                              </td>
+                              <td className="cs-num cs-table__r">
+                                {/* 공급보다 신청이 적으면 경쟁률이 아니라 미달이다 */}
+                                <span className="cs-gap" data-over={!nb.under}>
+                                  {nb.under ? `미달 ${nb.rate} : 1` : `${nb.rate} : 1`}
+                                </span>
+                              </td>
+                              <td className="cs-num cs-table__r">
+                                {nb.supply.toLocaleString()}세대 · {nb.applied.toLocaleString()}건
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                <p className="cs-sa-doc__note">
+                  청약홈 공공데이터 기준입니다. 경쟁률은 달마다 규모가 달라 신청 총합 ÷ 공급 총합으로
+                  셌습니다. 과거 결과이며 이 공고의 결과를 예측하지 않습니다.{' '}
+                  <Link href="/stats">지역별 통계 전체 보기</Link>
+                </p>
+              </div>
+            </section>
+          )}
+
+          {/* 내 조건과의 비교 */}
+          {candidate && (
+            <section className="cs-sa-doc__sec">
+              <h2 className="cs-sa-doc__h">
+                내 조건과 비교하면
+              </h2>
+              <div className="cs-sa-doc__body">
+                {candidate.reasons.length > 0 && (
+                  <ul className="cs-notice__reasons" style={{ marginTop: 0 }}>
+                    {candidate.reasons.map(r => (
+                      <li key={r}>{r}</li>
+                    ))}
+                  </ul>
+                )}
+                <div style={{ marginTop: candidate.reasons.length ? 20 : 0 }}>
+                  <div className="cs-sa-check__k">지원 전 확인이 필요한 사항</div>
+                  <ul className="cs-sa-check">
+                    {candidate.cautions.map(c => (
+                      <li key={c}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* 가점제냐 추첨제냐 — 분양(청약홈) 공고에만. 임대는 가점·추첨으로 뽑지 않는다 */}
+          {!isSample && supplyModels.length > 0 && (() => {
+            const sc = region?.scores.find(x => x.average !== null && x.lowest !== null)
+            const hasScore = profile && (profile.homelessYears !== null || profile.dependents !== null || profile.accountYears !== null)
+            const me = hasScore
+              ? calculateSubscriptionScore({
+                  homelessYears: profile.homelessYears ?? 0,
+                  dependents: profile.dependents ?? 0,
+                  accountYears: profile.accountYears ?? 0,
+                  homeowner: profile.homeownership === 'ONE' || profile.homeownership === 'MANY',
+                }).total
+              : null
+            const where = `${property.district ?? ''} ${property.region ?? ''} ${property.address ?? ''}`
+            return (
+              <section className="cs-sa-doc__sec">
+                <DrawVsScore
+                  myScore={me ?? 0}
+                  reference={sc ? { avg: sc.average!, min: sc.lowest!, label: `${region!.province} 최근 ${sc.months}개월` } : null}
+                  models={supplyModels.map(m => ({ name: m.name, exclusiveArea: m.exclusiveArea, households: null }))}
+                  defaultZone={guessZone(where)}
+                  defaultOwnership={profile?.homeownership === 'ONE' ? 'ONE' : profile?.homeownership === 'MANY' ? 'MULTI' : 'NONE'}
+                  zoneHint={`공고 지역 「${where.trim()}」`}
+                />
+                {me === null && (
+                  <p className="cs-note" style={{ marginTop: 8 }}>
+                    저장한 조건에 가점 항목이 없어 0점으로 보았습니다. <a href="/score">가점 계산</a>에서 내 점수를 넣어 보세요.
+                  </p>
+                )}
+              </section>
+            )
+          })()}
+
+          {/* 주변 생활 상권 — 좌표가 주소·공고명으로 찾은 자리일 때만. 지역 기준점이면 남의 동네를 보여 주게 된다 */}
+          {!isSample &&
+            property.lat !== null &&
+            property.lng !== null &&
+            (property.geoSource === 'ADDRESS' || property.geoSource === 'NAME') && (
+              <section className="cs-sa-doc__sec">
+                <NearbyStores lat={property.lat} lng={property.lng} approximate={property.geoSource === 'NAME'} />
+              </section>
             )}
 
-            <p className="cs-note" style={{ marginTop: 16 }}>
-              청약홈 공공데이터 기준입니다. 경쟁률은 달마다 규모가 달라 신청 총합 ÷ 공급 총합으로
-              셌습니다. 과거 결과이며 이 공고의 결과를 예측하지 않습니다.{' '}
-              <Link href="/stats">지역별 통계 전체 보기</Link>
-            </p>
-          </div>
-        </section>
-      )}
+          {/* 공식 일정 */}
+          <section className="cs-sa-doc__sec">
+            <h2 className="cs-sa-doc__h">공고 일정{isSample && ' · 예시 데이터'}</h2>
+            <div className="cs-sa-doc__body">
+              {/* 날짜를 읽는 일과 기간을 가늠하는 일은 다르다. 사람이 하려는 것은 뒤쪽이라
+                  목록 위에 달력을 둔다 */}
+              <NoticeCalendar marks={marksFrom(property, recommended)} />
 
-      {/* 내 조건과의 비교 */}
-      {candidate && (
-        <section style={{ marginTop: 32 }}>
-          <h2 className="cs-section-title" style={{ fontSize: 24 }}>
-            내 조건과 비교하면
-          </h2>
-          <div className="cs-card" style={{ marginTop: 18 }}>
-            {candidate.reasons.length > 0 && (
-              <ul className="cs-notice__reasons" style={{ marginTop: 0 }}>
-                {candidate.reasons.map(r => (
-                  <li key={r}>{r}</li>
-                ))}
-              </ul>
-            )}
-            <div style={{ marginTop: candidate.reasons.length ? 20 : 0 }}>
-              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--check)', marginBottom: 10 }}>
-                지원 전 확인이 필요한 사항
-              </div>
-              <ul style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 8 }}>
-                {candidate.cautions.map(c => (
-                  <li key={c} style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--body)' }}>
-                    {c}
+              <ul className="cs-sa-sched">
+                {official.map(t => (
+                  <li key={t.id}>
+                    <span className="cs-sa-sched__t">{t.title}</span>
+                    <span className="cs-sa-sched__d cs-num" data-none={t.dueDate ? undefined : 'true'}>
+                      {t.dueDate ?? '미정'}
+                      {t.status === 'BLOCKED' && ' · 당첨 후 확인'}
+                    </span>
                   </li>
                 ))}
               </ul>
+              <p className="cs-sa-doc__note">
+                시간대: 한국 표준시(Asia/Seoul).{isSample ? ' 예시 일정이며,' : ' 공고문에 적힌 날짜만 싣고,'}{' '}
+                공개되지 않은 날짜는 &lsquo;공고 미공개&rsquo;로 표시합니다.
+              </p>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
 
-      {/* 가점제냐 추첨제냐 — 분양(청약홈) 공고에만. 임대는 가점·추첨으로 뽑지 않는다 */}
-      {!isSample && supplyModels.length > 0 && (() => {
-        const sc = region?.scores.find(x => x.average !== null && x.lowest !== null)
-        const hasScore = profile && (profile.homelessYears !== null || profile.dependents !== null || profile.accountYears !== null)
-        const me = hasScore
-          ? calculateSubscriptionScore({
-              homelessYears: profile.homelessYears ?? 0,
-              dependents: profile.dependents ?? 0,
-              accountYears: profile.accountYears ?? 0,
-              homeowner: profile.homeownership === 'ONE' || profile.homeownership === 'MANY',
-            }).total
-          : null
-        const where = `${property.district ?? ''} ${property.region ?? ''} ${property.address ?? ''}`
-        return (
-          <section style={{ marginTop: 32 }}>
-            <DrawVsScore
-              myScore={me ?? 0}
-              reference={sc ? { avg: sc.average!, min: sc.lowest!, label: `${region!.province} 최근 ${sc.months}개월` } : null}
-              models={supplyModels.map(m => ({ name: m.name, exclusiveArea: m.exclusiveArea, households: null }))}
-              defaultZone={guessZone(where)}
-              defaultOwnership={profile?.homeownership === 'ONE' ? 'ONE' : profile?.homeownership === 'MANY' ? 'MULTI' : 'NONE'}
-              zoneHint={`공고 지역 「${where.trim()}」`}
-            />
-            {me === null && (
-              <p className="cs-note" style={{ marginTop: 8 }}>
-                저장한 조건에 가점 항목이 없어 0점으로 보았습니다. <a href="/score">가점 계산</a>에서 내 점수를 넣어 보세요.
+          {/* 준비 권장일 */}
+          <section className="cs-sa-doc__sec">
+            <h2 className="cs-sa-doc__h">이렇게 준비하시면 좋아요</h2>
+            <p className="cs-sa-doc__lead">공식 기한이 아니라 저희가 제안하는 준비 일정입니다.</p>
+            <ul className="cs-sa-sched" data-kind="prep">
+              {recommended.map(t => (
+                <li key={t.id}>
+                  <span className="cs-sa-sched__t">
+                    {t.title}
+                    {t.hint && <span className="cs-sa-sched__h">{t.hint}</span>}
+                  </span>
+                  <span className="cs-sa-sched__d cs-num" data-none={t.dueDate ? undefined : 'true'}>
+                    {t.dueDate ?? '기준일 미정'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* 원문 */}
+          <section className="cs-sa-doc__sec">
+            <h2 className="cs-sa-doc__h">공고 원문</h2>
+            {property.sourceUrl ? (
+              <a
+                href={property.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="cs-btn cs-btn--ghost cs-btn--sm"
+              >
+                원문 보기 <span aria-hidden="true">↗</span>
+                <span className="cs-sr">(새 창)</span>
+              </a>
+            ) : (
+              <p className="cs-sa-doc__lead">
+                {isSample
+                  ? '이 공고는 예시 데이터라 연결할 원문이 없습니다. 실제 공고 연동 시 원문 링크를 함께 제공합니다.'
+                  : '이 공고는 원문 링크가 공개되지 않았습니다. 공급기관 누리집에서 공고번호로 찾아 주세요.'}
               </p>
             )}
-          </section>
-        )
-      })()}
-
-      {/* 주변 생활 상권 — 좌표가 주소·공고명으로 찾은 자리일 때만. 지역 기준점이면 남의 동네를 보여 주게 된다 */}
-      {!isSample &&
-        property.lat !== null &&
-        property.lng !== null &&
-        (property.geoSource === 'ADDRESS' || property.geoSource === 'NAME') && (
-          <NearbyStores lat={property.lat} lng={property.lng} approximate={property.geoSource === 'NAME'} />
-        )}
-
-      {/* 공식 일정 */}
-      <section style={{ marginTop: 32 }}>
-        <h2 className="cs-section-title" style={{ fontSize: 24 }}>
-          공고 일정{isSample && ' · 예시 데이터'}
-        </h2>
-        <div className="cs-card" style={{ marginTop: 18 }}>
-          {/* 날짜를 읽는 일과 기간을 가늠하는 일은 다르다. 사람이 하려는 것은 뒤쪽이라
-              목록 위에 달력을 둔다 */}
-          <NoticeCalendar marks={marksFrom(property, recommended)} />
-
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 2 }}>
-            {official.map(t => (
-              <li
-                key={t.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: 16,
-                  padding: '14px 0',
-                  borderBottom: '1px solid var(--line)',
-                }}
-              >
-                <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--title)' }}>{t.title}</span>
-                <span className="cs-num" style={{ fontSize: 16, color: t.dueDate ? 'var(--body)' : 'var(--muted)' }}>
-                  {t.dueDate ?? '미정'}{t.status === 'BLOCKED' && ' · 당첨 후 확인'}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="cs-note" style={{ marginTop: 16 }}>
-            시간대: 한국 표준시(Asia/Seoul).{isSample ? ' 예시 일정이며,' : ' 공고문에 적힌 날짜만 싣고,'}{' '}
-            공개되지 않은 날짜는 &lsquo;공고 미공개&rsquo;로 표시합니다.
-          </p>
-        </div>
-      </section>
-
-      {/* 준비 권장일 */}
-      <section style={{ marginTop: 32 }}>
-        <h2 className="cs-section-title" style={{ fontSize: 24 }}>
-          이렇게 준비하시면 좋아요
-        </h2>
-        <p className="cs-sub" style={{ marginTop: 10 }}>
-          공식 기한이 아니라 저희가 제안하는 준비 일정입니다.
-        </p>
-        <div className="cs-card" style={{ marginTop: 18 }}>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 2 }}>
-            {recommended.map(t => (
-              <li
-                key={t.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: 16,
-                  padding: '14px 0',
-                  borderBottom: '1px solid var(--line)',
-                }}
-              >
-                <span>
-                  <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--title)' }}>{t.title}</span>
-                  {t.hint && (
-                    <span style={{ display: 'block', fontSize: 15, color: 'var(--muted)', marginTop: 2 }}>
-                      {t.hint}
-                    </span>
-                  )}
-                </span>
-                <span className="cs-num" style={{ fontSize: 16, color: t.dueDate ? 'var(--body)' : 'var(--muted)' }}>
-                  {t.dueDate ?? '기준일 미정'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* 원문 */}
-      <section style={{ marginTop: 32 }}>
-        <div className="cs-card">
-          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--title)', marginBottom: 8 }}>공고 원문</div>
-          {property.sourceUrl ? (
-            <a
-              href={property.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="cs-btn cs-btn--ghost cs-btn--sm"
-            >
-              원문 보기
-            </a>
-          ) : (
-            <p className="cs-sub" style={{ fontSize: 16 }}>
-              {isSample
-                ? '이 공고는 예시 데이터라 연결할 원문이 없습니다. 실제 공고 연동 시 원문 링크를 함께 제공합니다.'
-                : '이 공고는 원문 링크가 공개되지 않았습니다. 공급기관 누리집에서 공고번호로 찾아 주세요.'}
+            <p className="cs-sa-doc__note">
+              공급기관 {property.source} · 공고번호 {property.announcementId}
             </p>
-          )}
-          <p className="cs-note" style={{ marginTop: 12 }}>
-            공급기관 {property.source} · 공고번호 {property.announcementId}
-          </p>
-        </div>
-      </section>
+          </section>
 
-      {/* 다음 행동 */}
-      <section style={{ marginTop: 32, marginBottom: 24 }}>
-        <div className="cs-cta-band">
-          {closed ? (
-            <>
-              <h2 className="cs-section-title" style={{ fontSize: 22 }}>
-                이 공고는 접수가 마감됐어요
-              </h2>
-              <p className="cs-sub" style={{ marginTop: 12 }}>
-                같은 조건의 다른 후보를 다시 살펴보세요. 이메일 발송은 아직 연결 전입니다.
-              </p>
-              <button
-                className="cs-btn cs-btn--primary"
-                style={{ marginTop: 22 }}
-                onClick={() => gate.open({ kind: 'ALERT_NEW', propertyId: null })}
-              >
-                새 공고 알림 받기
-              </button>
-            </>
-          ) : hasDeadlineAlert ? (
-            <>
-              <h2 className="cs-section-title" style={{ fontSize: 22 }}>
-                마감 알림을 설정했어요
-              </h2>
-              <p className="cs-sub" style={{ marginTop: 12 }}>
-                수신 설정을 저장했어요. 이메일 발송은 아직 연결 전입니다.
-              </p>
-              <Link href="/saved" className="cs-btn cs-btn--ghost" style={{ marginTop: 22 }}>
-                관심공고 보기
-              </Link>
-            </>
-          ) : (
-            <>
-              <h2 className="cs-section-title" style={{ fontSize: 22 }}>
-                이 공고 마감 알림 받기
-              </h2>
-              <p className="cs-sub" style={{ marginTop: 12 }}>
-                {property.applicationEnd
-                  ? `접수 마감 ${property.applicationEnd} · 수신 설정만 저장하며 이메일 발송은 연결 전입니다.`
-                  : '마감일이 미정입니다. 수신 설정만 저장하며 이메일 발송은 연결 전입니다.'}
-              </p>
-              <button
-                className="cs-btn cs-btn--primary"
-                style={{ marginTop: 22 }}
-                onClick={() =>
-                  gate.open({ kind: 'ALERT_DEADLINE', propertyId: property.id, propertyName: property.name })
-                }
-              >
-                마감 알림 받기
-              </button>
-            </>
-          )}
-        </div>
-      </section>
+          {/* 다음 행동 */}
+          <section className="cs-sa-cta cs-sa-cta--doc">
+            {closed ? (
+              <>
+                <span className="cs-sa-kicker">Next</span>
+                <h2 className="cs-sa-cta__t">이 공고는 접수가 마감됐어요</h2>
+                <p className="cs-sa-cta__d">
+                  같은 조건의 다른 후보를 다시 살펴보세요. 이메일 발송은 아직 연결 전입니다.
+                </p>
+                <div className="cs-sa-cta__acts">
+                  <button
+                    className="cs-btn cs-btn--primary"
+                    onClick={() => gate.open({ kind: 'ALERT_NEW', propertyId: null })}
+                  >
+                    새 공고 알림 받기
+                  </button>
+                </div>
+              </>
+            ) : hasDeadlineAlert ? (
+              <>
+                <span className="cs-sa-kicker">Next</span>
+                <h2 className="cs-sa-cta__t">마감 알림을 설정했어요</h2>
+                <p className="cs-sa-cta__d">수신 설정을 저장했어요. 이메일 발송은 아직 연결 전입니다.</p>
+                <div className="cs-sa-cta__acts">
+                  <Link href="/saved" className="cs-btn cs-btn--ghost">
+                    관심공고 보기
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="cs-sa-kicker">Next</span>
+                <h2 className="cs-sa-cta__t">이 공고 마감 알림 받기</h2>
+                <p className="cs-sa-cta__d">
+                  {property.applicationEnd
+                    ? `접수 마감 ${property.applicationEnd} · 수신 설정만 저장하며 이메일 발송은 연결 전입니다.`
+                    : '마감일이 미정입니다. 수신 설정만 저장하며 이메일 발송은 연결 전입니다.'}
+                </p>
+                <div className="cs-sa-cta__acts">
+                  <button
+                    className="cs-btn cs-btn--primary"
+                    onClick={() =>
+                      gate.open({ kind: 'ALERT_DEADLINE', propertyId: property.id, propertyName: property.name })
+                    }
+                  >
+                    마감 알림 받기
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+        </article>
+      </div>
     </div>
   )
 }

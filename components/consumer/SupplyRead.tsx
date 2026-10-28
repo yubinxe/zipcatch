@@ -49,31 +49,65 @@ function typeLabel(raw: string) {
  * 미달인 일이 흔하고, 평균은 그 둘을 뭉개 둘 다 틀린 숫자 하나로 만든다.
  */
 export default function SupplyRead() {
-  const [data, setData] = useState<Read | null>(null)
-  const [failed, setFailed] = useState(false)
+  /** 몇 번째 시도의 결과인지 함께 담아, 다시 누르면 기다림으로 돌아간다 */
+  const [attempt, setAttempt] = useState(0)
+  const [result, setResult] = useState<{ n: number; data: Read | null; failed: boolean } | null>(null)
+  const data = result?.n === attempt ? result.data : null
+  const failed = result?.n === attempt && result.failed
 
   useEffect(() => {
     let alive = true
     fetch('/api/pro/read?pages=6', { cache: 'no-store' })
       .then(r => (r.ok ? r.json() : Promise.reject(new Error())))
-      .then((j: Read) => alive && setData(j))
-      .catch(() => alive && setFailed(true))
+      .then((j: Read) => alive && setResult({ n: attempt, data: j, failed: false }))
+      .catch(() => alive && setResult({ n: attempt, data: null, failed: true }))
     return () => {
       alive = false
     }
-  }, [])
+  }, [attempt])
 
   if (failed) {
-    return <p className="cs-note">판독 자료를 불러오지 못했습니다. 잠시 뒤 다시 열어 주세요.</p>
+    return (
+      <div className="cs-sb-fail" role="alert">
+        <span>판독 자료를 불러오지 못했습니다. 잠시 뒤 다시 열어 주세요.</span>
+        <button type="button" className="cs-btn cs-btn--ghost" onClick={() => setAttempt(a => a + 1)}>
+          다시 불러오기
+        </button>
+      </div>
+    )
   }
   if (!data) {
-    return <div className="cs-skel" style={{ height: 320, borderRadius: 20 }} />
+    return (
+      <div className="cs-sb-scan" aria-label="접수 기록을 훑는 중">
+        <p className="cs-sb-scan__k">
+          <span className="cs-sb-term__lamp" data-state="busy" aria-hidden="true" />
+          마감된 공고의 접수 기록을 훑는 중
+        </p>
+        <div className="cs-sb-scan__rows" aria-hidden="true">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <span key={i} className="cs-skel" />
+          ))}
+        </div>
+      </div>
+    )
   }
   if (!data.ok) {
     return (
-      <p className="cs-note">
-        접수 결과 자료를 받지 못했습니다{data.reason ? ` — ${data.reason}` : ''}.
-      </p>
+      <div className="cs-sb-void">
+        <span className="cs-sb-void__mark" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="cs-sb-void__k">자료 없음</span>
+        <p className="cs-sb-void__t">
+          접수 결과 자료를 받지 못했습니다{data.reason ? ` — ${data.reason}` : ''}.
+        </p>
+        <p className="cs-sb-void__d">자료가 없는 동안에는 판독을 비워 둡니다. 없는 숫자를 채워 넣지 않습니다.</p>
+        <button type="button" className="cs-btn cs-btn--ghost cs-sb-void__act" onClick={() => setAttempt(a => a + 1)}>
+          다시 불러오기
+        </button>
+      </div>
     )
   }
 
@@ -86,6 +120,7 @@ export default function SupplyRead() {
     <div className="cs-read">
       {/* 표본을 먼저 밝힌다. 몇 건을 보고 하는 말인지 모르면 해석할 수 없다 */}
       <p className="cs-read__basis">
+        <span className="cs-sb-term__lamp" data-state="ok" aria-hidden="true" />
         마감된 공고 <b>{data.notices}건</b> · 주택형 <b>{data.scanned.toLocaleString()}행</b>을 훑은
         결과입니다. 접수 경쟁률은 <b>마감 뒤에만</b> 생기므로, 지금 접수 중인 공고의 결과를 미리
         말하지는 않습니다.
@@ -173,7 +208,10 @@ export default function SupplyRead() {
               <li key={r.name} className="cs-read__bar">
                 <span className="cs-read__bar-k">{r.name}</span>
                 <span className="cs-read__bar-track">
-                  <span className="cs-read__bar-fill" style={{ width: `${r.share}%` }} />
+                  <span
+                    className="cs-read__bar-fill"
+                    style={{ width: '100%', transform: `scaleX(${Math.max(0, Math.min(100, r.share)) / 100})` }}
+                  />
                 </span>
                 <span className="cs-read__bar-v">
                   {r.share}%

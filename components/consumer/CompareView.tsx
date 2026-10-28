@@ -8,6 +8,7 @@ import { formatMan } from '@/lib/crm/services/scoring'
 import type { Property } from '@/lib/crm/types'
 import type { SpecialRead } from '@/lib/adapters/applyhome-special'
 import SaveButton from './SaveButton'
+import { ddayText, EmptyMark } from './NoticeCard'
 
 /**
  * 공고 비교.
@@ -126,6 +127,26 @@ function allSame(line: Line) {
   return line.values.every(v => v.text === line.values[0].text)
 }
 
+/** 비교표가 서기 전 — 열 머리와 줄의 자리만 먼저 세운다 */
+export function CompareSkeleton({ count = 2 }: { count?: number }) {
+  return (
+    <div className="cs-cmp" role="status">
+      <span className="cs-sr">공고 {count}건을 불러오는 중입니다.</span>
+      <div className="cs-sa-deck" aria-hidden="true">
+        <div className="cs-sa-deck__skel">
+          <span />
+          <span />
+        </div>
+      </div>
+      <div className="cs-sa-spec cs-sa-spec--skel" aria-hidden="true">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <span key={i} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function CompareView() {
   const params = useSearchParams()
   const ids = (params.get('ids') ?? '').split(',').map(s => s.trim()).filter(Boolean).slice(0, 3)
@@ -154,38 +175,45 @@ export default function CompareView() {
 
   if (ids.length === 0) {
     return (
-      <div className="cs-cmp__empty">
-        <h1 className="cs-page-title">공고 비교</h1>
-        <p className="cs-sub" style={{ marginTop: 14 }}>
-          비교할 공고를 고르지 않았습니다. 관심공고에서 둘 이상을 고르면 나란히 놓고 볼 수 있어요.
-        </p>
-        <Link href="/saved" className="cs-btn cs-btn--primary" style={{ marginTop: 24 }}>
-          관심공고로 가기
-        </Link>
+      <div className="cs-sa-deck cs-sa-deck--plain">
+        <div className="cs-empty cs-sa-empty">
+          <EmptyMark />
+          <div className="cs-empty__title">비교할 공고를 고르지 않았어요</div>
+          <p className="cs-empty__desc">관심공고에서 둘 이상을 고르면 나란히 놓고 볼 수 있어요. 셋까지 담깁니다.</p>
+          <div className="cs-sa-empty__acts">
+            <Link href="/saved" className="cs-btn cs-btn--primary">
+              관심공고로 가기
+            </Link>
+            <Link href="/notices" className="cs-btn cs-btn--ghost">
+              공고 둘러보기
+            </Link>
+          </div>
+        </div>
       </div>
     )
   }
 
   if (loading) {
-    return (
-      <div className="cs-cmp__empty">
-        <h1 className="cs-page-title">공고 비교</h1>
-        <p className="cs-note" style={{ marginTop: 14 }}>공고 {ids.length}건을 불러오는 중입니다.</p>
-      </div>
-    )
+    return <CompareSkeleton count={ids.length} />
   }
 
   const items = got.items
   if (items.length === 0) {
     return (
-      <div className="cs-cmp__empty">
-        <h1 className="cs-page-title">공고 비교</h1>
-        <p className="cs-sub" style={{ marginTop: 14 }}>
-          고르신 공고를 찾지 못했습니다. 접수가 끝나 목록에서 내려갔을 수 있어요.
-        </p>
-        <Link href="/notices" className="cs-btn cs-btn--primary" style={{ marginTop: 24 }}>
-          공고 찾기
-        </Link>
+      <div className="cs-sa-deck cs-sa-deck--plain">
+        <div className="cs-empty cs-sa-empty">
+          <EmptyMark />
+          <div className="cs-empty__title">고르신 공고를 찾지 못했어요</div>
+          <p className="cs-empty__desc">접수가 끝나 목록에서 내려갔을 수 있어요.</p>
+          <div className="cs-sa-empty__acts">
+            <Link href="/notices" className="cs-btn cs-btn--primary">
+              공고 찾기
+            </Link>
+            <Link href="/saved" className="cs-btn cs-btn--ghost">
+              관심공고에서 다시 고르기
+            </Link>
+          </div>
+        </div>
       </div>
     )
   }
@@ -196,37 +224,54 @@ export default function CompareView() {
 
   return (
     <div className="cs-cmp">
-      <header className="cs-cmp__head">
-        <h1 className="cs-page-title">공고 비교</h1>
-        <p className="cs-sub cs-cmp__lead">
-          {items.length}건을 나란히 놓았습니다. <b>{diffCount}줄이 서로 다릅니다.</b> 결정을 바꾸는
-          것은 같은 줄이 아니라 다른 줄입니다.
-        </p>
+      <header className="cs-sa-deck cs-sa-cmpbar">
+        <div className="cs-sa-cmpbar__nums">
+          <p className="cs-sa-cmpbar__lead">
+            <b className="cs-num">{items.length}</b>건을 나란히 놓았습니다.{' '}
+            <b className="cs-num cs-sa-cmpbar__hot">{diffCount}</b>줄이 서로 다릅니다.
+          </p>
+          <p className="cs-sa-cmpbar__sub">결정을 바꾸는 것은 같은 줄이 아니라 다른 줄입니다.</p>
+        </div>
         <div className="cs-cmp__tools">
           <button
             type="button"
-            className="cs-cmp__toggle"
+            className="cs-sa-switch"
             data-active={onlyDiff ? 'true' : 'false'}
             onClick={() => setOnlyDiff(v => !v)}
             aria-pressed={onlyDiff}
           >
+            <span className="cs-sa-switch__track" aria-hidden="true">
+              <span />
+            </span>
             다른 값만 보기
           </button>
-          <Link href="/saved" className="cs-cmp__back">관심공고에서 다시 고르기</Link>
+          <Link href="/saved" className="cs-sa-backlink">
+            관심공고에서 다시 고르기
+          </Link>
         </div>
       </header>
 
-      <div className="cs-card cs-cmp__card">
+      <div className="cs-sa-spec" data-cols={items.length}>
         <table className="cs-table cs-cmp__table">
           <thead>
             <tr>
-              <th scope="col" className="cs-cmp__rowhead">항목</th>
+              <th scope="col" className="cs-cmp__rowhead">
+                <span className="cs-sa-kicker">Spec</span>
+              </th>
               {items.map(d => (
                 <th key={d.property.id} scope="col" className="cs-cmp__col">
-                  <Link href={`/notices/${d.property.id}`} className="cs-cmp__name">
-                    {d.property.name}
-                  </Link>
-                  <span className="cs-cmp__sub">{d.property.region}</span>
+                  <div className="cs-sa-colcard" data-hot={d.urgency.daysLeft !== null && d.urgency.daysLeft >= 0 && d.urgency.daysLeft <= 3 ? 'true' : undefined}>
+                    <span className="cs-sa-colcard__k">
+                      {d.property.housingType || '공고'}
+                      {ddayText(d.urgency.level === 'CLOSED' ? -1 : d.urgency.daysLeft) && (
+                        <b className="cs-num">{ddayText(d.urgency.level === 'CLOSED' ? -1 : d.urgency.daysLeft)}</b>
+                      )}
+                    </span>
+                    <Link href={`/notices/${d.property.id}`} className="cs-cmp__name">
+                      {d.property.name}
+                    </Link>
+                    <span className="cs-cmp__sub">{d.property.region}</span>
+                  </div>
                 </th>
               ))}
             </tr>
@@ -254,7 +299,7 @@ export default function CompareView() {
                   <div className="cs-cmp__acts">
                     {d.property.sourceUrl ? (
                       <a href={d.property.sourceUrl} target="_blank" rel="noopener noreferrer" className="cs-cmp__link">
-                        모집공고문 열기
+                        모집공고문 열기<span className="cs-sr"> (새 창)</span>
                       </a>
                     ) : (
                       <span className="cs-cmp__cell" data-dim="true">원문 링크 없음</span>
@@ -270,7 +315,7 @@ export default function CompareView() {
 
       {/* 주석을 행 안에 두면 그 줄만 네 겹으로 부풀어 표가 울퉁불퉁해진다.
           별표만 남기고 설명은 여기로 모은다. */}
-      <dl className="cs-cmp__notes">
+      <dl className="cs-cmp__notes cs-sa-notes">
         {shown.filter(l => l.note).map(l => (
           <div key={l.label}>
             <dt>
@@ -281,7 +326,7 @@ export default function CompareView() {
         ))}
       </dl>
 
-      <p className="cs-note cs-cmp__warn">
+      <p className="cs-sa-foot">
         자격 요건(무주택 기간·소득·자산·거주기간)은 공고마다 다르고, 이 표로는 판정하지 않습니다.
         금액·면적·일정도 공고문 원문이 기준입니다. 비교표는 어디를 더 볼지 고르는 데까지만 쓰세요.
       </p>

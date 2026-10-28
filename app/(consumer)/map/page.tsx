@@ -1,5 +1,7 @@
 import NoticeMap from '@/components/consumer/NoticeMap'
+import Link from 'next/link'
 import { KAKAO_JS_KEY, KAKAO_SDK_URL } from '@/components/consumer/kakao-sdk'
+import PageMasthead from '@/components/consumer/PageMasthead'
 
 export const metadata = {
   title: '지도로 보는 공고 — 집캐치',
@@ -11,10 +13,12 @@ export const metadata = {
  *
  * 목록 화면 맨 아래에 붙여 두면 스크롤을 끝까지 내린 사람만 지도를 본다.
  * "어디인지"부터 묻는 사람이 적지 않으므로 길을 따로 낸다.
+ *
+ * 무대 아래로 지도 판이 떠올라 무대 바닥에 걸친다 — 밤의 상황실에 들어선 듯이.
  */
 export default function MapPage() {
   return (
-    <div className="cs-wrap" style={{ paddingTop: 44 }}>
+    <div className="cs-wrap cs-sa cs-sa--map">
       {/*
         SDK 는 원래 지도 조각이 깨어난 뒤(수화 이후)에야 받기 시작했다. HTML 과 함께
         미리 받으라고 적어 두면 자바스크립트 묶음과 나란히 내려온다.
@@ -33,11 +37,29 @@ export default function MapPage() {
           <link rel="preload" as="script" href={KAKAO_SDK_URL} itemProp="kakao-sdk" />
         </>
       )}
-      <h1 className="cs-page-title">지도로 보는 공고</h1>
-      <p className="cs-lead" style={{ marginTop: 14, marginBottom: 6 }}>
-        목록은 무엇이 있는지를, 달력은 언제인지를 답합니다. 지도는 <b>어디인지</b>를 답해요.
-        표시의 숫자는 접수 마감까지 남은 날이고, 붉은 쪽이 분양, 푸른 쪽이 임대입니다.
-      </p>
+      <PageMasthead
+        eyebrow="MAP VIEW"
+        title="지도로 보는 공고"
+        lead={
+          <>
+            목록은 무엇이 있는지를, 달력은 언제인지를 답합니다. 지도는 <b>어디인지</b>를 답해요.
+          </>
+        }
+      >
+        <div className="cs-sa-mrow cs-sa-mrow--facts">
+          <ul className="cs-sa-facts" aria-label="지도 읽는 법">
+            <li>
+              <span className="cs-sa-facts__dot" aria-hidden="true" />
+              표시의 숫자는 접수 마감까지 남은 날
+            </li>
+            <li>붉은 쪽 분양 · 푸른 쪽 임대</li>
+            <li>점선은 지역 기준의 대략 위치</li>
+          </ul>
+          <Link href="/notices" className="cs-sa-mlink">
+            목록으로 보기 <i aria-hidden="true">→</i>
+          </Link>
+        </div>
+      </PageMasthead>
       {/* 화면 제목이 이미 같은 말을 했다. 조각의 머리는 접는다 */}
       <NoticeMap heading={false} />
     </div>

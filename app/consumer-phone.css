@@ -1,0 +1,1281 @@
+/* ============================================================
+   집캐치 3.0 — phone 층. consumer-immersive.css 뒤에 온다
+   상담 챗봇을 삼성 갤럭시(One UI) 한 대로 그린다.
+
+   - 데스크톱: 티타늄 테두리 · 얇은 검은 베젤 · 가운데 펀치홀 · 오른쪽
+     옆면 버튼. 떠 있는 버튼 자리에서 들려 올라오고 화면이 켜진다
+     (검은 화면 → 빛 → 내용). 처음 한 번은 부팅 로고, 그다음은 짧게 깨어난다.
+   - 760px 이하: 테두리 없이 화면 전체가 One UI 화면. 아래에서 밀려 올라온다.
+   - 색은 밤 토큰만 쓴다. 위(상태 표시줄·앱 막대)는 사이트 머리글과 같은 밤,
+     대화는 종이(--paper), 보낸 말은 주황(--accent).
+   - 움직임은 transform · opacity 만. 움직임 줄이기에서는 전부 멈춘다.
+
+   `.cs-chat` 은 토큰(--accent …)을 받으려고 함께 단다. consumer.css 의
+   옛 패널 배치(.cs-chat · 티커가 있을 때의 body:has(...) .cs-chat)를
+   이겨야 하므로 뿌리 선택자만 html body 로 한 단 올린다.
+   ============================================================ */
+
+/* ── 0. 뿌리 — 화면 전체를 덮는 층 ─────────────────────── */
+html body .cs-chat.cs-phone {
+  /* 폰이 딛는 자리 = 떠 있는 버튼 자리. 티커가 있으면 함께 올라선다 */
+  --phone-gap-b: 24px;
+  --phone-w: 384px;
+  --phone-h: min(800px, calc(100dvh - var(--phone-gap-b) - 24px));
+  --phone-top: var(--night);
+  --ease-phone: cubic-bezier(0.18, 1.1, 0.32, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* 화면이 켜지는 길이와 내용이 떠오르기 시작하는 때 — 다시 켤 때 */
+  --wake-dur: 560ms;
+  --wake-at: 260ms;
+
+  position: fixed;
+  inset: 0;
+  z-index: 88;
+  width: auto;
+  height: auto;
+  max-height: none;
+  display: block;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  pointer-events: none;
+  font-family: var(--font-sans);
+  color: var(--body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+/* 처음 켜는 순간 — 부팅 로고가 머무는 만큼 길다 */
+html body .cs-chat.cs-phone[data-boot='cold'] {
+  --wake-dur: 960ms;
+  --wake-at: 540ms;
+}
+body:has(.cs-ticker) .cs-chat.cs-phone {
+  --phone-gap-b: calc(var(--ticker-h) + 24px);
+}
+
+/* ── 1. 뒤 — 폰 쪽으로 어두워지는 그늘. 누르면 닫힌다 ──────── */
+.cs-phone__scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  background:
+    radial-gradient(70% 90% at 100% 100%, rgba(11, 14, 20, 0.62), rgba(11, 14, 20, 0.28) 55%, rgba(11, 14, 20, 0.14));
+  animation: cs-phone-fade 420ms var(--ease-out) both;
+}
+.cs-phone[data-state='closing'] .cs-phone__scrim {
+  animation: cs-phone-fade-out 320ms ease both;
+}
+/* 닫히는 동안에는 손을 놓는다 — 그 사이 버튼을 다시 누를 수 있게 */
+.cs-phone[data-state='closing'] :is(.cs-phone__scrim, .cs-phone__device) {
+  pointer-events: none;
+}
+
+/* ── 2. 기기 — 티타늄 테두리 · 옆면 버튼 ─────────────────── */
+.cs-phone__device {
+  position: absolute;
+  right: 24px;
+  bottom: var(--phone-gap-b);
+  width: var(--phone-w);
+  height: var(--phone-h);
+  min-height: 460px;
+  padding: 3px;
+  border-radius: 54px;
+  pointer-events: auto;
+  outline: none;
+  background:
+    linear-gradient(
+      152deg,
+      color-mix(in srgb, var(--night-2) 58%, #fff 42%) 0%,
+      color-mix(in srgb, var(--night-2) 82%, #fff 18%) 14%,
+      var(--night-2) 34%,
+      var(--night) 58%,
+      color-mix(in srgb, var(--night-2) 78%, #fff 22%) 86%,
+      var(--night-2) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.28),
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 28px 56px -18px rgba(0, 0, 0, 0.7),
+    0 70px 120px -50px rgba(194, 65, 12, 0.55);
+  transform-origin: 88% 100%;
+}
+/* 옆면 — 위가 음량, 아래가 전원(갤럭시 S 시리즈의 오른쪽 면) */
+.cs-phone__device::before,
+.cs-phone__device::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(
+    90deg,
+    var(--night) 0%,
+    color-mix(in srgb, var(--night-2) 55%, #fff 45%) 55%,
+    var(--night-2) 100%
+  );
+  box-shadow: 1px 0 1px rgba(0, 0, 0, 0.45);
+}
+.cs-phone__device::before {
+  top: 138px;
+  height: 76px;
+}
+.cs-phone__device::after {
+  top: 232px;
+  height: 46px;
+}
+
+/* 베젤 — 얇고 고른 검은 테. 유리의 가장자리만 살짝 빛난다 */
+.cs-phone__bezel {
+  height: 100%;
+  padding: 9px;
+  border-radius: 51px;
+  background: #000;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 0 18px rgba(255, 255, 255, 0.03);
+}
+
+/* ── 3. 화면 ─────────────────────────────────────────────── */
+.cs-phone__screen {
+  position: relative;
+  isolation: isolate;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 42px;
+  overflow: hidden;
+  background: var(--paper);
+  /* 펀치홀 아래 앱 막대까지는 밤 — 화면 둥근 모서리에서 흰 틈이 새지 않게 */
+  background-image: linear-gradient(var(--phone-top), var(--phone-top));
+  background-size: 100% 120px;
+  background-repeat: no-repeat;
+}
+
+/* 상태 표시줄 */
+.cs-phone__status {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 2px 28px 0 32px;
+  background: var(--phone-top);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+.cs-phone__clock {
+  min-width: 38px;
+}
+.cs-phone__punch {
+  position: absolute;
+  left: 50%;
+  top: 13px;
+  width: 13px;
+  height: 13px;
+  margin-left: -6.5px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 36% 34%, rgba(150, 170, 210, 0.38) 0 1.2px, transparent 2.4px),
+    radial-gradient(circle at 50% 50%, #111 0 3px, #000 4.5px);
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 0.07),
+    inset 0 0 1px rgba(255, 255, 255, 0.4);
+}
+.cs-phone__sys {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.cs-phone__pct {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 -1px 0 2px;
+}
+.cs-phone__bolt {
+  fill: var(--phone-top);
+  stroke: var(--phone-top);
+}
+
+/* 앱 막대 — 상담 프로필 · 이름 · 접속 · 닫기 */
+.cs-phone__bar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 66px;
+  padding: 4px 10px 12px 20px;
+  background: var(--phone-top);
+  color: #fff;
+}
+.cs-phone__avatar {
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(150deg, var(--gold) 0%, var(--accent) 72%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 0 0 1px rgba(255, 178, 122, 0.25),
+    0 8px 22px -6px rgba(255, 122, 48, 0.55);
+}
+.cs-phone__avatar i {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ok) 72%, #fff 28%);
+  box-shadow: 0 0 0 2.5px var(--phone-top);
+}
+.cs-phone__avatar i[data-online='false'] {
+  background: var(--muted);
+}
+.cs-phone__who {
+  flex: 1;
+  min-width: 0;
+}
+.cs-phone__name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+.cs-phone__presence {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.64);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cs-phone__icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.2s var(--ease-out);
+}
+.cs-phone__icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.cs-phone__icon:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.14);
+}
+/* 데스크톱은 오른쪽 닫기, 좁은 화면은 왼쪽 뒤로(안드로이드의 손버릇) */
+.cs-phone__back {
+  display: none;
+}
+
+/* 안내 — 늘 보이는 한 줄. 문구는 이전 그대로.
+   대화 면(종이)의 머리가 되어, 둥근 어깨로 밤의 앱 막대 위에 얹힌다 */
+.cs-phone__notice {
+  position: relative;
+  z-index: 2;
+  margin: -10px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px 8px;
+  border-radius: 20px 20px 0 0;
+  background: var(--paper);
+  box-shadow: 0 1px 0 transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  text-align: center;
+  transition: box-shadow 0.2s ease;
+}
+.cs-phone__notice svg {
+  flex: none;
+  color: var(--accent);
+}
+.cs-phone__screen[data-scrolled='true'] .cs-phone__notice {
+  box-shadow:
+    0 1px 0 var(--line),
+    0 10px 18px -14px rgba(11, 14, 20, 0.4);
+}
+
+/* ── 4. 대화 ─────────────────────────────────────────────── */
+.cs-phone__feed {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 14px 20px;
+  background: var(--paper);
+  outline: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(11, 14, 20, 0.18) transparent;
+}
+.cs-phone__feed::-webkit-scrollbar {
+  width: 6px;
+}
+.cs-phone__feed::-webkit-scrollbar-thumb {
+  background: rgba(11, 14, 20, 0.18);
+  border-radius: 6px;
+  border: 0;
+}
+.cs-phone__feed:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.cs-phone__day {
+  display: flex;
+  justify-content: center;
+  margin: 2px 0 8px;
+}
+.cs-phone__day span {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.cs-phone__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  animation: cs-phone-pop 360ms var(--ease-out) both;
+  transform-origin: 0 100%;
+}
+.cs-phone__row[data-role='user'] {
+  justify-content: flex-end;
+  transform-origin: 100% 100%;
+}
+.cs-phone__row[data-first] {
+  margin-top: 10px;
+}
+.cs-phone__day + .cs-phone__row {
+  margin-top: 0;
+}
+.cs-phone__ava {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.cs-phone__row[data-first] .cs-phone__ava {
+  background: linear-gradient(150deg, var(--gold) 0%, var(--accent) 72%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 10px -4px rgba(194, 65, 12, 0.5);
+}
+.cs-phone__stack {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  min-width: 0;
+  max-width: calc(100% - 40px);
+}
+.cs-phone__row[data-role='user'] .cs-phone__stack {
+  justify-items: end;
+  max-width: 86%;
+}
+.cs-phone__line {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+.cs-phone__row[data-role='user'] .cs-phone__line {
+  flex-direction: row-reverse;
+}
+
+.cs-phone__bubble {
+  min-width: 0;
+  margin: 0;
+  padding: 10px 14px 11px;
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--title);
+  font-size: 15px;
+  font-weight: 450;
+  line-height: 1.55;
+  letter-spacing: -0.014em;
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  box-shadow:
+    0 0 0 1px rgba(11, 14, 20, 0.05),
+    0 1px 2px rgba(11, 14, 20, 0.05);
+}
+.cs-phone__row[data-role='bot'][data-first] .cs-phone__bubble {
+  border-top-left-radius: 6px;
+}
+.cs-phone__row[data-role='user'] .cs-phone__bubble {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 500;
+  box-shadow: 0 8px 18px -12px rgba(194, 65, 12, 0.9);
+}
+.cs-phone__row[data-role='user'][data-first] .cs-phone__bubble {
+  border-top-right-radius: 6px;
+}
+.cs-phone__row[data-failed] .cs-phone__bubble {
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.cs-phone__alert {
+  display: inline-flex;
+  margin-right: 6px;
+  vertical-align: -2px;
+  color: var(--accent);
+}
+
+.cs-phone__time {
+  flex: none;
+  padding-bottom: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 답 아래의 갈 곳 — 주황 글자의 알약 */
+.cs-phone__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cs-phone__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px 0 16px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(11, 14, 20, 0.05);
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.2s var(--ease-out);
+}
+.cs-phone__action svg {
+  transition: transform 0.25s var(--ease-out);
+}
+.cs-phone__action:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-press);
+}
+.cs-phone__action:hover svg {
+  transform: translateX(2px);
+}
+.cs-phone__action:active {
+  transform: scale(0.97);
+}
+
+.cs-phone__retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--title);
+  color: #fff;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.2s var(--ease-out), opacity 0.18s ease;
+}
+.cs-phone__retry:hover:not(:disabled) {
+  background: var(--accent-press);
+}
+.cs-phone__retry:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.cs-phone__retry:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* 답을 쓰는 중 — 말풍선 안의 점 세 개 */
+.cs-phone__typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 17px;
+}
+.cs-phone__typing i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  opacity: 0.45;
+  animation: cs-phone-dot 1.15s ease-in-out infinite;
+}
+.cs-phone__typing i:nth-of-type(2) {
+  animation-delay: 0.16s;
+}
+.cs-phone__typing i:nth-of-type(3) {
+  animation-delay: 0.32s;
+}
+
+/* ── 5. 자주 묻는 질문 — 첫 인사 아래의 목록 카드 ─────────── */
+.cs-phone__faq {
+  align-self: flex-start;
+  width: min(100% - 40px, 296px);
+  margin: 10px 0 2px 40px;
+  padding: 4px 0;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1px rgba(11, 14, 20, 0.05),
+    0 1px 2px rgba(11, 14, 20, 0.05);
+  overflow: hidden;
+  animation: cs-phone-pop 420ms var(--ease-out) 80ms both;
+}
+.cs-phone__faq-title {
+  margin: 0;
+  padding: 10px 16px 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.cs-phone__faq-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px 0 16px;
+  border: 0;
+  background: transparent;
+  color: var(--title);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.cs-phone__faq-item + .cs-phone__faq-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: var(--line);
+}
+.cs-phone__faq-item svg {
+  flex: none;
+  color: var(--muted);
+  transition: transform 0.22s var(--ease-out), color 0.16s ease;
+}
+.cs-phone__faq-item:hover:not(:disabled) {
+  background: var(--paper);
+  color: var(--accent);
+}
+.cs-phone__faq-item:hover:not(:disabled) svg {
+  color: var(--accent);
+  transform: translateX(2px);
+}
+.cs-phone__faq-item:active:not(:disabled) {
+  background: var(--paper-2);
+}
+.cs-phone__faq-item:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cs-phone__faq-item:focus-visible {
+  outline-offset: -3px;
+  border-radius: 10px;
+}
+
+.cs-phone__chip {
+  flex: none;
+  min-height: 44px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--title);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(11, 14, 20, 0.04);
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.2s var(--ease-out);
+}
+.cs-phone__chip:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.cs-phone__chip:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.cs-phone__chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── 6. 아래 — 칩 줄 · 입력줄 · 안내 · 제스처 막대 ─────────── */
+.cs-phone__dock {
+  position: relative;
+  z-index: 1;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.cs-phone__quick {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-padding: 0 14px;
+  /* 쉴 때는 첫 칩이 안쪽 여백(14px)에서 시작하므로 왼쪽 흐림은 넘겨 본 뒤에만 보인다 */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 36px), transparent);
+  mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 36px), transparent);
+}
+.cs-phone__quick::-webkit-scrollbar {
+  display: none;
+}
+.cs-phone__quick .cs-phone__chip {
+  background: var(--paper);
+  border-color: transparent;
+  box-shadow: none;
+  font-size: 13.5px;
+}
+.cs-phone__quick .cs-phone__chip:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: transparent;
+}
+
+.cs-phone__composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px 6px 14px;
+}
+.cs-phone__field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+.cs-phone__input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  max-height: 112px;
+  margin: 0;
+  padding: 11px 16px;
+  resize: none;
+  overflow-y: auto;
+  border: 1px solid transparent;
+  border-radius: 22px;
+  background: var(--paper);
+  color: var(--title);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.4;
+  letter-spacing: -0.014em;
+  scrollbar-width: thin;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+.cs-phone__input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+/* 비어 있을 때 예시 문구가 칸을 두 줄로 키우지 않게 — 한 줄로 두고 말줄임 */
+.cs-phone__input:placeholder-shown {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cs-phone__input:focus {
+  outline: none;
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.cs-phone__count {
+  position: absolute;
+  right: 12px;
+  top: -9px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line);
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.cs-phone__count[data-full] {
+  color: var(--accent);
+}
+
+.cs-phone__send {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 10px 20px -12px rgba(194, 65, 12, 0.95);
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.22s var(--ease-out);
+}
+.cs-phone__send svg {
+  transition: transform 0.25s var(--ease-out);
+}
+.cs-phone__send:hover:not(:disabled) {
+  background: var(--accent-press);
+}
+.cs-phone__send:hover:not(:disabled) svg {
+  transform: translateY(-1.5px);
+}
+.cs-phone__send:active:not(:disabled) {
+  transform: scale(0.9);
+}
+.cs-phone__send:disabled {
+  background: var(--paper-2);
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
+  box-shadow: none;
+  cursor: default;
+}
+
+.cs-phone__note {
+  margin: 0;
+  padding: 2px 18px 2px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  text-align: center;
+}
+.cs-phone__gesture {
+  display: block;
+  width: 112px;
+  height: 4px;
+  margin: 9px auto 9px;
+  border-radius: 4px;
+  background: var(--title);
+  opacity: 0.85;
+}
+
+/* 초점 — 밝은 면은 주황 고리, 밤 위는 빛 고리 */
+.cs-phone :is(a, button):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cs-phone__bar :is(a, button):focus-visible {
+  outline-color: var(--glow);
+}
+.cs-phone__input:focus-visible {
+  outline: none;
+}
+
+/* ── 7. 전원 — 검은 화면 · 빛 · 부팅 로고 ───────────────────── */
+.cs-phone__power {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  background: #000;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+.cs-phone__power::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 150%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 178, 122, 0.8),
+    rgba(255, 155, 82, 0.32) 42%,
+    rgba(194, 65, 12, 0.1) 70%,
+    rgba(194, 65, 12, 0) 100%
+  );
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.12);
+}
+.cs-phone__boot {
+  position: relative;
+  display: none;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  background: linear-gradient(150deg, var(--gold) 0%, var(--accent) 72%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 0 0 1px rgba(255, 178, 122, 0.3),
+    0 18px 48px -10px rgba(255, 122, 48, 0.7);
+  opacity: 0;
+}
+
+.cs-phone[data-state='open'] .cs-phone__power {
+  animation: cs-phone-wake var(--wake-dur) linear both;
+}
+.cs-phone[data-state='open'] .cs-phone__power::before {
+  animation: cs-phone-bloom var(--wake-dur) var(--ease-out) both;
+}
+.cs-phone[data-state='open'][data-boot='cold'] .cs-phone__power {
+  animation-name: cs-phone-boot;
+}
+.cs-phone[data-state='open'][data-boot='cold'] .cs-phone__power::before {
+  animation-name: cs-phone-boot-glow;
+}
+.cs-phone[data-boot='cold'] .cs-phone__boot {
+  display: grid;
+}
+.cs-phone[data-state='open'][data-boot='cold'] .cs-phone__boot {
+  animation: cs-phone-logo var(--wake-dur) var(--ease-out) both;
+}
+
+/* ── 8. 움직임 — 열기 ────────────────────────────────────── */
+.cs-phone[data-state='open'] .cs-phone__device {
+  animation: cs-phone-rise 680ms var(--ease-phone) both;
+}
+.cs-phone[data-state='open'] .cs-phone__in {
+  animation: cs-phone-in 500ms var(--ease-out) both;
+  animation-delay: calc(var(--wake-at) + var(--i, 0) * 45ms);
+}
+
+/* ── 닫기 — 화면이 먼저 꺼지고 기기가 버튼 자리로 내려간다 ── */
+.cs-phone[data-state='closing'] .cs-phone__power {
+  animation: cs-phone-off 150ms ease-in both;
+}
+.cs-phone[data-state='closing'] .cs-phone__device {
+  animation: cs-phone-sleep 280ms cubic-bezier(0.5, 0, 0.75, 0) 60ms both;
+}
+
+/* ── 떠 있는 버튼 ────────────────────────────────────────── */
+.cs-chat-fab.cs-phone-fab {
+  width: 58px;
+  height: 58px;
+  background: linear-gradient(150deg, var(--gold) -20%, var(--accent) 58%, var(--accent-press) 120%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 0 0 1px rgba(154, 52, 18, 0.35),
+    0 16px 32px -12px rgba(194, 65, 12, 0.75),
+    0 4px 10px -4px rgba(11, 14, 20, 0.35);
+  transition:
+    transform 0.42s var(--ease-phone, cubic-bezier(0.18, 1.1, 0.32, 1)),
+    opacity 0.28s ease,
+    box-shadow 0.25s ease,
+    visibility 0s linear 0s;
+}
+.cs-chat-fab.cs-phone-fab:hover {
+  background: linear-gradient(150deg, var(--gold) -20%, var(--accent) 58%, var(--accent-press) 120%);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 0 0 1px rgba(154, 52, 18, 0.35),
+    0 22px 40px -14px rgba(194, 65, 12, 0.85),
+    0 6px 14px -6px rgba(11, 14, 20, 0.4);
+}
+.cs-chat-fab.cs-phone-fab:active {
+  transform: scale(0.94);
+}
+.cs-chat-fab.cs-phone-fab:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 0 3px var(--surface),
+    0 16px 32px -12px rgba(194, 65, 12, 0.75);
+}
+/* 폰이 떠 있는 동안 버튼은 폰 속으로 접힌다 */
+.cs-chat-fab.cs-phone-fab[data-hidden] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(0.5) rotate(-12deg);
+  transition:
+    transform 0.3s ease,
+    opacity 0.18s ease,
+    visibility 0s linear 0.3s;
+}
+.cs-phone-fab__label {
+  position: absolute;
+  right: calc(100% + 12px);
+  top: 50%;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: var(--night);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 12px 26px -10px rgba(11, 14, 20, 0.6);
+  opacity: 0;
+  transform: translate(8px, -50%);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.35s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+@media (hover: hover) and (pointer: fine) {
+  .cs-phone-fab:hover .cs-phone-fab__label,
+  .cs-phone-fab:focus-visible .cs-phone-fab__label {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
+}
+
+/* ── 9. 좁은 화면 — 테두리 없이 화면 전체가 One UI ─────────── */
+@media (max-width: 760px) {
+  html body .cs-chat.cs-phone {
+    --wake-at: 160ms;
+  }
+  html body .cs-chat.cs-phone[data-boot='cold'] {
+    --wake-at: 160ms;
+  }
+  .cs-phone__scrim,
+  .cs-phone__power,
+  .cs-phone__punch {
+    display: none;
+  }
+  .cs-phone__device {
+    top: var(--vvt, 0px);
+    right: 0;
+    bottom: auto;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    height: var(--vvh, 100dvh);
+    min-height: 0;
+    padding: 0;
+    border-radius: 0;
+    background: var(--phone-top);
+    box-shadow: none;
+  }
+  .cs-phone__device::before,
+  .cs-phone__device::after {
+    display: none;
+  }
+  .cs-phone__bezel {
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .cs-phone__screen {
+    border-radius: 0;
+    padding-top: env(safe-area-inset-top);
+  }
+  .cs-phone__dock {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .cs-phone__status {
+    padding: 2px 20px 0 22px;
+  }
+  .cs-phone__bar {
+    gap: 10px;
+    padding: 2px 12px 12px 4px;
+  }
+  .cs-phone__back {
+    display: grid;
+  }
+  .cs-phone__close {
+    display: none;
+  }
+  /* iOS 는 16px 아래 입력칸에 초점이 가면 화면을 확대한다 */
+  .cs-phone__input {
+    font-size: 16px;
+  }
+  .cs-phone[data-state='open'] .cs-phone__device {
+    animation: cs-phone-sheet-in 480ms var(--ease-out) both;
+  }
+  .cs-phone[data-state='closing'] .cs-phone__device {
+    animation: cs-phone-sheet-out 300ms cubic-bezier(0.4, 0, 1, 1) both;
+  }
+  .cs-chat-fab.cs-phone-fab {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+/* 키가 낮은 데스크톱 — 옆면 버튼을 화면 비율에 맞춰 올린다 */
+@media (min-width: 761px) and (max-height: 700px) {
+  .cs-phone__device::before {
+    top: 104px;
+    height: 64px;
+  }
+  .cs-phone__device::after {
+    top: 184px;
+    height: 40px;
+  }
+}
+
+/* ── 10. 움직임 줄이기 — 켜지는 연출 없이 바로 ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cs-phone *,
+  .cs-phone *::before,
+  .cs-phone *::after,
+  .cs-phone__scrim,
+  .cs-chat-fab.cs-phone-fab,
+  .cs-phone-fab__label {
+    animation: none !important;
+    transition: none !important;
+  }
+  .cs-phone__power {
+    display: none;
+  }
+  .cs-phone__typing i {
+    opacity: 0.6;
+  }
+  .cs-phone__typing i:nth-of-type(2) {
+    opacity: 0.8;
+  }
+  .cs-phone__typing i:nth-of-type(3) {
+    opacity: 1;
+  }
+}
+
+/* ── keyframes ───────────────────────────────────────────── */
+@keyframes cs-phone-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes cs-phone-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes cs-phone-rise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 56px, 0) scale(0.84) rotate(5deg);
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cs-phone-sleep {
+  0% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 44px, 0) scale(0.86) rotate(4deg);
+  }
+}
+@keyframes cs-phone-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cs-phone-pop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cs-phone-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+/* 다시 켤 때 — 검은 화면에 빛이 번지고 걷힌다 */
+@keyframes cs-phone-wake {
+  0% {
+    opacity: 1;
+    visibility: visible;
+  }
+  48% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@keyframes cs-phone-bloom {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.12);
+  }
+  22% {
+    opacity: 0;
+  }
+  52% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+}
+/* 처음 켤 때 — 로고가 떠오르고 머물다 화면과 함께 걷힌다 */
+@keyframes cs-phone-boot {
+  0% {
+    opacity: 1;
+    visibility: visible;
+  }
+  64% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@keyframes cs-phone-boot-glow {
+  0%,
+  14% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.12);
+  }
+  42% {
+    opacity: 0.75;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  70% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(0.62);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}
+@keyframes cs-phone-logo {
+  0%,
+  12% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  38% {
+    opacity: 1;
+    transform: none;
+  }
+  66% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+@keyframes cs-phone-off {
+  from {
+    opacity: 0;
+    visibility: visible;
+  }
+  to {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+@keyframes cs-phone-sheet-in {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes cs-phone-sheet-out {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translate3d(0, 100%, 0);
+  }
+}

@@ -106,7 +106,12 @@ export default function DrawVsScore({
               </div>
               <div className="cs-dvs__split" aria-label={`가점 ${v.score.min === v.score.max ? v.score.max : `${v.score.min}~${v.score.max}`}%, 추첨 ${v.draw.min === v.draw.max ? v.draw.max : `${v.draw.min}~${v.draw.max}`}%`}>
                 <div className="cs-dvs__bar">
-                  <span className="cs-dvs__s" style={{ width: `${scorePct}%` }} data-range={v.score.min !== v.score.max || undefined} />
+                  {/* 길이는 transform 으로 — 지역·소유를 바꿀 때 막대가 레이아웃을 흔들지 않고 미끄러진다 */}
+                  <span
+                    className="cs-dvs__s"
+                    style={{ width: '100%', transform: `scaleX(${scorePct / 100})` }}
+                    data-range={v.score.min !== v.score.max || undefined}
+                  />
                 </div>
                 <div className="cs-dvs__legend cs-num">
                   <span>

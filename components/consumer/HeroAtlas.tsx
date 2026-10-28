@@ -4,6 +4,9 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { KOREA_MAP_VIEWBOX, KOREA_PROVINCES } from '@/lib/korea-map-data'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
+import Atlas3D from './three/Atlas3D'
+import { KOREA_SILHOUETTE } from './three/korea-silhouette'
+import type { AtlasState } from './three/atlas-scene'
 
 /**
  * 첫 화면의 지도 — 지금 열려 있는 공고가 어디에 있는가.
@@ -17,6 +20,11 @@ import { KOREA_REGIONS } from '@/lib/korea-regions'
  *
  * 처음에는 공고가 많은 지역부터 천천히 넘겨 보여준다. 손을 대는 순간 멈추고
  * 다시 움직이지 않는다 — 읽는 사람의 손을 이기는 움직임은 없어야 한다.
+ *
+ * 평면 지도가 먼저 선다. 첫 화면이 다 그려진 뒤 WebGL 이 되고 움직임을 꺼 두지
+ * 않은 브라우저에서만 같은 칸 위에 입체 지도(three/Atlas3D)가 겹쳐 뜬다. 높이와
+ * 달아오른 정도는 아래와 같은 집계에서 오고, 고르기·둘러보기·키보드 선택은
+ * 두 지도가 같은 상태를 나눠 쓴다.
  */
 
 interface Pin {
@@ -97,6 +105,8 @@ export default function HeroAtlas() {
   const [selected, setSelected] = useState<string | null>(null)
   const [hover, setHover] = useState<string | null>(null)
   const [touched, setTouched] = useState(false)
+  /** 입체 지도가 첫 장을 그렸는가 — 그 전까지는 평면 지도가 보인다 */
+  const [live, setLive] = useState(false)
   const plateRef = useRef<HTMLDivElement>(null)
   /*
    * 지도 경로(약 80KB)는 문서에 굽지 않는다. 첫 화면 HTML 은 뼈대에서 본문으로
@@ -192,6 +202,13 @@ export default function HeroAtlas() {
     setSelected(code)
   }, [])
 
+  /** 입체 지도에 건네는 것 — 평면 지도와 같은 집계, 같은 선택 */
+  const scene = useMemo<AtlasState>(() => {
+    const counts: Record<string, number> = {}
+    for (const [code, r] of reads) counts[code] = r.count
+    return { counts, max, active: activeCode, labels: ranked.slice(0, 6).map(r => r.code) }
+  }, [reads, max, activeCode, ranked])
+
   const shownCount = useCount(active?.count ?? 0)
   const shownTotal = useCount(total)
   const loading = !data && !error
@@ -212,60 +229,91 @@ export default function HeroAtlas() {
           지금 열려 있는 공고
         </span>
         <span className="cs-atlas__stamp cs-num">
-          {stamp ? `${stamp} 집계 · 전국 ${shownTotal.toLocaleString('ko-KR')}건` : '집계 중'}
+          {stamp ? `${stamp} 집계 · 전국 ${shownTotal.toLocaleString('ko-KR')}건` : error ? '집계 없음' : '집계 중'}
         </span>
       </div>
 
       <div className="cs-atlas__body">
         {/* 지도는 손과 눈을 위한 것이다. 같은 선택을 아래 목록이 키보드로 받는다 */}
-        <svg
-          className="cs-atlas__map"
-          viewBox={KOREA_MAP_VIEWBOX}
-          role="img"
-          aria-label={
-            active && !empty
-              ? `전국 지도. ${active.name}에 접수 중·예정 공고 ${active.count}건`
-              : '전국 지도'
-          }
-          onPointerLeave={() => setHover(null)}
-        >
-          {drawn && KOREA_PROVINCES.map(p => {
-            const read = reads.get(p.code)
-            const level = shade(read?.count ?? 0, max)
-            return (
-              <path
-                key={p.code}
-                d={p.path}
-                data-level={level}
-                data-on={p.code === activeCode || undefined}
-                className="cs-atlas__land"
-                onPointerEnter={e => {
-                  if (e.pointerType === 'mouse' && read?.count) setHover(p.code)
-                }}
-                onClick={() => read?.count && choose(p.code)}
-              />
-            )
-          })}
-          {drawn && KOREA_REGIONS.map(r => {
-            const read = reads.get(r.code)
-            if (!read?.count) return null
-            const radius = 3 + Math.sqrt(read.count / Math.max(1, max)) * 9
-            const on = r.code === activeCode
-            return (
-              <g key={r.code} className="cs-atlas__dot" data-on={on || undefined} aria-hidden="true">
-                {on && <circle cx={r.x} cy={r.y} r={radius + 7} className="cs-atlas__halo" />}
-                <circle cx={r.x} cy={r.y} r={radius} />
-              </g>
-            )
-          })}
-        </svg>
+        <div className="cs-atlas__stage" data-3d={live ? 'on' : undefined}>
+          <svg
+            className="cs-atlas__map"
+            viewBox={KOREA_MAP_VIEWBOX}
+            role="img"
+            aria-label={
+              active && !empty
+                ? `전국 지도. ${active.name}에 접수 중·예정 공고 ${active.count}건`
+                : '전국 지도'
+            }
+            onPointerLeave={() => setHover(null)}
+          >
+            {/* 깨어나기 전에는 가벼운 윤곽이 같은 자리를 지킨다 — 첫 장면부터 지도가 보이게 */}
+            {!drawn && <path d={KOREA_SILHOUETTE} className="cs-atlas__land cs-atlas__silhouette" />}
+            {drawn && KOREA_PROVINCES.map(p => {
+              const read = reads.get(p.code)
+              const level = shade(read?.count ?? 0, max)
+              return (
+                <path
+                  key={p.code}
+                  d={p.path}
+                  data-level={level}
+                  data-on={p.code === activeCode || undefined}
+                  className="cs-atlas__land"
+                  onPointerEnter={e => {
+                    if (e.pointerType === 'mouse' && read?.count) setHover(p.code)
+                  }}
+                  onClick={() => read?.count && choose(p.code)}
+                />
+              )
+            })}
+            {drawn && KOREA_REGIONS.map(r => {
+              const read = reads.get(r.code)
+              if (!read?.count) return null
+              const radius = 3 + Math.sqrt(read.count / Math.max(1, max)) * 9
+              const on = r.code === activeCode
+              return (
+                <g key={r.code} className="cs-atlas__dot" data-on={on || undefined} aria-hidden="true">
+                  {on && <circle cx={r.x} cy={r.y} r={radius + 7} className="cs-atlas__halo" />}
+                  <circle cx={r.x} cy={r.y} r={radius} />
+                </g>
+              )
+            })}
+          </svg>
+          {/* 같은 칸 위에 겹친다 — 칸의 크기는 평면 지도가(좁은 카드에서는 CSS 가) 정한다 */}
+          <Atlas3D state={scene} onHover={setHover} onPick={choose} onLive={setLive} />
+        </div>
 
         <div className="cs-atlas__read" aria-live="polite">
           {loading ? (
+            /*
+             * 채워질 모양 그대로 자리를 잡는다 — 같은 칸·같은 글자 크기에 글자만 비워 둔다.
+             * 집계가 도착해도 읽기 칸의 높이와 위치가 그대로여서 아무것도 들썩이지 않는다.
+             */
             <>
-              <div className="cs-skel" style={{ height: 18, width: '40%' }} />
-              <div className="cs-skel" style={{ height: 64, width: '70%', marginTop: 14 }} />
-              <div className="cs-skel" style={{ height: 70, marginTop: 22 }} />
+              <span className="cs-atlas__place" aria-hidden="true">
+                <i className="cs-skel cs-atlas__ghost">경기도</i>
+              </span>
+              <div className="cs-atlas__figure" aria-hidden="true">
+                <b className="cs-num cs-skel cs-atlas__ghost">00</b>
+                <span className="cs-atlas__ghost">건</span>
+              </div>
+              <div className="cs-atlas__split" aria-hidden="true">
+                <div className="cs-atlas__bar" />
+                <div className="cs-atlas__legend">
+                  <span className="cs-skel cs-atlas__ghost">분양 00</span>
+                  <span className="cs-skel cs-atlas__ghost">임대 00</span>
+                </div>
+              </div>
+              <div className="cs-atlas__next" aria-hidden="true">
+                <span className="cs-atlas__label cs-skel cs-atlas__ghost">가장 가까운 마감</span>
+                <span className="cs-atlas__due" />
+                <span className="cs-atlas__name">
+                  <i className="cs-skel cs-atlas__ghost">공고 이름이 들어갈 자리</i>
+                </span>
+              </div>
+              <span className="cs-atlas__go" aria-hidden="true">
+                <i className="cs-skel cs-atlas__ghost">지역 공고 보기</i>
+              </span>
             </>
           ) : error ? (
             <div className="cs-atlas__quiet">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type KeyboardEvent } from 'react'
 import type { MarketRead as Market, MarketSlice, RegionRow } from '@/lib/services/market-read'
 
 /**
@@ -29,8 +29,29 @@ function units(n: number): string {
   return n.toLocaleString()
 }
 
-function Sample({ children }: { children: React.ReactNode }) {
-  return <p className="cs-note cs-mk__sample">{children}</p>
+function Sample({ children, ok }: { children: React.ReactNode; ok: boolean }) {
+  return (
+    <p className="cs-note cs-mk__sample">
+      <span className="cs-sb-term__lamp" data-state={ok ? 'ok' : 'err'} aria-hidden="true" />
+      <span>{children}</span>
+    </p>
+  )
+}
+
+/**
+ * 두 갈래 토글을 화살표로도 옮긴다 — 탭 목록의 약속.
+ * 누른 쪽으로 초점도 함께 옮겨, 화면 읽기 프로그램이 바뀐 탭을 읽게 한다.
+ */
+function onTabKeys<T extends string>(ids: readonly T[], current: T, set: (v: T) => void) {
+  return (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+    e.preventDefault()
+    const i = ids.indexOf(current)
+    const next = ids[(i + (e.key === 'ArrowRight' ? 1 : ids.length - 1)) % ids.length]
+    set(next)
+    const btn = e.currentTarget.querySelector<HTMLButtonElement>(`[data-id="${next}"]`)
+    btn?.focus()
+  }
 }
 
 /** 지역 한 줄 — 값의 폭과 그 결과를 한 눈에 */
@@ -52,6 +73,14 @@ function RegionLine({ row, max, open, onToggle }: {
         className="cs-mk__row"
         data-open={open ? 'true' : 'false'}
         onClick={onToggle}
+        onKeyDown={e => {
+          // 줄을 키보드로도 펼친다 — 누를 수 있는 것은 초점도 받아야 한다
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onToggle()
+          }
+        }}
+        tabIndex={0}
         aria-expanded={open}
       >
         <td className="cs-mk__region">
@@ -262,7 +291,12 @@ function Slice({ slice }: { slice: MarketSlice }) {
             음수면 같은 동네 평균보다 덜 미달났다는 뜻입니다.
           </p>
 
-          <div className="cs-mk__toggle" role="tablist" aria-label="집계 축">
+          <div
+            className="cs-mk__toggle"
+            role="tablist"
+            aria-label="집계 축"
+            onKeyDown={onTabKeys(['developers', 'builders'] as const, axis, setAxis)}
+          >
             {(
               [
                 ['developers', `사업주체 ${slice.developers.length}곳`],
@@ -274,6 +308,8 @@ function Slice({ slice }: { slice: MarketSlice }) {
                 type="button"
                 role="tab"
                 aria-selected={axis === id}
+                tabIndex={axis === id ? 0 : -1}
+                data-id={id}
                 className="cs-mk__tab"
                 data-active={axis === id ? 'true' : 'false'}
                 onClick={() => setAxis(id)}
@@ -284,7 +320,7 @@ function Slice({ slice }: { slice: MarketSlice }) {
           </div>
 
           <p className="cs-note cs-mk__swipe">표를 옆으로 밀면 미달 · 지역 평균 · 차이가 이어집니다.</p>
-          <div className="cs-card cs-mk__card">
+          <div key={axis} className="cs-card cs-mk__card cs-sb-swap">
             <table className="cs-table cs-mk__table">
               <thead>
                 <tr>
@@ -377,7 +413,8 @@ export default function MarketRead() {
       <div className="cs-error">
         <span>{error}</span>
         <button
-          className="cs-btn cs-btn--sm cs-btn--ghost"
+          type="button"
+          className="cs-btn cs-btn--ghost"
           onClick={() => {
             setError('')
             setData(null)
@@ -391,8 +428,15 @@ export default function MarketRead() {
 
   if (!data) {
     return (
-      <div className="cs-mk__loading">
-        <span className="cs-mk__pulse" aria-hidden="true" />
+      <div className="cs-mk__loading" role="status">
+        {/* 세 표가 한 줄로 이어지는 그림 — 진행률이 아니라 지금 하는 일을 그린다 */}
+        <span className="cs-sb-join" aria-hidden="true">
+          <i>공고</i>
+          <b />
+          <i>주택형</i>
+          <b />
+          <i>경쟁률</i>
+        </span>
         <p className="cs-note">
           청약홈 표 셋(공고 · 주택형 · 경쟁률)을 통째로 받아 잇는 중입니다. 처음 한 번은 몇 초
           걸립니다.
@@ -407,7 +451,7 @@ export default function MarketRead() {
 
   return (
     <>
-      <Sample>
+      <Sample ok={data.ok}>
         청약홈 공고 {data.scanned.announcements.toLocaleString()}건 · 주택형{' '}
         {data.scanned.models.toLocaleString()}행 · 접수 경쟁률{' '}
         {data.scanned.competition.toLocaleString()}행을 공고번호로 이어 붙였습니다. 집계 구간은{' '}
@@ -415,7 +459,12 @@ export default function MarketRead() {
         {!data.ok && data.reason && <> 다만 일부 표를 다 받지 못했습니다 — {data.reason}</>}
       </Sample>
 
-      <div className="cs-mk__toggle" role="tablist" aria-label="주택 구분">
+      <div
+        className="cs-mk__toggle"
+        role="tablist"
+        aria-label="주택 구분"
+        onKeyDown={onTabKeys(['private', 'public'] as const, kind, setKind)}
+      >
         {(
           [
             ['private', `민영 ${data.private.notices}건`],
@@ -427,6 +476,8 @@ export default function MarketRead() {
             type="button"
             role="tab"
             aria-selected={kind === id}
+            tabIndex={kind === id ? 0 : -1}
+            data-id={id}
             className="cs-mk__tab"
             data-active={kind === id ? 'true' : 'false'}
             onClick={() => setKind(id)}
@@ -436,7 +487,9 @@ export default function MarketRead() {
         ))}
       </div>
 
-      <Slice slice={slice} />
+      <div key={kind} className="cs-sb-swap">
+        <Slice slice={slice} />
+      </div>
 
       {/* 04 — 경쟁 물량 */}
       {last.length > 1 && (
@@ -453,7 +506,7 @@ export default function MarketRead() {
               {last.map(p => (
                 <li key={p.month} className="cs-mk__month" data-ahead={p.ahead ? 'true' : 'false'}>
                   <span className="cs-mk__month-bar" aria-hidden="true">
-                    <span style={{ height: `${Math.max(4, (p.units / maxUnits) * 100)}%` }} />
+                    <span style={{ height: '100%', transform: `scaleY(${Math.max(4, (p.units / maxUnits) * 100) / 100})` }} />
                   </span>
                   <b className="cs-num">{Math.round(p.units / 1000)}k</b>
                   <span className="cs-mk__month-label">{p.month.slice(5)}월</span>

@@ -1,0 +1,1428 @@
+/* ============================================================
+   청약뉴스 — 뉴스룸
+   layout.tsx 의 맨 끝에서 불러온다. 이 화면(.cs-nr)만 고친다.
+
+   - 밤 무대(PageMasthead) 바로 밑에 주제 막대를 붙인다. 내리면 머리글 밑에 달라붙는다
+   - 맨 앞의 한 건은 밤 카드로 크게, 옆에는 이 목록의 숫자를 적는다
+   - 나머지는 날짜로 묶어 괘선으로만 나눈다 — 기사는 남의 것이라 우리 카드로 감싸지 않는다
+   - 움직임은 transform·opacity 만. 움직임을 줄인 사용자에게는 걸지 않는다
+   ============================================================ */
+
+/* 무대·막대가 화면 끝까지 칠해지면서 생기는 가로 넘침을 자른다.
+   hidden 이 아니라 clip — 스크롤 상자를 만들지 않아야 막대가 붙는다(sticky) */
+.cs-main:has(.cs-nr) {
+  overflow-x: clip;
+}
+
+.cs-nr {
+  --nr-top: 72px;
+  --nr-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --nr-row-pad: 20px;
+}
+/* 이 지면의 글은 전역 단락 리듬을 따르지 않는다 — 간격을 여기서 정한다 */
+/* 특이도를 낮게 둔다 — 아래 각 부품의 간격(.cs-nr .x)이 이것을 이긴다.
+   p + p 는 전역 `.cs-main p + p` 와 같은 무게라, 뒤에 오는 이쪽이 이긴다 */
+.cs-nr p,
+.cs-nr p + p {
+  margin: 0;
+}
+.cs-nr li + li {
+  margin-top: 0;
+}
+/* 키보드로 옮겨 다닐 때 붙은 머리글·막대 밑으로 숨지 않게 */
+.cs-nr-lead,
+.cs-nr-row__link,
+.cs-nr-group__head {
+  scroll-margin-top: calc(var(--nr-top) + 84px);
+}
+
+/* ── 무대 ─────────────────────────────────────────────────── */
+/* 무대와 주제 막대 사이를 띄우지 않는다. 밤이 끝나는 선에 막대가 걸린다 */
+.cs-nr .cs-mast {
+  margin-bottom: 0;
+}
+.cs-nr .cs-nr-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-nr .cs-nr-facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: #D5D9E0;
+}
+.cs-nr-facts__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--glow);
+  box-shadow: 0 0 10px 2px rgba(255, 138, 61, 0.7);
+}
+
+/* ── 주제 막대 ────────────────────────────────────────────── */
+.cs-nr-sentinel {
+  height: 0;
+}
+.cs-nr-bar {
+  position: sticky;
+  top: var(--nr-top);
+  z-index: 30;
+  isolation: isolate;
+}
+/* 바탕은 화면 끝까지 — 막대 자체는 cs-wrap 격자에 선다 */
+.cs-nr-bar::before,
+.cs-nr-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0 -100vmax;
+  z-index: -1;
+  pointer-events: none;
+}
+.cs-nr-bar::before {
+  /* 밤 카드가 밑으로 지나가도 탁해지지 않을 만큼만 비친다 */
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+/* 붙었을 때만 그림자 — 그림자는 따로 깔고 투명도만 바꾼다 */
+.cs-nr-bar::after {
+  box-shadow: 0 14px 30px -24px rgba(11, 14, 20, 0.55);
+  opacity: 0;
+  transition: opacity 0.3s var(--nr-ease);
+}
+.cs-nr-bar[data-stuck='true']::after {
+  opacity: 1;
+}
+.cs-nr-bar__inner {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 60px;
+}
+
+.cs-nr-tabs {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+  margin-left: -14px;
+  padding: 0 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.cs-nr-tabs::-webkit-scrollbar {
+  display: none;
+}
+.cs .cs-nr-tab {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 60px;
+  padding: 0 14px;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s var(--nr-ease);
+}
+/* 손을 올리면 옅은 바탕이 핀다 */
+.cs-nr-tab::before {
+  content: '';
+  position: absolute;
+  inset: 10px 4px;
+  border-radius: 6px;
+  background: var(--paper-2);
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.2s var(--nr-ease), transform 0.2s var(--nr-ease);
+  z-index: -1;
+}
+.cs .cs-nr-tab:hover {
+  color: var(--title);
+}
+.cs-nr-tab:hover::before {
+  opacity: 1;
+  transform: none;
+}
+.cs .cs-nr-tab[aria-selected='true'] {
+  color: var(--title);
+  font-weight: 800;
+}
+.cs-nr-tab[aria-selected='true']::before {
+  opacity: 0;
+}
+.cs .cs-nr-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -8px;
+  border-radius: 8px;
+}
+/* 고른 주제 밑의 선 — 너비 100px 을 늘이고 옮겨서 맞춘다 */
+.cs-nr-tabs__ink {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100px;
+  height: 3px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+  transform-origin: 0 0;
+  transform: translateX(var(--x, 0px)) scaleX(var(--w, 0));
+  transition: transform 0.55s var(--nr-ease);
+  pointer-events: none;
+}
+.cs-nr-tabs__ink[data-instant] {
+  transition: none;
+}
+
+/* 주요 언론사만 — 켜고 끄는 스위치 */
+.cs .cs-nr-switch {
+  flex: none;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-right: -8px;
+  padding: 0 8px 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--body);
+  cursor: pointer;
+}
+.cs .cs-nr-switch:hover:not(:disabled) {
+  background: var(--paper);
+}
+.cs .cs-nr-switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cs .cs-nr-switch:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.cs-nr-switch__short {
+  display: none;
+}
+.cs-nr-switch__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--body);
+}
+.cs-nr-switch__track {
+  position: relative;
+  width: 40px;
+  height: 24px;
+  border-radius: 999px;
+  /* 흰 바탕 위 3:1 — 꺼진 상태도 모양으로 읽힌다 */
+  background: #8A93A1;
+  overflow: hidden;
+}
+.cs-nr-switch__track::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.22s var(--nr-ease);
+}
+.cs-nr-switch__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(11, 14, 20, 0.3);
+  transition: transform 0.3s var(--nr-ease);
+}
+.cs-nr-switch[aria-checked='true'] .cs-nr-switch__track::before {
+  opacity: 1;
+}
+.cs-nr-switch[aria-checked='true'] .cs-nr-switch__knob {
+  transform: translateX(16px);
+}
+
+/* ── 주제 머리 ────────────────────────────────────────────── */
+.cs-nr-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+  flex-wrap: wrap;
+  margin-top: clamp(32px, 3.6vw, 48px);
+  margin-bottom: 24px;
+}
+.cs-nr .cs-nr-head h2 {
+  margin: 0;
+  font-size: clamp(28px, 2.6vw, 36px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  color: var(--title);
+  animation: nr-rise 0.6s var(--nr-ease) both;
+}
+.cs-nr .cs-nr-head__title p {
+  margin-top: 8px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--muted);
+  animation: nr-rise 0.6s var(--nr-ease) 50ms both;
+}
+.cs-nr .cs-nr-head__query {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 13px;
+  line-height: 1.4;
+  animation: nr-fade 0.6s var(--nr-ease) 100ms both;
+}
+.cs-nr-head__query > span {
+  flex: none;
+  font-weight: 700;
+  color: var(--muted);
+}
+.cs-nr-head__query code {
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── 맨 앞 줄 — 머리기사 + 이 목록 ─────────────────────────── */
+.cs-nr-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 20px;
+}
+
+.cs-nr-lead {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 340px;
+  padding: clamp(26px, 3vw, 40px);
+  border-radius: var(--r-card);
+  overflow: hidden;
+  background: var(--night);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 34px 64px -38px rgba(11, 14, 20, 0.75);
+  transition: transform 0.5s var(--nr-ease);
+  animation: nr-rise 0.7s var(--nr-ease) both;
+}
+.cs-nr-lead:hover {
+  transform: translateY(-3px);
+}
+.cs-nr-lead:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.cs-nr-lead__sky {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(70% 95% at 100% 0%, rgba(255, 138, 61, 0.24), transparent 62%),
+    radial-gradient(55% 80% at 0% 115%, rgba(194, 65, 12, 0.34), transparent 70%),
+    linear-gradient(160deg, var(--night-2), var(--night) 70%);
+}
+/* 무대와 같은 모눈 */
+.cs-nr-lead__sky::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right, rgba(255, 178, 122, 0.06) 0 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(to bottom, rgba(255, 178, 122, 0.06) 0 1px, transparent 1px) 0 0 / 48px 48px;
+  mask-image: radial-gradient(90% 90% at 85% 10%, #000, transparent 75%);
+  -webkit-mask-image: radial-gradient(90% 90% at 85% 10%, #000, transparent 75%);
+}
+/* 손을 올리면 빛이 한 단 짙어진다 */
+.cs-nr-lead__sky::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 80% at 90% 5%, rgba(255, 155, 82, 0.28), transparent 65%);
+  opacity: 0;
+  transition: opacity 0.5s var(--nr-ease);
+}
+.cs-nr-lead:hover .cs-nr-lead__sky::after {
+  opacity: 1;
+}
+.cs-nr-lead__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--glow);
+}
+.cs-nr-lead__pulse {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--glow);
+  box-shadow: 0 0 12px 2px rgba(255, 138, 61, 0.75);
+}
+.cs-nr-lead__pulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid var(--glow);
+  animation: nr-ping 2.4s var(--nr-ease) infinite;
+}
+.cs-nr-lead__title {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 24em;
+  margin-top: 22px;
+  font-size: clamp(28px, 2.7vw, 40px);
+  font-weight: 800;
+  line-height: 1.26;
+  letter-spacing: -0.04em;
+  color: #fff;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+.cs-nr-lead__foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 20px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 36px;
+}
+.cs-nr-lead__by {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.cs-nr-lead__who {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.cs-nr-lead__source {
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+.cs-nr-lead__when {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.66);
+  white-space: nowrap;
+}
+.cs-nr-lead__when .cs-nr-dot {
+  background: rgba(255, 255, 255, 0.4);
+}
+.cs-nr-lead__cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px 0 22px;
+  border-radius: var(--r-btn);
+  background: var(--accent);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  color: #fff;
+  box-shadow: 0 12px 26px -12px rgba(194, 65, 12, 0.85);
+  overflow: hidden;
+}
+.cs-nr-lead__cta svg {
+  transition: transform 0.4s var(--nr-ease);
+}
+.cs-nr-lead:hover .cs-nr-lead__cta svg {
+  transform: translate(2px, -2px);
+}
+
+/* 이 목록 — 받아 온 것을 센 숫자. 지어낸 지표는 없다 */
+.cs-nr-edition {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  animation: nr-rise 0.7s var(--nr-ease) 80ms both;
+}
+.cs-nr .cs-nr-edition__eyebrow {
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+}
+.cs-nr-edition__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  margin: 16px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--line);
+  overflow: hidden;
+}
+.cs-nr-edition__grid > div {
+  padding: 16px 18px 18px;
+  background: var(--surface);
+}
+.cs-nr-edition__grid dt {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cs-nr-edition__grid dd {
+  margin: 8px 0 0;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  color: var(--title);
+}
+.cs-nr-edition__grid dd small {
+  margin-left: 3px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+.cs-nr-edition__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.cs-nr-edition__foot time {
+  font-weight: 700;
+  color: var(--body);
+}
+.cs .cs-nr-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-right: -12px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-btn);
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  cursor: pointer;
+}
+.cs .cs-nr-refresh:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent-press);
+}
+.cs .cs-nr-refresh:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+.cs .cs-nr-refresh:disabled {
+  cursor: progress;
+  color: var(--muted);
+}
+.cs-nr-panel[data-refreshing] .cs-nr-refresh svg,
+.cs-nr-panel[data-refreshing] .cs-nr-textbtn svg {
+  animation: nr-spin 0.9s linear infinite;
+}
+/* 새로 받는 동안 보던 목록은 그대로 두고 한 겹 가라앉힌다 */
+.cs-nr-scene {
+  transition: opacity 0.3s var(--nr-ease);
+}
+.cs-nr-panel[data-refreshing] .cs-nr-scene {
+  opacity: 0.55;
+}
+
+/* ── 매체 표식 ────────────────────────────────────────────── */
+.cs-nr-mark {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: linear-gradient(150deg, #fff, var(--paper));
+  overflow: hidden;
+}
+.cs-nr-mark[data-size='lg'] {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+}
+.cs-nr-mark__initial {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--title);
+  transition: opacity 0.3s var(--nr-ease);
+}
+.cs-nr-mark[data-long] .cs-nr-mark__initial {
+  font-size: 12.5px;
+  letter-spacing: -0.02em;
+}
+.cs-nr-mark[data-size='lg'] .cs-nr-mark__initial {
+  font-size: 22px;
+}
+.cs-nr-mark[data-size='lg'][data-long] .cs-nr-mark__initial {
+  font-size: 15px;
+}
+.cs-nr-mark__logo {
+  position: absolute;
+  inset: 7px;
+  width: calc(100% - 14px);
+  height: calc(100% - 14px);
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.3s var(--nr-ease);
+}
+.cs-nr-mark__logo[data-on='true'] {
+  opacity: 1;
+}
+.cs-nr-mark:has(.cs-nr-mark__logo[data-on='true']) {
+  background: #fff;
+}
+.cs-nr-mark:has(.cs-nr-mark__logo[data-on='true']) .cs-nr-mark__initial {
+  opacity: 0;
+}
+/* 밤 카드 위 — 유리 타일 */
+.cs-nr-lead .cs-nr-mark {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+}
+.cs-nr-lead .cs-nr-mark__initial {
+  color: #fff;
+}
+.cs-nr-lead .cs-nr-mark:has(.cs-nr-mark__logo[data-on='true']) {
+  background: #fff;
+}
+
+.cs-nr-dot {
+  flex: none;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+/* ── 날짜 묶음 ────────────────────────────────────────────── */
+.cs-nr-group {
+  margin-top: clamp(44px, 5vw, 64px);
+}
+.cs-nr-group__head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--title);
+}
+.cs-nr .cs-nr-group__head h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  color: var(--title);
+}
+.cs-nr-group__date {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cs-nr-group__rule {
+  flex: 1;
+}
+.cs-nr-group__count {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.cs-nr-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 48px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-nr .cs-nr-row {
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+  font-size: inherit;
+  line-height: inherit;
+  animation: nr-rise 0.6s var(--nr-ease) both;
+  animation-delay: calc(var(--i, 0) * 38ms + 120ms);
+}
+.cs-nr-row__link {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  margin: 0 -14px;
+  padding: var(--nr-row-pad) 14px;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+/* 손을 올리면 줄 전체가 옅게 떠오른다 */
+.cs-nr-row__link::before {
+  content: '';
+  position: absolute;
+  inset: 6px 0;
+  z-index: -1;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 14px 30px -22px rgba(16, 24, 40, 0.35);
+  opacity: 0;
+  transform: scale(0.985);
+  transition: opacity 0.25s var(--nr-ease), transform 0.25s var(--nr-ease);
+}
+.cs-nr-row__link:hover::before {
+  opacity: 1;
+  transform: none;
+}
+.cs-nr-row__link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.cs-nr-row__body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.cs-nr-row__title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.5;
+  letter-spacing: -0.025em;
+  color: var(--title);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  transition: color 0.2s var(--nr-ease);
+}
+.cs-nr-row__link:hover .cs-nr-row__title {
+  color: var(--accent-press);
+}
+.cs-nr-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--muted);
+}
+.cs-nr-row__source {
+  min-width: 0;
+  font-weight: 650;
+  color: var(--body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cs-nr-row__meta time {
+  flex: none;
+}
+/* 원문 보기 ↗ — 평소에는 화살표만, 손을 올리면 말이 따라 나온다 */
+.cs-nr-row__go {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.cs-nr-row__golabel {
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity 0.25s var(--nr-ease), transform 0.25s var(--nr-ease);
+  white-space: nowrap;
+}
+.cs-nr-row__go svg {
+  box-sizing: content-box;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+  transition: transform 0.35s var(--nr-ease), color 0.2s var(--nr-ease);
+}
+.cs-nr-row__link:hover .cs-nr-row__golabel,
+.cs-nr-row__link:focus-visible .cs-nr-row__golabel {
+  opacity: 1;
+  transform: none;
+}
+.cs-nr-row__link:hover .cs-nr-row__go svg,
+.cs-nr-row__link:focus-visible .cs-nr-row__go svg {
+  color: var(--accent);
+  transform: translate(1px, -1px);
+}
+
+/* ── 비어 있음 · 오류 ─────────────────────────────────────── */
+.cs-nr-vacancy {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  justify-items: center;
+  padding: clamp(52px, 7vw, 88px) 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  text-align: center;
+  overflow: hidden;
+  animation: nr-rise 0.6s var(--nr-ease) both;
+}
+.cs-nr-vacancy::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(to right, rgba(11, 14, 20, 0.045) 0 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(to bottom, rgba(11, 14, 20, 0.045) 0 1px, transparent 1px) 0 0 / 40px 40px;
+  mask-image: radial-gradient(55% 70% at 50% 30%, #000, transparent 75%);
+  -webkit-mask-image: radial-gradient(55% 70% at 50% 30%, #000, transparent 75%);
+}
+.cs-nr-vacancy__icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(194, 65, 12, 0.14);
+}
+.cs-nr-vacancy[data-tone='error'] .cs-nr-vacancy__icon {
+  background: radial-gradient(80% 80% at 70% 20%, rgba(255, 138, 61, 0.35), transparent 70%), var(--night);
+  color: var(--glow);
+  box-shadow: 0 14px 30px -16px rgba(11, 14, 20, 0.7);
+}
+.cs-nr-vacancy__eyebrow {
+  margin-top: 22px;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+.cs-nr .cs-nr-vacancy__title {
+  margin-top: 8px;
+  text-wrap: balance;
+  font-size: clamp(22px, 2vw, 26px);
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.035em;
+  color: var(--title);
+  word-break: keep-all;
+}
+.cs-nr .cs-nr-vacancy__desc {
+  max-width: 30em;
+  margin-top: 10px;
+  text-wrap: balance;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--muted);
+  word-break: keep-all;
+}
+.cs-nr .cs-nr-vacancy__detail {
+  margin-top: 16px;
+  padding: 6px 12px;
+  border-radius: var(--r-btn);
+  background: var(--paper);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.cs-nr-vacancy__actions {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  margin-top: 28px;
+}
+.cs .cs-nr-btn {
+  min-height: 50px;
+  padding: 0 24px;
+  font-size: 16px;
+  gap: 8px;
+}
+.cs-nr-vacancy__topics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.cs .cs-nr-chip {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid #D5D9DF;
+  border-radius: var(--r-btn);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--title);
+  cursor: pointer;
+  transition: transform 0.2s var(--nr-ease);
+}
+.cs .cs-nr-chip:hover {
+  border-color: var(--title);
+  transform: translateY(-1px);
+}
+.cs .cs-nr-chip:focus-visible,
+.cs .cs-nr-textbtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cs .cs-nr-textbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-btn);
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  cursor: pointer;
+}
+.cs .cs-nr-textbtn:hover {
+  background: var(--accent-soft);
+}
+
+/* ── 불러오는 중 — 실제 배치와 같은 뼈대 ─────────────────── */
+.cs-nr-skel i {
+  position: relative;
+  display: block;
+  border-radius: 6px;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+.cs-nr-skel i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  transform: translateX(-100%);
+  animation: nr-shimmer 1.5s var(--nr-ease) infinite;
+}
+.cs-nr-skel__lead {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 340px;
+  padding: clamp(26px, 3vw, 40px);
+  border-radius: var(--r-card);
+  background:
+    radial-gradient(70% 95% at 100% 0%, rgba(255, 138, 61, 0.14), transparent 62%),
+    linear-gradient(160deg, var(--night-2), var(--night) 70%);
+  overflow: hidden;
+}
+.cs-nr-skel__lead i {
+  background: rgba(255, 255, 255, 0.08);
+}
+.cs-nr-skel__lead i::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.09), transparent);
+}
+.cs-nr-skel__lead > span {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: auto;
+}
+.cs-nr-skel__edition {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+.cs-nr-skel__edition > span {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+.cs-nr-skel__rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 48px;
+  margin-top: clamp(44px, 5vw, 64px);
+}
+.cs-nr-skel .cs-nr-skel__label {
+  grid-column: 1 / -1;
+  width: 96px;
+  height: 22px;
+  margin-bottom: 16px;
+}
+.cs-nr-skel__rows::before {
+  content: '';
+  grid-column: 1 / -1;
+  order: 1;
+  height: 2px;
+  background: var(--line);
+}
+.cs-nr-skel__label {
+  order: 0;
+}
+.cs-nr-skel__row {
+  order: 2;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 16px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ── 이 지면을 만드는 방식 ────────────────────────────────── */
+.cs-nr-rules {
+  margin-top: clamp(64px, 8vw, 104px);
+}
+.cs-nr .cs-nr-rules__title {
+  margin: 0;
+  font-size: clamp(22px, 2vw, 26px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.035em;
+  color: var(--title);
+}
+.cs-nr-rules__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-nr .cs-nr-rules__grid li {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 24px 24px 26px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  font-size: 15px;
+  line-height: 1.65;
+}
+.cs-nr-rules__no {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+.cs-nr-rules__grid b {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--title);
+}
+.cs-nr-rules__grid li > span:last-child {
+  color: var(--muted);
+  word-break: keep-all;
+}
+.cs-nr-rules__more {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+.cs-nr-rules__more summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 24px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--title);
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--r-card);
+}
+.cs-nr-rules__more summary::-webkit-details-marker {
+  display: none;
+}
+.cs-nr-rules__more summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.3s var(--nr-ease);
+}
+.cs-nr-rules__more[open] summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+.cs-nr-rules__more summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cs-nr .cs-nr-rules__more p {
+  padding: 0 24px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+.cs-nr-rules__more ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0 24px 24px;
+  list-style: none;
+}
+.cs-nr .cs-nr-rules__more li {
+  margin: 0;
+  padding: 5px 10px;
+  border-radius: var(--r-btn);
+  background: var(--paper);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--body);
+}
+.cs-nr .cs-nr-rules__source {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ── 아래 띠 ──────────────────────────────────────────────── */
+/* 공용 띠의 보조문이 밤 위에서 #555D6B(약 2.9:1)로 흐리다. 이 화면에서는 AA 로 올린다 */
+.cs-nr .cs-cta-band .cs-sub {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* ── 움직임 ───────────────────────────────────────────────── */
+@keyframes nr-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes nr-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes nr-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes nr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes nr-ping {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.6);
+  }
+  80%,
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+/* ── 폭 ───────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .cs-nr-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* 한 줄로 서면 가로가 넓어져 제목이 짧게 끝난다 — 빈 바닥을 줄인다 */
+  .cs-nr-lead,
+  .cs-nr-skel__lead {
+    min-height: 280px;
+  }
+  .cs-nr-edition__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .cs-nr-skel__edition {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .cs-nr-list,
+  .cs-nr-skel__rows {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cs-nr-skel__row:nth-of-type(n + 5) {
+    display: none;
+  }
+  .cs-nr-rules__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .cs-nr {
+    --nr-row-pad: 18px;
+  }
+  .cs-nr .cs-nr-facts {
+    gap: 6px;
+  }
+  .cs-nr .cs-nr-facts li {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  .cs-nr-bar__inner {
+    gap: 8px;
+    min-height: 54px;
+  }
+  .cs-nr-tabs {
+    margin-left: calc(-1 * var(--pad-page));
+    padding-left: calc(var(--pad-page) - 12px);
+    /* 오른쪽 끝을 흐려 옆으로 더 있다는 것을 알린다 */
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+  .cs .cs-nr-tab {
+    min-height: 54px;
+    padding: 0 12px;
+    font-size: 15.5px;
+  }
+  .cs-nr-tab::before {
+    inset: 8px 2px;
+  }
+  .cs .cs-nr-switch {
+    gap: 8px;
+    padding: 0 6px 0 8px;
+    margin-right: -6px;
+    font-size: 14px;
+  }
+  .cs-nr-switch__full,
+  .cs-nr-switch__count {
+    display: none;
+  }
+  .cs-nr-switch__short {
+    display: inline;
+  }
+  .cs-nr-switch__track {
+    width: 36px;
+    height: 22px;
+  }
+  .cs-nr-switch__knob {
+    width: 18px;
+    height: 18px;
+  }
+  .cs-nr-switch[aria-checked='true'] .cs-nr-switch__knob {
+    transform: translateX(14px);
+  }
+  .cs-nr-head {
+    margin-top: 28px;
+    margin-bottom: 18px;
+  }
+  .cs-nr-head__query {
+    width: 100%;
+  }
+  .cs-nr-lead,
+  .cs-nr-skel__lead {
+    min-height: 300px;
+    padding: 24px 22px 22px;
+  }
+  .cs-nr-lead__title {
+    margin-top: 18px;
+    font-size: 24px;
+    line-height: 1.34;
+    -webkit-line-clamp: 4;
+  }
+  .cs-nr-lead__foot {
+    padding-top: 28px;
+  }
+  .cs-nr-lead__cta {
+    width: 100%;
+    justify-content: center;
+  }
+  .cs-nr-edition {
+    padding: 18px;
+  }
+  .cs-nr-edition__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cs-nr-edition__grid > div {
+    padding: 14px 16px 16px;
+  }
+  .cs-nr-edition__grid dd {
+    font-size: 26px;
+  }
+  .cs-nr-group__head {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .cs .cs-nr-group__head h3 {
+    font-size: 20px;
+  }
+  .cs-nr-row__link {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    gap: 14px;
+    margin: 0 -10px;
+    padding-inline: 10px;
+  }
+  .cs-nr-row__link .cs-nr-mark {
+    width: 40px;
+    height: 40px;
+  }
+  .cs-nr-row__title {
+    font-size: 16.5px;
+  }
+  .cs-nr-row__golabel {
+    display: none;
+  }
+  .cs-nr-row__go svg {
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+  .cs-nr .cs-nr-rules__grid li {
+    padding: 20px 20px 22px;
+  }
+  .cs-nr-rules__more summary {
+    padding: 0 20px;
+  }
+  .cs-nr .cs-nr-rules__more p {
+    padding: 0 20px;
+  }
+  .cs-nr-rules__more ul {
+    padding: 0 20px 20px;
+  }
+}
+/* 손가락 화면에는 hover 가 없다 — 떠오르는 판을 깔지 않는다 */
+@media (hover: none) {
+  .cs-nr-row__link::before {
+    display: none;
+  }
+  .cs-nr-lead:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-nr .cs-nr-row,
+  .cs-nr-lead,
+  .cs-nr-edition,
+  .cs-nr-vacancy,
+  .cs-nr .cs-nr-head h2,
+  .cs-nr .cs-nr-head__title p,
+  .cs-nr .cs-nr-head__query {
+    animation: none;
+  }
+  .cs-nr-tabs__ink,
+  .cs-nr-switch__knob,
+  .cs-nr-lead,
+  .cs-nr-row__go svg,
+  .cs-nr-row__golabel,
+  .cs-nr-lead__cta svg {
+    transition: none;
+  }
+  .cs-nr-lead__pulse::after,
+  .cs-nr-skel i::after,
+  .cs-nr-panel[data-refreshing] .cs-nr-refresh svg,
+  .cs-nr-panel[data-refreshing] .cs-nr-textbtn svg {
+    animation: none;
+  }
+  .cs-nr-lead:hover {
+    transform: none;
+  }
+}

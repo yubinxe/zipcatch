@@ -1,0 +1,143 @@
+/* ── 화면 머리 — 머리글에서 이어지는 밤 무대 ───────────────── */
+/*
+ * 틀은 둘이다. 칠(.cs-mast__sky)은 화면 끝까지 번지는 빛, 입체(.cs-mast__stage —
+ * NightStage, 무대의 바닥·집·빛기둥)는 consumer-motion.css 3절이 그린다.
+ * 여기서는 무대의 크기와 글자만 정한다.
+ */
+.cs-mast {
+  position: relative;
+  isolation: isolate;
+  margin: 0 0 clamp(36px, 4vw, 56px);
+  padding: clamp(56px, 6vw, 88px) 0 clamp(104px, 10vw, 144px);
+  min-height: clamp(360px, 31vw, 460px);
+  color: #EEF0F3;
+  background: var(--night);
+  /* 감싸는 cs-wrap 을 넘어 화면 끝까지 */
+  box-shadow: 0 0 0 100vmax var(--night);
+  clip-path: inset(0 -100vmax);
+}
+/* 무대의 빛 — 오른쪽 위에서 비스듬히 드는 주황빛과, 왼쪽 아래의 잔광 */
+.cs-mast__sky {
+  position: absolute;
+  inset: 0 -100vmax;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 120% at 82% -10%, rgba(255, 138, 61, 0.2), transparent 60%),
+    radial-gradient(40% 80% at 10% 120%, rgba(194, 65, 12, 0.22), transparent 70%);
+}
+/* 예전의 평면 모눈은 입체 바닥이 맡는다. 남은 것은 무대 밑변의 빛줄 하나 */
+.cs-mast__sky span:first-child {
+  display: none;
+}
+.cs-mast__sky span:last-child {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 178, 122, 0.45), transparent);
+}
+
+/* 입체 무대 — 화면 폭 전체. 글자보다 뒤, 칠보다 앞.
+   소실점을 오른쪽으로 당겨 동네가 글 격자 오른쪽에 모이게 한다 */
+.cs-mast .cs-mast__stage {
+  inset: 0 auto;
+  left: calc(50% - 50vw);
+  width: 100vw;
+  z-index: -1;
+  --vx: 58%;
+  --ground: 176px;
+}
+
+.cs .cs-mast__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--glow);
+  animation: cs-mast-in 760ms var(--m-out, ease) 120ms backwards;
+}
+/* 눈썹 앞의 빛줄 — 지평선의 빛이 글자까지 이어진다 */
+.cs .cs-mast__eyebrow::before {
+  content: '';
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--glow));
+  box-shadow: 0 0 8px rgba(255, 138, 61, 0.8);
+}
+.cs .cs-mast__title {
+  margin: 0;
+  max-width: 16em;
+  font-size: clamp(36px, 4.8vw, 64px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  color: #FFFFFF;
+  word-break: keep-all;
+  text-wrap: balance;
+  text-shadow: 0 2px 30px rgba(11, 14, 20, 0.6);
+  animation: cs-mast-title 900ms var(--m-out, ease) 180ms backwards;
+}
+.cs .cs-mast__lead {
+  margin: 20px 0 0;
+  max-width: 38em;
+  font-size: clamp(16px, 1.3vw, 18px);
+  line-height: 1.7;
+  color: #BEC4CE;
+  text-wrap: pretty;
+  animation: cs-mast-in 860ms var(--m-out, ease) 280ms backwards;
+}
+.cs-mast__lead b { color: #FFFFFF; }
+.cs-mast__extra {
+  margin-top: 28px;
+  animation: cs-mast-in 900ms var(--m-out, ease) 380ms backwards;
+}
+@keyframes cs-mast-in {
+  from { opacity: 0; transform: translateY(18px); filter: blur(6px); }
+}
+/* 제목은 한 박자 더 크게 — 아래에서 떠오르며 초점이 맞는다 */
+@keyframes cs-mast-title {
+  from { opacity: 0; transform: translateY(28px) scale(0.98); filter: blur(10px); }
+}
+
+/* 중간 폭 — 글이 폭을 더 차지한다. 동네를 조금 줄여 오른쪽 끝으로 */
+@media (min-width: 761px) and (max-width: 1180px) {
+  .cs-mast .cs-mast__stage {
+    --k: 0.8;
+    --vx: 64%;
+  }
+  .cs-mast .cs-ns__house[data-side='left'] {
+    display: none;
+  }
+}
+
+/* 휴대폰 — 글자가 폭을 다 쓰므로 무대를 글자 아래로 내린다 */
+@media (max-width: 760px) {
+  .cs-mast {
+    padding-top: 44px;
+    padding-bottom: 150px;
+    min-height: 0;
+  }
+  .cs-mast .cs-mast__stage {
+    --k: 0.6;
+    --vx: 30%;
+  }
+  .cs-mast .cs-ns__scrim {
+    background: linear-gradient(to bottom, rgba(11, 14, 20, 0.88) 0%, rgba(11, 14, 20, 0.6) 55%, transparent 78%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs .cs-mast__eyebrow,
+  .cs .cs-mast__title,
+  .cs .cs-mast__lead,
+  .cs-mast__extra {
+    animation: none;
+  }
+}

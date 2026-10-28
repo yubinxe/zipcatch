@@ -1,5 +1,7 @@
 'use client'
 
+import { useId } from 'react'
+
 export interface FilterOption {
   name: string
   count: number
@@ -26,16 +28,19 @@ export default function FilterRow({
   total?: number
   onChange: (next: string) => void
 }) {
+  // 같은 화면에 같은 이름의 줄이 둘 놓여도(홈의 띠와 목록) 이름표가 엇갈리지 않게
+  const id = useId()
+
   if (options.length === 0) return null
 
   const items: FilterOption[] = [{ name: '전체', count: total ?? 0 }, ...options]
 
   return (
     <div className="cs-filter">
-      <span className="cs-filter__label" id={`filter-${label}`}>
+      <span className="cs-filter__label" id={id}>
         {label}
       </span>
-      <div className="cs-filter__chips" role="group" aria-labelledby={`filter-${label}`}>
+      <div className="cs-filter__chips" role="group" aria-labelledby={id}>
         {items.map(opt => {
           const on = value === opt.name
           return (
@@ -47,7 +52,7 @@ export default function FilterRow({
               onClick={() => onChange(opt.name)}
               aria-pressed={on}
             >
-              {opt.name}
+              <span className="cs-chip__t">{opt.name}</span>
               {opt.count > 0 && <span className="cs-chip__n">{opt.count}</span>}
             </button>
           )

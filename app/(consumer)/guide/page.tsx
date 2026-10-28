@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import PageMasthead from '@/components/consumer/PageMasthead'
+import Reveal from '@/components/consumer/Reveal'
 
 export const metadata = { title: '청약 가이드 — 집캐치' }
 
@@ -11,6 +13,9 @@ export const metadata = { title: '청약 가이드 — 집캐치' }
  *
  * 그래서 분양과 임대를 갈라 세우고, 분양을 앞에 둔다. 값이 크고 되돌리기 어려운
  * 쪽이 먼저 설명돼야 한다.
+ *
+ * 지면은 책의 장(章)처럼 짠다. 장마다 큰 번호와 머리가 왼쪽에 붙어 따라오고,
+ * 오른쪽으로 항목이 이어진다 — 어디까지 읽었는지가 늘 보인다.
  */
 
 interface Item {
@@ -109,101 +114,170 @@ const TERMS: { term: string; mean: string }[] = [
   },
 ]
 
-function Cards({ items }: { items: Item[] }) {
+/** 본문 안의 **굵게** 만 살린다. 다른 꾸밈은 받지 않는다 */
+function Rich({ text }: { text: string }) {
+  const parts = text.split('**')
   return (
-    <div className="cs-stack" style={{ marginTop: 22 }}>
-      {items.map(s => (
-        <div key={s.title} className="cs-card">
-          <div className="cs-step-card__title">{s.title}</div>
-          <span className="cs-badge cs-badge--brand" style={{ marginBottom: 12 }}>
-            {s.who}
-          </span>
-          <p className="cs-step-card__desc">{s.what}</p>
-          {s.watch && (
-            <p className="cs-guide__watch">
-              <b>처음이면 여기서 막혀요</b>
-              {s.watch}
+    <>
+      {parts.map((p, i) => (i % 2 === 1 ? <b key={i}>{p}</b> : <span key={i}>{p}</span>))}
+    </>
+  )
+}
+
+/** 장 — 왼쪽에 큰 번호와 머리, 오른쪽에 항목 */
+function Chapter({
+  id,
+  no,
+  label,
+  title,
+  standfirst,
+  children,
+}: {
+  id: string
+  no: string
+  /** 영문 이름표 */
+  label: string
+  title: string
+  standfirst: string
+  children: React.ReactNode
+}) {
+  return (
+    <section id={id} className="cs-sb-ch" aria-labelledby={`${id}-t`}>
+      <Reveal className="cs-sb-ch__head">
+        <span className="cs-sb-ch__no" aria-hidden="true">
+          {no}
+        </span>
+        <p className="cs-sb-kicker">
+          Chapter {no} · {label}
+        </p>
+        <h2 id={`${id}-t`} className="cs-sb-ch__title">
+          {title}
+        </h2>
+        <p className="cs-sb-ch__stand">{standfirst}</p>
+      </Reveal>
+      <div className="cs-sb-ch__body">{children}</div>
+    </section>
+  )
+}
+
+function Entries({ no, items }: { no: string; items: Item[] }) {
+  return (
+    <ol className="cs-sb-entries">
+      {items.map((s, i) => (
+        <Reveal as="li" key={s.title} className="cs-sb-entry" delay={i * 60}>
+          <div className="cs-sb-entry__head">
+            <span className="cs-sb-entry__no cs-num">
+              {no}.{i + 1}
+            </span>
+            <h3 className="cs-sb-entry__title">{s.title}</h3>
+            <span className="cs-sb-entry__who">{s.who}</span>
+          </div>
+          <div className="cs-sb-entry__text">
+            <p className="cs-sb-entry__what">
+              <Rich text={s.what} />
             </p>
-          )}
-        </div>
+            {s.watch && (
+              <aside className="cs-sb-entry__watch">
+                <b>처음이면 여기서 막혀요</b>
+                <span>{s.watch}</span>
+              </aside>
+            )}
+          </div>
+        </Reveal>
       ))}
-    </div>
+    </ol>
   )
 }
 
 export default function GuidePage() {
   return (
-    <div className="cs-wrap" style={{ paddingTop: 44, maxWidth: 860 }}>
-      <h1 className="cs-page-title">청약 가이드</h1>
-      <p className="cs-lead" style={{ marginTop: 16 }}>
-        처음이면 용어부터 낯설어요. <b>사서 내 집이 되는 분양</b>과 <b>빌려 사는 임대</b>를 갈라
-        정리했습니다. 값이 크고 되돌리기 어려운 분양을 먼저 두었어요.
-      </p>
+    <div className="cs-wrap cs-sb cs-sb--guide">
+      <PageMasthead
+        eyebrow="Housing Guide"
+        title="청약 가이드"
+        lead={
+          <>
+            처음이면 용어부터 낯설어요. <b>사서 내 집이 되는 분양</b>과 <b>빌려 사는 임대</b>를 갈라
+            정리했습니다. 값이 크고 되돌리기 어려운 분양을 먼저 두었어요.
+          </>
+        }
+      >
+        <nav className="cs-sb-toc" aria-label="가이드 차례">
+          <a href="#sale">
+            <span className="cs-num">01</span>분양 — 사서 내 집
+          </a>
+          <a href="#rent">
+            <span className="cs-num">02</span>임대 — 빌려 사는 집
+          </a>
+          <a href="#terms">
+            <span className="cs-num">03</span>처음 막히는 말
+          </a>
+        </nav>
+      </PageMasthead>
 
-      <section style={{ marginTop: 40 }}>
-        <div className="cs-sec-head">
-          <span className="cs-sec-index">01</span>
-          <div className="cs-sec-head__body">
-            <h2 className="cs-section-title">분양 — 사서 내 집이 되는 것</h2>
-            <p className="cs-sub" style={{ marginTop: 10 }}>
-              당첨되면 분양대금을 치르고 소유권을 갖습니다. 우리가 모아 보여드리는 청약홈 공고가
-              대부분 여기에 속해요.
-            </p>
-          </div>
-        </div>
-        <Cards items={SALE} />
-      </section>
+      <article className="cs-sb-sheet cs-sb-ed">
+        <Chapter
+          id="sale"
+          no="01"
+          label="Sale"
+          title="분양 — 사서 내 집이 되는 것"
+          standfirst="당첨되면 분양대금을 치르고 소유권을 갖습니다. 우리가 모아 보여드리는 청약홈 공고가 대부분 여기에 속해요."
+        >
+          <Entries no="1" items={SALE} />
+        </Chapter>
 
-      <section style={{ marginTop: 48 }}>
-        <div className="cs-sec-head">
-          <span className="cs-sec-index">02</span>
-          <div className="cs-sec-head__body">
-            <h2 className="cs-section-title">임대 — 빌려 사는 것</h2>
-            <p className="cs-sub" style={{ marginTop: 10 }}>
-              보증금과 월 임대료를 내고 정해진 기간 삽니다. LH 청약플러스 공고가 여기에 속해요.
-            </p>
-          </div>
-        </div>
-        <Cards items={RENT} />
-      </section>
+        <Chapter
+          id="rent"
+          no="02"
+          label="Rent"
+          title="임대 — 빌려 사는 것"
+          standfirst="보증금과 월 임대료를 내고 정해진 기간 삽니다. LH 청약플러스 공고가 여기에 속해요."
+        >
+          <Entries no="2" items={RENT} />
+        </Chapter>
 
-      <section style={{ marginTop: 48 }}>
-        <div className="cs-sec-head">
-          <span className="cs-sec-index">03</span>
-          <div className="cs-sec-head__body">
-            <h2 className="cs-section-title">공고문에서 처음 막히는 말</h2>
-            <p className="cs-sub" style={{ marginTop: 10 }}>
-              뜻만 알아도 공고문 절반이 읽힙니다.
-            </p>
-          </div>
-        </div>
-        <dl className="cs-terms" style={{ marginTop: 22 }}>
-          {TERMS.map(t => (
-            <div key={t.term} className="cs-terms__item">
-              <dt className="cs-terms__t">{t.term}</dt>
-              <dd className="cs-terms__d">{t.mean}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+        <Chapter
+          id="terms"
+          no="03"
+          label="Glossary"
+          title="공고문에서 처음 막히는 말"
+          standfirst="뜻만 알아도 공고문 절반이 읽힙니다."
+        >
+          <dl className="cs-sb-gloss">
+            {TERMS.map((t, i) => (
+              <Reveal key={t.term} className="cs-sb-gloss__item" delay={(i % 2) * 70}>
+                <dt>{t.term}</dt>
+                <dd>{t.mean}</dd>
+              </Reveal>
+            ))}
+          </dl>
+        </Chapter>
 
-      <div className="cs-card" style={{ marginTop: 40 }}>
-        <div className="cs-step-card__title">꼭 기억해 주세요</div>
-        <p className="cs-step-card__desc">
-          같은 유형이라도 공고마다 자격요건과 소득·자산 기준이 다릅니다. 이 가이드는 이해를 돕기 위한
-          설명이며 자격 판정이 아닙니다. 실제 지원 가능 여부는 반드시 해당 공고의 공식 모집공고문에서
-          확인해 주세요.
-        </p>
-      </div>
+        <aside className="cs-sb-editor" aria-label="꼭 기억해 주세요">
+          <p className="cs-sb-kicker">Before you apply</p>
+          <h2 className="cs-sb-editor__t">꼭 기억해 주세요</h2>
+          <p className="cs-sb-editor__p">
+            같은 유형이라도 공고마다 자격요건과 소득·자산 기준이 다릅니다. 이 가이드는 이해를 돕기 위한
+            설명이며 자격 판정이 아닙니다. 실제 지원 가능 여부는 반드시 해당 공고의 공식 모집공고문에서
+            확인해 주세요.
+          </p>
+        </aside>
+      </article>
 
-      <div className="cs-cta-band" style={{ marginTop: 44 }}>
-        <h2 className="cs-section-title" style={{ fontSize: 24 }}>
+      <section className="cs-sb-close" aria-labelledby="guide-close">
+        <p className="cs-sb-close__k">Next</p>
+        <h2 id="guide-close" className="cs-sb-close__t">
           내 조건으로 먼저 살펴볼까요?
         </h2>
-        <Link href="/analyze" className="cs-btn cs-btn--primary" style={{ marginTop: 22 }}>
-          내 조건으로 집 찾기
-        </Link>
-      </div>
+        <div className="cs-sb-close__acts">
+          <Link href="/analyze" className="cs-btn cs-btn--primary">
+            내 조건으로 집 찾기
+          </Link>
+          <Link href="/score" className="cs-btn cs-btn--ghost">
+            가점부터 계산하기
+          </Link>
+        </div>
+      </section>
     </div>
   )
 }

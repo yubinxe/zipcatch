@@ -64,6 +64,23 @@ interface NewsItem {
   publishedAt: string | null
   /** 매체 로고. 기사 사진이 아니다 — 아래 toItem 주석 참고 */
   logo: string | null
+  /**
+   * 매체 누리집 주소(www. 를 뗀 호스트). 화면에서 "어디로 나가는지"를 적는 데 쓴다.
+   * 나중에 붙인 필드라 없을 수도 있다 — 읽는 쪽은 없을 때를 견딘다.
+   */
+  domain: string | null
+}
+
+/**
+ * 실패 사유를 읽을 수 있는 말로.
+ *
+ * fetch 가 던지는 "fetch failed" · "ECONNRESET" 같은 말은 화면에 그대로 올리면
+ * 고장 난 것처럼 보이기만 하고 아무것도 알려주지 않는다. 무엇이 안 됐는지만 적는다.
+ */
+function readableError(err: unknown) {
+  const msg = err instanceof Error ? err.message : ''
+  if (/abort|timeout/i.test(msg)) return '뉴스 출처(Google 뉴스)의 응답이 늦어 불러오지 못했습니다.'
+  return '뉴스 출처(Google 뉴스)에 연결하지 못했습니다.'
 }
 
 function decode(s: string) {
@@ -109,13 +126,16 @@ function toItem(block: string): NewsItem | null {
   // 붙인다 — 지어낸 이미지가 아니라 그 기사를 쓴 곳의 표식이다.
   const srcUrl = block.match(/<source[^>]*url="([^"]+)"/)?.[1] ?? ''
   let logo: string | null = null
+  let domain: string | null = null
   try {
     if (srcUrl) {
       const host = new URL(srcUrl).hostname
       logo = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`
+      domain = host.replace(/^www\./, '') || null
     }
   } catch {
     logo = null
+    domain = null
   }
 
   return {
@@ -124,6 +144,7 @@ function toItem(block: string): NewsItem | null {
     source,
     publishedAt: at && !Number.isNaN(at.getTime()) ? at.toISOString() : null,
     logo,
+    domain,
   }
 }
 
@@ -144,7 +165,14 @@ export async function GET(req: NextRequest) {
     })
     if (!res.ok) {
       return Response.json(
-        { topic: topic.key, items: [], error: `뉴스를 불러오지 못했습니다 (${res.status}).` },
+        {
+          topic: topic.key,
+          label: topic.label,
+          query: topic.query,
+          items: [],
+          fetchedAt: new Date().toISOString(),
+          error: `뉴스 출처(Google 뉴스)가 응답하지 않았습니다 (${res.status}).`,
+        },
         { status: 200 },
       )
     }
@@ -179,8 +207,11 @@ export async function GET(req: NextRequest) {
     return Response.json(
       {
         topic: topic.key,
+        label: topic.label,
+        query: topic.query,
         items: [],
-        error: err instanceof Error ? err.message : '뉴스를 불러오지 못했습니다.',
+        fetchedAt: new Date().toISOString(),
+        error: readableError(err),
       },
       { status: 200 },
     )

@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { useConsumer } from './ConsumerProvider'
 import BrandMark from './BrandMark'
+import MakerFooter from './MakerFooter'
 
 /**
  * 메뉴 이름은 **화면 제목이 아니라 이름표**다.
@@ -60,9 +61,13 @@ export default function ConsumerShell({ children }: { children: ReactNode }) {
       <a href="#consumer-main" className="cs-skip">본문으로 건너뛰기</a>
       <header className="cs-header">
         <div className="cs-wrap cs-header__inner">
+          {/* 마크 + 두 줄 글자표. 영문은 장식이라 읽지 않는다 — 링크 이름은 "집캐치" 하나 */}
           <Link href="/" className="cs-logo">
             <BrandMark size={34} className="cs-logo__mark" />
-            집캐치
+            <span className="cs-logo__type">
+              <span className="cs-logo__ko">집캐치</span>
+              <span className="cs-logo__en" aria-hidden="true">ZIPCATCH</span>
+            </span>
           </Link>
 
           <nav className="cs-nav" aria-label="주요 메뉴">
@@ -110,22 +115,7 @@ export default function ConsumerShell({ children }: { children: ReactNode }) {
 
       <main id="consumer-main" className="cs-main">{children}</main>
 
-      <footer className="cs-footer">
-        <div className="cs-wrap">
-          <p>
-            집캐치는 공개된 공고 정보를 정리해 보여드리는 참고 서비스입니다. 자격 판정과 당첨 여부를
-            확정하지 않으며, 신청 전 반드시 공식 모집공고문을 확인해 주세요.
-            <br />
-            공고·통계 출처: 공공데이터포털 청약홈 OpenAPI · LH 청약플러스 · 한국부동산원.
-          </p>
-          <p className="cs-footer__maker">
-            기획·개발{' '}
-            <a href="https://yubinxe.github.io/Portfolio/" target="_blank" rel="author noopener">
-              김유빈 Yubin Kim · 포트폴리오 ↗
-            </a>
-          </p>
-        </div>
-      </footer>
+      <MakerFooter />
     </div>
   )
 }
