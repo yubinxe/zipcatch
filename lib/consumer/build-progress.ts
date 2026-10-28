@@ -1,10 +1,10 @@
 /**
  * HUG 공정률 표를 화면이 읽을 모양으로 바꾼다 — 바깥 호출 없는 순수 함수만.
  *
- * 원자료: 주택도시보증공사_월별 집합건물(아파트·상가) 사업장 공정율 현황
- * (공공데이터포털 15083037, 파일데이터 · 월간). 공공데이터포털의 파일데이터는
- * CSV 머리글을 그대로 키로 돌려준다. 머리글은 회차마다 '공정률'·'공정율'처럼
- * 조금씩 흔들리므로 이름을 하나로 못 박지 않고 뜻으로 찾는다. 찾지 못한 칸은
+ * 원자료: HUG 빅데이터 개방 포털 Open API '분양아파트 공정률(지역별)'
+ * (lib/adapters/hug.ts 가 사업장명·공정률·주소·시행사 머리글로 옮겨 넘긴다).
+ * 머리글은 원자료마다 '공정률'·'공정율'처럼 조금씩 흔들리므로 이름을 하나로
+ * 못 박지 않고 뜻으로 찾는다. 찾지 못한 칸은
  * 비워 두고, 무엇을 찾았는지 응답에 함께 적는다 — 칸을 잘못 짚었을 때
  * 화면에서 바로 드러나게.
  *
@@ -71,7 +71,10 @@ const PROVINCE: Record<string, string> = {
 export function toProvince(raw: unknown): string | null {
   const s = String(raw ?? '').trim()
   if (!s) return null
-  const first = s.split(/[\s(·,]+/)[0]
+  const [first, second = ''] = s.split(/[\s(·,]+/)
+  // 2026 출범 전남광주통합특별시 — 지도는 광주·전남을 따로 그린다. 통합시 안에서
+  // '…구'로 끝나는 곳은 옛 광주광역시 자치구뿐이라 그 규칙으로만 가른다
+  if (/^전남광주/.test(first)) return /구$/.test(second) ? '광주' : '전남'
   return PROVINCE[first] ?? PROVINCE[s] ?? null
 }
 
