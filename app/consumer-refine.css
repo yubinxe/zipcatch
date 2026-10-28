@@ -274,7 +274,8 @@ body:has(.cs-chat-hint) .cs-phone-fab__label {
 }
 .cs-isle {
   position: absolute;
-  top: 4%;
+  /* 오른쪽 아래 — 남해 동쪽 바다. 위쪽에 두면 입체 지도가 켜질 때 강원 위를 덮는다 */
+  bottom: 4%;
   right: 3%;
   z-index: 3;
   display: flex;
