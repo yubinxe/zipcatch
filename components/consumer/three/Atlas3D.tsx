@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { KOREA_PROVINCES } from '@/lib/korea-map-data'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
-import { canUse3D, whenIdle } from './support'
+import { canUse3D, onMotionPreference, whenIdle } from './support'
 import type { AtlasHandle, AtlasProvinceInput, AtlasState } from './atlas-scene'
 
 /**
@@ -35,6 +35,10 @@ export default function Atlas3D({ state, onHover, onPick, onLive }: Props) {
   const handleRef = useRef<AtlasHandle | null>(null)
   const stateRef = useRef(state)
   const cbRef = useRef({ onHover, onPick, onLive })
+  /** 움직임 설정이 바뀔 때마다 늘어난다 — 아래 장면을 내렸다가(또는 다시) 세운다 */
+  const [motion, setMotion] = useState(0)
+
+  useEffect(() => onMotionPreference(() => setMotion(m => m + 1)), [])
 
   useEffect(() => {
     cbRef.current = { onHover, onPick, onLive }
@@ -81,7 +85,7 @@ export default function Atlas3D({ state, onHover, onPick, onLive }: Props) {
       if (handle) cbRef.current.onLive(false)
       drop()
     }
-  }, [])
+  }, [motion])
 
   return <div ref={hostRef} className="cs3d-host" aria-hidden="true" />
 }

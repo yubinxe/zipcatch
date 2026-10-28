@@ -58,9 +58,11 @@ const POLAR = 0.9
 /** 해안선 다듬기 — SVG 0.55칸 안쪽의 잔 마디는 펴고, 6.5×6.5칸보다 작은 바위섬은 세우지 않는다 */
 const SIMPLIFY = 0.55 * UNIT
 const MIN_ISLAND = 42 * UNIT * UNIT
+/** 본토 해안에서 이만큼(SVG 60칸) 넘게 떨어진 섬은 입체에서 뺀다 */
+const REMOTE = 60 * UNIT
 
 /* 석판(데이터 없음) → 숯 → 달아오른 주황. 고른 곳만 강조색 */
-const C_SLATE = new THREE.Color('#151C29')
+const C_SLATE = new THREE.Color('#171B22')
 const C_EMBER = new THREE.Color('#3B1C12')
 const C_HOT = new THREE.Color('#8A2E0B')
 const C_ON = new THREE.Color('#C2410C')
@@ -191,6 +193,19 @@ function simplifyRing(src: THREE.Vector2[], tol: number): THREE.Vector2[] {
   return out.length >= 3 ? out : pts
 }
 
+/**
+ * 본토에서 멀리 떨어진 작은 섬인가(울릉도). 지도 칸을 섬 하나 때문에 옆으로 넓히면
+ * 본토가 작아지고, 칸 끝에 걸치면 시선이 흔들릴 때마다 잘려 보인다. 입체에서는
+ * 세우지 않는다 — 지역의 기둥은 본토에서 솟고, 평면 지도에는 그대로 있다.
+ */
+function remote(island: THREE.Vector2[], main: THREE.Vector2[]) {
+  if (!island.length || !main.length) return false
+  const c = island.reduce((a, p) => a.add(p), new THREE.Vector2()).divideScalar(island.length)
+  let best = Infinity
+  for (const q of main) best = Math.min(best, q.distanceToSquared(c))
+  return best > REMOTE * REMOTE
+}
+
 /** 지역 안에서 가장자리로부터 가장 먼 점 — 숫자 표와 빛기둥이 설 자리 */
 function poleOf(outer: THREE.Vector2[], holes: THREE.Vector2[][]) {
   const all = [outer, ...holes]
@@ -253,7 +268,8 @@ function cityLights() {
   const c = document.createElement('canvas')
   c.width = c.height = S
   const g = c.getContext('2d')!
-  g.fillStyle = '#262626'
+  // 바탕 불빛은 낮게 — 푸른 석판 위에 주황이 고르게 깔리면 보랏빛으로 섞인다. 불빛 무리만 밝게
+  g.fillStyle = '#161616'
   g.fillRect(0, 0, S, S)
   const rnd = seeded(11)
   const gauss = () => Math.sqrt(-2 * Math.log(rnd() + 1e-6)) * Math.cos(2 * Math.PI * rnd())
@@ -372,15 +388,21 @@ void main() {
   gl_Position = projectionMatrix * mv;
 }`
 
+/*
+ * 빛기둥은 칸 위 끝에 닿기 전에 사라진다 — 북쪽 지역을 고르면 기둥 끝이 캔버스
+ * 가장자리에서 칼로 자른 듯 끊기던 것을, 칸 위쪽 30% 구간에서 녹여 없앤다.
+ */
 const BEAM_FS = /* glsl */ `
 uniform vec3 uColor;
 uniform float uAmt;
 uniform float uTime;
+uniform vec2 uRes;
 varying float vY;
 varying float vRim;
 void main() {
   float flick = 0.88 + 0.12 * sin(uTime * 2.2 - vY * 12.0);
-  float a = pow(vRim, 2.4) * pow(1.0 - vY, 2.6) * uAmt * flick;
+  float edge = 1.0 - smoothstep(0.7, 0.96, gl_FragCoord.y / uRes.y);
+  float a = pow(vRim, 2.4) * pow(1.0 - vY, 2.6) * uAmt * flick * edge;
   gl_FragColor = vec4(uColor, a);
 }`
 
@@ -428,6 +450,8 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
     exposure: 1,
     shadows: true,
     environment: 0.22,
+    envKind: 'night',
+    tone: 'neutral',
     bloom: { strength: 0.58, radius: 0.36, threshold: 0.88 },
     onResize: (w, h) => {
       const dpr = stage.renderer.getPixelRatio()
@@ -504,8 +528,9 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
       })
     }
     list.sort((x, y) => y.a - x.a)
-    // 가장 큰 땅은 늘 남기고, 눈에 잡히지 않는 바위섬은 세우지 않는다
-    const kept = list.filter((o, i) => i === 0 || o.a >= MIN_ISLAND)
+    // 가장 큰 땅은 늘 남기고, 눈에 잡히지 않는 바위섬과 본토에서 멀리 떨어진 섬은 세우지 않는다
+    const main = list[0]?.outer ?? []
+    const kept = list.filter((o, i) => i === 0 || (o.a >= MIN_ISLAND && !remote(o.outer, main)))
     for (const o of kept) {
       const sh = new THREE.Shape(o.outer)
       sh.holes = o.holes.map(h => new THREE.Path(h))
@@ -643,6 +668,28 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
     byCode.set(p.code, prov)
   }
 
+  /*
+   * 유리로 비운 지역의 셰이더(투명한 판)도 처음에 함께 엮어 둔다 — 둘러보기가 처음
+   * 서울로 넘어가는 순간 셰이더를 엮느라 멈칫하지 않게. 화면 밖 아래에 둔 조각
+   * 하나가 그 재질을 들고 있다(그릴 때는 잘려 나가 그려지지 않는다).
+   */
+  if (provs[0]) {
+    const p0 = provs[0]
+    const capGlass = p0.cap.clone()
+    const sideGlass = p0.side.clone()
+    const glassU = { uH: { value: 1 } }
+    sideGlass.onBeforeCompile = shader => wallShader(shader, glassU)
+    sideGlass.customProgramCacheKey = () => 'cs3d-wall'
+    for (const m of [capGlass, sideGlass]) {
+      m.transparent = true
+      m.depthWrite = false
+    }
+    const primer = new THREE.Mesh(p0.mesh.geometry, [capGlass, sideGlass])
+    primer.position.y = -100
+    primer.receiveShadow = true
+    scene.add(primer)
+  }
+
   /* ── 바닥 — 어둡고 반들한 판, 모눈, 고른 자리의 빛 웅덩이 ── */
   const floorMat = new THREE.ShaderMaterial({
     vertexShader: FLOOR_VS,
@@ -688,6 +735,8 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
       uColor: { value: new THREE.Color('#FF9B52').multiplyScalar(1.5) },
       uAmt: { value: 0 },
       uTime: { value: 0 },
+      // 바닥과 같은 값을 나눠 쓴다 — 크기가 바뀔 때 한 곳만 고치면 된다
+      uRes: floorMat.uniforms.uRes,
     },
   })
   const beam = new THREE.Mesh(beamGeo, beamMat)
@@ -773,8 +822,8 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
    * 크게 잡혀 위가 빈다. 투영된 윤곽의 가운데가 칸의 가운데에 오도록 화면을
    * 옮긴다(setViewOffset — 원근은 그대로 두고 그림만 민다).
    */
-  function spanAt(d: number, pts: THREE.Vector3[] = corners) {
-    place(d, POLAR, 0)
+  function spanAt(d: number, pts: THREE.Vector3[] = corners, az = 0) {
+    place(d, POLAR, az)
     let x0 = Infinity
     let x1 = -Infinity
     let y0 = Infinity
@@ -789,26 +838,92 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
     return { x0, x1, y0, y1 }
   }
   const withIslands = islands.length ? [...corners, ...islands] : corners
-  function fit() {
+  /**
+   * 시선이 저절로 좌우로 흔들리는 끝까지 재서 합친 폭. 가운데에서만 재면
+   * 서해의 섬들이 흔들릴 때 칸 가장자리에 걸린다. 손으로 기울이는 몫은 잠깐이라 넣지 않는다.
+   */
+  const SWAY = 0.17
+  function swaySpan(d: number) {
+    const a = spanAt(d, withIslands, -SWAY)
+    const b = spanAt(d, withIslands, SWAY)
+    const c = spanAt(d, withIslands, 0)
+    return {
+      x0: Math.min(a.x0, b.x0, c.x0),
+      x1: Math.max(a.x1, b.x1, c.x1),
+      y0: Math.min(a.y0, b.y0, c.y0),
+      y1: Math.max(a.y1, b.y1, c.y1),
+    }
+  }
+  /**
+   * 공고가 있는 지역마다, 그 지역을 골랐을 때 숫자 표가 서는 자리(떠오른 윗면의 한가운데).
+   * 가장 높은 지역이 북쪽(경기 등)이면 비스듬히 본 화면에서 꼭대기가 칸 위로 솟아
+   * 기둥과 표가 잘린다 — 이 점들까지 표 높이만큼의 여유를 두고 칸 안에 넣는다.
+   */
+  let peaks: THREE.Vector3[] = []
+  let peakKey = ''
+  function setPeaks(counts: Record<string, number>, max: number) {
+    const key = max > 0 ? provs.map(p => counts[p.code] ?? 0).join(',') + '/' + max : ''
+    if (key === peakKey) return false
+    peakKey = key
+    peaks = []
+    if (max > 0) {
+      for (const p of provs) {
+        const n = counts[p.code] ?? 0
+        if (n > 0) peaks.push(new THREE.Vector3(p.anchor.x, BASE_H + (DATA_H * n) / max + LIFT + 0.02, p.anchor.z))
+      }
+    }
+    return true
+  }
+
+  /*
+   * 카메라는 맞춘 자리(td·tx·ty)로 미끄러져 간다. 집계가 도착해 기둥이 솟는 동안
+   * 칸에 맞춰 천천히 물러난다 — 툭 하고 줌이 바뀌지 않게. 크기가 바뀔 때는 바로 맞춘다.
+   */
+  const view = { d: dist, x: 0, y: 0, td: dist, tx: 0, ty: 0, init: false }
+  function applyView() {
+    const { w, h } = stage.size()
+    if (!w || !h) return
+    camera.setViewOffset(w, h, (view.x * w) / 2, (-view.y * h) / 2, w, h)
+  }
+  function fit(snap = true) {
     const { w, h } = stage.size()
     if (!w || !h) return
     camera.clearViewOffset()
+    // 숫자 표(높이 약 25px)와 줄기(18px)가 설 자리
+    const tagRoom = (2 * (w < 440 ? 44 : 50)) / h
+    const peakTop = (d: number) => (peaks.length ? spanAt(d, peaks).y1 + tagRoom : -Infinity)
     let lo = 3
     let hi = 60
     for (let i = 0; i < 24; i++) {
       const mid = (lo + hi) / 2
       const s = spanAt(mid)
-      // 섬은 칸 안에만 들면 된다 — 본토를 칸에 꽉 채운다
-      const all = spanAt(mid, withIslands)
-      if (s.x1 - s.x0 < 1.86 && s.y1 - s.y0 < 1.68 && all.x1 - all.x0 < 1.97 && all.y1 - all.y0 < 1.82) hi = mid
+      // 섬과 흔들리는 끝은 칸 안에만 들면 된다 — 본토를 칸에 꽉 채운다
+      const all = swaySpan(mid)
+      const top = Math.max(all.y1, peakTop(mid))
+      if (s.x1 - s.x0 < 1.86 && s.y1 - s.y0 < 1.68 && all.x1 - all.x0 < 1.9 && top - all.y0 < 1.9) hi = mid
       else lo = mid
     }
     dist = hi
+    const all = swaySpan(dist)
     const s = spanAt(dist)
+    const top = Math.max(all.y1, peakTop(dist))
+    // 본토를 가운데에 두되, 섬과 솟은 기둥·표가 칸 밖으로 나가지 않는 데까지만 민다
+    const M = 0.95
+    let cx = (s.x0 + s.x1) / 2
+    cx = Math.min(Math.max(cx, all.x1 - M), all.x0 + M)
     // 위로 조금 여유를 둔다 — 높이 솟은 지역과 숫자 표가 설 자리
-    const cx = (s.x0 + s.x1) / 2
-    const cy = (s.y0 + s.y1) / 2 + 0.06
-    camera.setViewOffset(w, h, (cx * w) / 2, (-cy * h) / 2, w, h)
+    let cy = (s.y0 + s.y1) / 2 + 0.06
+    cy = Math.min(Math.max(cy, top - 0.98), all.y0 + M)
+    view.td = dist
+    view.tx = cx
+    view.ty = cy
+    if (snap || !view.init) {
+      view.d = dist
+      view.x = cx
+      view.y = cy
+      view.init = true
+    }
+    applyView()
   }
 
   /* ── 손 ─────────────────────────────────────────────── */
@@ -938,8 +1053,9 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
       const lit = count > 0
       const g = p.ghost
       // 유리로 비운 지역은 제 빛도 줄인다 — 테두리만 남아 안쪽이 보이게
-      p.cap.emissiveIntensity = ((lit ? 0.05 + 0.7 * w : 0) + p.on * 1.25) * (1 - g * 0.8)
-      p.side.emissiveIntensity = ((lit ? 0.25 + 1.2 * w : 0.05) + p.on * 0.8) * (1 - g * 0.75)
+      // 고른 지역은 달아오르되 하얗게 타지 않게 — 벽의 위아래 결이 남을 만큼만
+      p.cap.emissiveIntensity = ((lit ? 0.05 + 0.7 * w : 0) + p.on * 0.95) * (1 - g * 0.8)
+      p.side.emissiveIntensity = ((lit ? 0.22 + 0.9 * w : 0.05) + p.on * 0.35) * (1 - g * 0.75)
       p.cap.opacity = 1 - g * 0.72
       p.side.opacity = 1 - g * 0.8
       p.edgeMat.opacity = Math.min(1, (lit ? 0.24 + 0.4 * w : 0.13) + p.on * 0.6 + g * 0.2)
@@ -981,7 +1097,11 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
     const intro = ease(t / 2.4)
     const az = Math.sin(t * 0.19) * 0.17 + pointer.sx * 0.14 + (1 - intro) * 0.35
     const polar = POLAR - (1 - intro) * 0.3 + Math.sin(t * 0.15) * 0.025 + pointer.sy * 0.06
-    place(dist * (1 + (1 - intro) * 0.2), polar, az)
+    view.d += (view.td - view.d) * k(2.4)
+    view.x += (view.tx - view.x) * k(2.4)
+    view.y += (view.ty - view.y) * k(2.4)
+    applyView()
+    place(view.d * (1 + (1 - intro) * 0.2), polar, az)
 
     if (frames === 2 && !readySent) {
       readySent = true
@@ -1026,6 +1146,17 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
         if (show) p.tag.dataset.show = '1'
         else delete p.tag.dataset.show
       }
+    }
+    markActive()
+  }
+
+  /**
+   * 고른 지역의 표에 불을 켠다. 다음 장면을 기다리지 않고 상태가 바뀌는 즉시 —
+   * 느린 기기에서도 칩·읽기 칸과 지도의 표가 한 박자 어긋나지 않게.
+   */
+  function markActive() {
+    const active = state.active && (state.counts[state.active] ?? 0) > 0 ? state.active : null
+    for (const p of provs) {
       const on = p.code === active
       if (on !== (p.tag.dataset.on === '1')) {
         if (on) p.tag.dataset.on = '1'
@@ -1040,6 +1171,7 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
   return {
     update(next) {
       state = next
+      if (setPeaks(next.counts, next.max)) fit(false)
       for (const p of provs) {
         const n = next.counts[p.code] ?? 0
         const text = n > 0 ? `${n.toLocaleString('ko-KR')}건` : ''
@@ -1049,6 +1181,7 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
           p.tagSize.w = 0
         }
       }
+      markActive()
     },
     dispose() {
       canvas.removeEventListener('pointermove', onMove)

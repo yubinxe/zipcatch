@@ -116,6 +116,20 @@
   opacity: 0;
   pointer-events: none;
 }
+/*
+ * 캔버스 가장자리를 살짝 녹인다. 빛 번짐이 칸 전체에 아주 옅은 주황 막을 깔아,
+ * 가장자리에서 그 막이 끊기면 카드 위에 네모난 칸이 비쳐 보인다.
+ */
+.cs-atlas__stage > .cs3d-host .cs3d-canvas {
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent),
+    linear-gradient(180deg, transparent, #000 5%, #000 95%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent),
+    linear-gradient(180deg, transparent, #000 5%, #000 95%, transparent);
+  mask-composite: intersect;
+}
 .cs-atlas__stage[data-3d='on'] > .cs3d-host { pointer-events: auto; }
 .cs-atlas__stage[data-3d='on'] .cs3d-canvas,
 .cs-atlas__stage[data-3d='on'] .cs3d-tags { opacity: 1; }
@@ -131,6 +145,20 @@
 
 /* 마감 표기는 한 덩어리 — 좁은 칸에서 'D-' 와 숫자가 갈라지지 않게 */
 .cs-atlas__due { white-space: nowrap; }
+
+/*
+ * 불러오는 동안의 읽기 칸 — 채워질 글자와 같은 칸·같은 크기에 글자만 투명하게.
+ * 높이가 처음부터 같아 집계가 도착하는 순간 칸이 들썩이지 않는다.
+ */
+.cs-atlas__ghost {
+  display: inline-block;
+  font-style: normal;
+  color: transparent !important;
+  border-radius: 6px;
+  user-select: none;
+}
+.cs-atlas__figure .cs-atlas__ghost { border-radius: 10px; }
+.cs-atlas__go:has(> .cs-atlas__ghost) { text-decoration: none; }
 
 /*
  * 좁은 카드 — 지도를 읽기 칸 옆에 반쪽으로 끼우면 150px 짜리 우표가 된다.
@@ -149,7 +177,7 @@
   .cs-atlas__stage {
     /* 카드 안쪽 여백까지 지도에 내준다 — 테두리 안에서 끝까지 */
     margin: -2px -25px 0;
-    aspect-ratio: 1 / 0.86;
+    aspect-ratio: 1 / 0.94;
   }
   .cs-atlas__stage > .cs-atlas__map {
     width: 100%;
@@ -164,14 +192,14 @@
     align-items: end;
     min-height: 0;
   }
-  .cs-atlas__read > .cs-skel,
   .cs-atlas__read > .cs-atlas__quiet,
   .cs-atlas__read > .cs-atlas__next,
   .cs-atlas__read > .cs-atlas__go {
     grid-column: 1 / -1;
   }
   .cs-atlas__read > .cs-atlas__place { grid-column: 1; grid-row: 1; }
-  .cs-atlas__read > .cs-atlas__figure { grid-column: 1; grid-row: 2; }
+  /* 두 자리 수까지는 칸 폭이 그대로 — 둘러보기로 숫자가 바뀔 때 옆 막대가 좌우로 밀리지 않게 */
+  .cs-atlas__read > .cs-atlas__figure { grid-column: 1; grid-row: 2; min-width: 104px; }
   .cs-atlas__read > .cs-atlas__split {
     grid-column: 2;
     grid-row: 1 / span 2;
@@ -190,6 +218,8 @@
   @container cs-atlas (max-width: 440px) {
     .cs-atlas__stage { margin: -2px -15px 0; }
   }
+  /* 칩 줄의 빈 자리 — 칩(44px)과 가로 스크롤 여백(2px)을 합친 높이로 미리 잡는다 */
+  .cs-atlas__rank[aria-hidden='true'] { min-height: 46px; }
 }
 
 /* ── 지금 짓고 있는 집 — 공사 중인 도시 ───────────────────── */

@@ -25,10 +25,20 @@ export interface StageOptions {
   background?: THREE.ColorRepresentation
   fov?: number
   exposure?: number
+  /**
+   * 톤 매핑. ACES 는 밝은 주황을 복숭아빛으로 바래게 한다 — 브랜드 주황이 그대로
+   * 남아야 하는 장면은 'neutral'(Khronos PBR Neutral)을 쓴다. 기본 'aces'.
+   */
+  tone?: 'aces' | 'neutral'
   bloom?: { strength: number; radius: number; threshold: number } | null
   shadows?: boolean
   /** 환경광 세기. 0 이면 쓰지 않는다 */
   environment?: number
+  /**
+   * 환경광의 모양. 'night' 는 먹빛 하늘에 지평선만 도시 불빛으로 달아 있는 밤 —
+   * 유리와 윗면에 실내 조명(스튜디오) 대신 밤하늘이 비친다. 기본 'room'.
+   */
+  envKind?: 'room' | 'night'
   onResize?: (w: number, h: number) => void
   onFrame: (dt: number, t: number) => void
   onLost?: () => void
@@ -74,6 +84,66 @@ export function disposeObject(root: THREE.Object3D) {
   })
 }
 
+/**
+ * 밤의 환경광 — 반사에만 쓰는 보이지 않는 하늘.
+ * 위는 먹빛, 지평선은 도시 불빛으로 낮게 달아 있고, 북서쪽 높이에 달빛 판 하나.
+ * 유리 외벽과 윗면이 이 하늘을 비춰 밤의 결을 얻는다(실내 조명이 비친 회색 판이 되지 않게).
+ */
+function nightEnvironment(): THREE.Scene {
+  const scene = new THREE.Scene()
+  const dome = new THREE.Mesh(
+    new THREE.SphereGeometry(40, 48, 24),
+    new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      vertexShader: /* glsl */ `
+        varying vec3 vDir;
+        void main() {
+          vDir = normalize(position);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: /* glsl */ `
+        varying vec3 vDir;
+        void main() {
+          float y = vDir.y;
+          vec3 zenith = vec3(0.006, 0.009, 0.02);
+          vec3 sky = vec3(0.016, 0.022, 0.045);
+          vec3 city = vec3(0.62, 0.2, 0.05);
+          vec3 ground = vec3(0.012, 0.009, 0.008);
+          vec3 c = mix(sky, zenith, smoothstep(0.1, 0.8, y));
+          // 지평선의 도시 불빛 — 얇고 따뜻하게, 아래로는 금세 어두워진다
+          float band = exp(-pow((y - 0.02) / 0.09, 2.0));
+          c += city * band;
+          if (y < -0.02) c = mix(c, ground, smoothstep(-0.02, -0.25, y));
+          gl_FragColor = vec4(c, 1.0);
+        }`,
+    }),
+  )
+  scene.add(dome)
+  // 달빛 판 — 윗면 유광에 길게 비치는 차가운 빛
+  const moon = new THREE.Mesh(
+    new THREE.PlaneGeometry(14, 6),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(0.55, 0.66, 1.0).multiplyScalar(1.6), side: THREE.DoubleSide }),
+  )
+  moon.position.set(-12, 22, -16)
+  moon.lookAt(0, 0, 0)
+  scene.add(moon)
+  // 지평선 너머의 따뜻한 빛 판 둘 — 외벽 아래쪽에 주황 결을 남긴다
+  for (const [x, z, w] of [
+    [16, -26, 22],
+    [-22, 14, 14],
+  ] as const) {
+    const glow = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, 2.2),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(1.0, 0.42, 0.14).multiplyScalar(2.2), side: THREE.DoubleSide }),
+    )
+    glow.position.set(x, 1.4, z)
+    glow.lookAt(0, 1.4, 0)
+    scene.add(glow)
+  }
+  return scene
+}
+
 /*
  * 품질 사다리. 앞에서부터 덜어 낸다 — 해상도를 먼저 낮추고, 번짐, 그림자 순.
  * 한 번 내려가면 다시 올리지 않는다(오르내리며 깜빡이는 것이 더 나쁘다).
@@ -99,7 +169,7 @@ export function createStage(opts: StageOptions): Stage {
   canvas.className = 'cs3d-canvas'
   canvas.setAttribute('aria-hidden', 'true')
   renderer.outputColorSpace = THREE.SRGBColorSpace
-  renderer.toneMapping = THREE.ACESFilmicToneMapping
+  renderer.toneMapping = opts.tone === 'neutral' ? THREE.NeutralToneMapping : THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = opts.exposure ?? 1
   if (opts.transparent) renderer.setClearColor(0x000000, 0)
   else renderer.setClearColor(new THREE.Color(opts.background ?? 0x0b0e14), 1)
@@ -113,9 +183,15 @@ export function createStage(opts: StageOptions): Stage {
   let envRT: THREE.WebGLRenderTarget | null = null
   if (opts.environment) {
     pmrem = new THREE.PMREMGenerator(renderer)
-    const room = new RoomEnvironment()
-    envRT = pmrem.fromScene(room, 0.04)
-    room.dispose()
+    if (opts.envKind === 'night') {
+      const night = nightEnvironment()
+      envRT = pmrem.fromScene(night, 0.02)
+      disposeObject(night)
+    } else {
+      const room = new RoomEnvironment()
+      envRT = pmrem.fromScene(room, 0.04)
+      room.dispose()
+    }
     scene.environment = envRT.texture
     scene.environmentIntensity = opts.environment
   }
@@ -182,17 +258,32 @@ export function createStage(opts: StageOptions): Stage {
   let lost = false
   let disposed = false
   const samples: number[] = []
+  /*
+   * 처음 몇 장은 셰이더를 엮느라 늘 느리다 — 세지 않는다. 장 수로만 세면 한 장에
+   * 0.5초씩 걸리는 기기는 열몇 초를 버벅인 뒤에야 덜어 내기 시작한다. 그래서
+   * '네 장을 넘기고, 스물네 장 또는 정해진 시간 중 먼저 오는 쪽'까지만 쉰다.
+   */
   let warm = 0
+  let warmUntil = 0
+  function rewarm(ms: number) {
+    warm = 0
+    warmUntil = performance.now() + ms
+  }
 
   function render() {
     if (composer && bloomPass?.enabled) composer.render()
     else renderer.render(scene, camera)
   }
 
-  function measure(dtMs: number) {
+  /** 이 기기에서 실제로 쓰이는 품질 — 같은 값이면 단계가 달라도 그리는 것은 같다 */
+  function effective(i: number) {
+    const q = LADDER[i]
+    return `${Math.min(deviceDpr, q.dpr)}|${q.bloom && !!composer}|${q.shadows && !!opts.shadows}`
+  }
+
+  function measure(dtMs: number, now: number) {
     if (pinned || level >= LADDER.length - 1) return
-    // 처음 몇 장은 셰이더를 엮느라 늘 느리다 — 세지 않는다
-    if (warm < 24) {
+    if (warm < 4 || (warm < 24 && now < warmUntil)) {
       warm++
       return
     }
@@ -204,8 +295,13 @@ export function createStage(opts: StageOptions): Stage {
     if (samples.length < 50 && median <= 50) return
     samples.length = 0
     if (median > 25) {
-      level++
-      warm = 12
+      // 많이 밀리면(초당 12장·22장 아래) 한 칸씩 내려가며 몇 초를 더 버벅이지 않고 한 번에 건너뛴다
+      const from = effective(level)
+      level = Math.min(LADDER.length - 1, level + (median > 80 ? 3 : median > 45 ? 2 : 1))
+      // 이 기기에서 아무것도 달라지지 않는 칸(예: 화면 배율 1 에서 2 → 1.5)은 건너뛴다
+      while (level < LADDER.length - 1 && effective(level) === from) level++
+      // 낮춘 뒤 몇 장은 셰이더를 다시 엮는다 — 그 장들로 또 낮추지 않게
+      rewarm(500)
       applyQuality()
     }
   }
@@ -219,14 +315,48 @@ export function createStage(opts: StageOptions): Stage {
     elapsed += dt
     opts.onFrame(dt, elapsed)
     render()
-    measure(dtMs)
+    measure(dtMs, now)
+  }
+
+  /*
+   * 셰이더는 그리기 전에 미리, 가능하면 나란히(KHR_parallel_shader_compile) 엮는다.
+   * 첫 장을 그리면서 엮으면 그동안 페이지 전체가 멈칫한다 — 스크롤 중이면 더 눈에 띈다.
+   */
+  let compiled = false
+  let compiling = false
+  function warmUp() {
+    if (compiling || compiled) return
+    // 나란히 엮을 수 없는 브라우저(사파리 등)는 기다릴 것이 없다 — 바로 그린다
+    if (!renderer.extensions.has('KHR_parallel_shader_compile')) {
+      compiled = true
+      sync()
+      return
+    }
+    compiling = true
+    // 번짐을 쓰면 장면은 화면이 아니라 중간 판(렌더 타깃)에 그려진다 — 셰이더도 그 판에 맞는 갈래로 엮는다
+    if (composer && bloomPass?.enabled) renderer.setRenderTarget(composer.readBuffer)
+    const ready = renderer.compileAsync(scene, camera)
+    renderer.setRenderTarget(null)
+    ready
+      .catch(() => {})
+      .finally(() => {
+        compiling = false
+        compiled = true
+        sync()
+      })
   }
 
   function sync() {
     const should = visible && !document.hidden && !lost && !disposed && w > 0
+    if (should && !compiled) {
+      warmUp()
+      return
+    }
     if (should && !raf) {
       last = performance.now()
-      warm = Math.min(warm, 12)
+      // 다시 보일 때(스크롤·탭 전환) 첫 몇 장은 늘 들쭉날쭉하다
+      if (warm >= 4) rewarm(400)
+      else warmUntil = Math.max(warmUntil, last + 1200)
       samples.length = 0
       raf = requestAnimationFrame(frame)
     } else if (!should && raf) {
@@ -240,8 +370,8 @@ export function createStage(opts: StageOptions): Stage {
     if (!r || r.width < 2 || r.height < 2) return
     if (Math.round(r.width) === w && Math.round(r.height) === h) return
     resize(r.width, r.height)
-    // 멈춰 있어도 크기가 바뀐 그림 한 장은 남긴다
-    if (!raf) {
+    // 멈춰 있어도 크기가 바뀐 그림 한 장은 남긴다(셰이더를 다 엮은 뒤에만 — 아니면 여기서 멈칫한다)
+    if (!raf && compiled) {
       opts.onFrame(0, elapsed)
       render()
     }

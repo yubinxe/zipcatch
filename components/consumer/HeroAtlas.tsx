@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { KOREA_MAP_VIEWBOX, KOREA_PROVINCES } from '@/lib/korea-map-data'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import Atlas3D from './three/Atlas3D'
+import { KOREA_SILHOUETTE } from './three/korea-silhouette'
 import type { AtlasState } from './three/atlas-scene'
 
 /**
@@ -228,7 +229,7 @@ export default function HeroAtlas() {
           지금 열려 있는 공고
         </span>
         <span className="cs-atlas__stamp cs-num">
-          {stamp ? `${stamp} 집계 · 전국 ${shownTotal.toLocaleString('ko-KR')}건` : '집계 중'}
+          {stamp ? `${stamp} 집계 · 전국 ${shownTotal.toLocaleString('ko-KR')}건` : error ? '집계 없음' : '집계 중'}
         </span>
       </div>
 
@@ -246,6 +247,8 @@ export default function HeroAtlas() {
             }
             onPointerLeave={() => setHover(null)}
           >
+            {/* 깨어나기 전에는 가벼운 윤곽이 같은 자리를 지킨다 — 첫 장면부터 지도가 보이게 */}
+            {!drawn && <path d={KOREA_SILHOUETTE} className="cs-atlas__land cs-atlas__silhouette" />}
             {drawn && KOREA_PROVINCES.map(p => {
               const read = reads.get(p.code)
               const level = shade(read?.count ?? 0, max)
@@ -282,10 +285,35 @@ export default function HeroAtlas() {
 
         <div className="cs-atlas__read" aria-live="polite">
           {loading ? (
+            /*
+             * 채워질 모양 그대로 자리를 잡는다 — 같은 칸·같은 글자 크기에 글자만 비워 둔다.
+             * 집계가 도착해도 읽기 칸의 높이와 위치가 그대로여서 아무것도 들썩이지 않는다.
+             */
             <>
-              <div className="cs-skel" style={{ height: 18, width: '40%' }} />
-              <div className="cs-skel" style={{ height: 64, width: '70%', marginTop: 14 }} />
-              <div className="cs-skel" style={{ height: 70, marginTop: 22 }} />
+              <span className="cs-atlas__place" aria-hidden="true">
+                <i className="cs-skel cs-atlas__ghost">경기도</i>
+              </span>
+              <div className="cs-atlas__figure" aria-hidden="true">
+                <b className="cs-num cs-skel cs-atlas__ghost">00</b>
+                <span className="cs-atlas__ghost">건</span>
+              </div>
+              <div className="cs-atlas__split" aria-hidden="true">
+                <div className="cs-atlas__bar" />
+                <div className="cs-atlas__legend">
+                  <span className="cs-skel cs-atlas__ghost">분양 00</span>
+                  <span className="cs-skel cs-atlas__ghost">임대 00</span>
+                </div>
+              </div>
+              <div className="cs-atlas__next" aria-hidden="true">
+                <span className="cs-atlas__label cs-skel cs-atlas__ghost">가장 가까운 마감</span>
+                <span className="cs-atlas__due" />
+                <span className="cs-atlas__name">
+                  <i className="cs-skel cs-atlas__ghost">공고 이름이 들어갈 자리</i>
+                </span>
+              </div>
+              <span className="cs-atlas__go" aria-hidden="true">
+                <i className="cs-skel cs-atlas__ghost">지역 공고 보기</i>
+              </span>
             </>
           ) : error ? (
             <div className="cs-atlas__quiet">

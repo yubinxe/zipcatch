@@ -163,10 +163,11 @@ void main() {
   // 고른 탑 발밑의 빛
   float d = length(vPos.xz - uSpot);
   float ph = fract(uTime * 0.45);
-  float ring = exp(-pow((d - 0.5 - ph * 0.9) / 0.025, 2.0)) * (1.0 - ph);
+  // 퍼지는 고리는 제 블록 안에서 사라진다 — 옆 블록(특히 앞줄 탑)을 둘러 그 탑을 가리키는 것처럼 보이지 않게
+  float ring = exp(-pow((d - 0.44 - ph * 0.2) / 0.022, 2.0)) * (1.0 - ph);
   col += vec3(1.0, 0.45, 0.15) * (exp(-d * d * 4.0) * 0.22 + ring * 1.4) * uSpotAmt;
-  // 반사는 은은하게 — 선형 5%가 sRGB 로는 25%쯤으로 보인다
-  float a = mix(0.93, 0.96, inBlock);
+  // 반사는 은은하게 — 젖은 차도(13%)가 보도(6%)보다 조금 더 비친다. 선형 몇 %가 sRGB 로는 꽤 밝게 보인다
+  float a = mix(0.87, 0.94, inBlock);
   float fog = smoothstep(uFogRange.x, uFogRange.y, vDepth);
   col = mix(col, uFog, fog);
   a = mix(a, 1.0, fog);
@@ -330,7 +331,7 @@ export function mountSkyline(host: HTMLElement, input: SkyTower[], cb: SkyCallba
    * 맞춘다. 넓은 칸이면 도시의 폭에 맞춰 낮게, 좁은 칸이면 높게 세워 칸을 채운다.
    */
   const cityW = cols * SX
-  const H_MAX = Math.min(4.4, Math.max(2.2, (cityW / aspect) * 1.12))
+  const H_MAX = Math.min(4.4, Math.max(2.2, (cityW / aspect) * 0.86))
   const FLOOR = H_MAX / 26
 
   const stage = createStage({
@@ -341,6 +342,7 @@ export function mountSkyline(host: HTMLElement, input: SkyTower[], cb: SkyCallba
     exposure: 1.05,
     shadows: false,
     environment: 0.24,
+    envKind: 'night',
     bloom: { strength: 0.7, radius: 0.42, threshold: 0.84 },
     onResize: () => {
       fit()
@@ -529,7 +531,8 @@ export function mountSkyline(host: HTMLElement, input: SkyTower[], cb: SkyCallba
       side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending,
     })
-    const net = new THREE.Mesh(unitBox, netMat)
+    // 위아래가 뚫린 띠로 두른다 — 닫힌 상자면 바닥면이 다 지은 층의 지붕과 같은 높이에 겹쳐 지글거린다
+    const net = new THREE.Mesh(bandGeo, netMat)
     net.position.set(x, hf, z)
     net.scale.set(W + 0.028, Math.max(0.0001, H - hf), W + 0.028)
     net.visible = H - hf > 0.002
@@ -712,37 +715,51 @@ export function mountSkyline(host: HTMLElement, input: SkyTower[], cb: SkyCallba
     camera.lookAt(target)
     camera.updateMatrixWorld()
   }
+  const SWAY = 0.22
+  function spanAt(d: number, az = 0) {
+    place(d, POLAR, az)
+    const s = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity }
+    for (const p of fitPts) {
+      tmp.copy(p).project(camera)
+      s.x0 = Math.min(s.x0, tmp.x)
+      s.x1 = Math.max(s.x1, tmp.x)
+      s.y0 = Math.min(s.y0, tmp.y)
+      s.y1 = Math.max(s.y1, tmp.y)
+    }
+    return s
+  }
+  /** 저절로 좌우로 흔들리는 끝까지 합친 폭 — 흔들려도 양 끝의 탑이 잘리지 않게 */
+  function swaySpan(d: number) {
+    const a = spanAt(d, -SWAY)
+    const b = spanAt(d, SWAY)
+    const c = spanAt(d, 0)
+    return { x0: Math.min(a.x0, b.x0, c.x0), x1: Math.max(a.x1, b.x1, c.x1), y0: c.y0, y1: c.y1 }
+  }
   function fit() {
     const { w, h } = stage.size()
     if (!w || !h) return
     camera.clearViewOffset()
+    /*
+     * 도시를 칸에 꽉 채운다. 위로는 가장 높은 탑의 표가 설 자리(약 48px)만 남기고,
+     * 아래로는 맨 앞 줄 발밑의 젖은 길이 조금 보일 만큼만 둔다.
+     */
+    const topY = 1 - (2 * 48) / h
+    const bottomY = -0.86
     let lo = 2
     let hi = 80
-    const spanAt = (d: number) => {
-      place(d, POLAR, 0)
-      const s = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity }
-      for (const p of fitPts) {
-        tmp.copy(p).project(camera)
-        s.x0 = Math.min(s.x0, tmp.x)
-        s.x1 = Math.max(s.x1, tmp.x)
-        s.y0 = Math.min(s.y0, tmp.y)
-        s.y1 = Math.max(s.y1, tmp.y)
-      }
-      return s
-    }
-    // 좌우로 흔들려도 모서리가 잘리지 않게 폭에 여유를 둔다. 위로는 표가 설 자리
     for (let i = 0; i < 24; i++) {
       const m = (lo + hi) / 2
-      const s = spanAt(m)
-      if (s.x1 - s.x0 < 1.56 && s.y1 - s.y0 < 1.42) hi = m
+      const s = swaySpan(m)
+      if (s.x1 - s.x0 < 1.9 && s.y1 - s.y0 < topY - bottomY) hi = m
       else lo = m
     }
     dist = hi
-    const span = spanAt(dist)
+    const span = swaySpan(dist)
     const cx = (span.x0 + span.x1) / 2
-    // 아래쪽에 길과 반사가 보이도록 도시를 살짝 위로, 위에는 표 자리를 남긴다
-    const cy = (span.y0 + span.y1) / 2 - 0.02
+    // 맨 위(크레인 끝)를 topY 에 맞춘다
+    const cy = span.y1 - topY
     camera.setViewOffset(w, h, (cx * w) / 2, (-cy * h) / 2, w, h)
+    place(dist, POLAR, 0)
   }
 
   /* ── 손 ─────────────────────────────────────────────── */
@@ -813,16 +830,16 @@ export function mountSkyline(host: HTMLElement, input: SkyTower[], cb: SkyCallba
       tw.u.uTime.value = t
       // 하나를 가리키면 나머지는 한 걸음 물러난다
       const dim = 1 - any * 0.45 * (1 - tw.hi)
-      tw.u.uGlow.value = (1.45 + tw.hi * 1.1) * dim
+      tw.u.uGlow.value = (1.45 + tw.hi * 0.7) * dim
       tw.band.position.y = shellH - 0.01
       const building = tw.hf > 0.001 && tw.H - tw.hf > 0.002
       tw.bandMat.opacity = building
         ? Math.min(1, g * 1.2) * (0.7 + 0.3 * Math.sin(t * 2.2 + tw.cranePhase)) * (0.6 + 0.4 * dim)
         : 0
       tw.band.visible = tw.bandMat.opacity > 0.01
-      tw.scaffoldMat.opacity = sc * (0.42 + tw.hi * 0.45) * dim
+      tw.scaffoldMat.opacity = sc * (0.56 + tw.hi * 0.4) * dim
       tw.mirrorScaffoldMat.opacity = tw.scaffoldMat.opacity * 0.3
-      tw.netMat.opacity = sc * (0.03 + tw.hi * 0.05)
+      tw.netMat.opacity = sc * (0.045 + tw.hi * 0.05)
       tw.scaffold.visible = tw.mirrorScaffold.visible = sc > 0.01
       if (tw.crane) {
         tw.crane.scale.setScalar(Math.max(0.0001, cr * CRANE_S))
@@ -838,7 +855,7 @@ export function mountSkyline(host: HTMLElement, input: SkyTower[], cb: SkyCallba
     groundMat.uniforms.uTime.value = t
     halo.position.set(spot.x, 0.012, spot.y)
     const ph = (t * 0.6) % 1
-    halo.scale.setScalar(0.9 + ph * 0.6)
+    halo.scale.setScalar(0.86 + ph * 0.3)
     haloMat.opacity = spotAmt * (1 - ph) * 0.85
     halo.visible = spotAmt > 0.01
     carMat.uniforms.uTime.value = t
@@ -904,6 +921,14 @@ export function mountSkyline(host: HTMLElement, input: SkyTower[], cb: SkyCallba
         if (show) tw.tag.dataset.show = '1'
         else delete tw.tag.dataset.show
       }
+    }
+    markActive()
+  }
+
+  /** 가리킨 탑의 표에 불을 켠다 — 다음 장면을 기다리지 않고, 표의 줄과 같은 박자로 */
+  function markActive() {
+    for (const tw of towers) {
+      const on = tw.data.province === highlight
       if (on !== (tw.tag.dataset.on === '1')) {
         if (on) tw.tag.dataset.on = '1'
         else delete tw.tag.dataset.on
@@ -917,6 +942,7 @@ export function mountSkyline(host: HTMLElement, input: SkyTower[], cb: SkyCallba
   return {
     setHighlight(p) {
       highlight = p
+      markActive()
     },
     dispose() {
       canvas.removeEventListener('pointermove', onMove)

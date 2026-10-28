@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { canUse3D, whenIdle } from './support'
+import { useEffect, useRef, useState } from 'react'
+import { canUse3D, onMotionPreference, whenIdle } from './support'
 import type { SkyHandle, SkyTower } from './skyline-scene'
 
 /**
@@ -27,6 +27,10 @@ export default function Skyline3D({ towers, highlight, onHover, onPick, onLive }
   const handleRef = useRef<SkyHandle | null>(null)
   const hlRef = useRef(highlight)
   const cbRef = useRef({ onHover, onPick, onLive })
+  /** 움직임 설정이 바뀔 때마다 늘어난다 — 아래 장면을 내렸다가(또는 다시) 세운다 */
+  const [motion, setMotion] = useState(0)
+
+  useEffect(() => onMotionPreference(() => setMotion(m => m + 1)), [])
 
   useEffect(() => {
     cbRef.current = { onHover, onPick, onLive }
@@ -87,7 +91,7 @@ export default function Skyline3D({ towers, highlight, onHover, onPick, onLive }
       if (handle) cbRef.current.onLive(false)
       drop()
     }
-  }, [towers])
+  }, [towers, motion])
 
   return <div ref={hostRef} className="cs3d-host" aria-hidden="true" />
 }

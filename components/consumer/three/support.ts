@@ -36,6 +36,17 @@ export function canUse3D(): boolean {
   return !reducedMotion() && hasWebGL2()
 }
 
+/**
+ * 움직임 줄이기 설정이 페이지를 연 채로 바뀌면 알려 준다. 입체는 그 자리에서
+ * 내려가고(평면 그림이 돌아온다), 설정을 다시 풀면 새로 선다.
+ */
+export function onMotionPreference(fn: () => void): () => void {
+  if (typeof window === 'undefined' || !window.matchMedia) return () => {}
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+  mq.addEventListener('change', fn)
+  return () => mq.removeEventListener('change', fn)
+}
+
 /** 첫 화면이 다 그려진 뒤, 브라우저가 한가할 때 */
 export function whenIdle(fn: () => void, timeout = 1200): () => void {
   const w = window as Window & {
