@@ -12,6 +12,8 @@ import SpecialSupply from './SpecialSupply'
 import SaveButton from './SaveButton'
 import NoticeCalendar, { marksFrom } from './NoticeCalendar'
 import NearbyStores from './NearbyStores'
+import WaitStatus from './WaitStatus'
+import { isRental, provinceOf } from '@/lib/consumer/classify'
 import DrawVsScore from './DrawVsScore'
 import { guessZone } from '@/lib/consumer/draw-vs-score'
 import { calculateSubscriptionScore } from '@/lib/subscription-score'
@@ -881,6 +883,19 @@ export default function NoticeDetail({ id }: { id: string }) {
             )
           })()}
 
+          {/* 공공임대 입주 대기 — 임대 공고에만. 같은 동네 단지의 대기·퇴거 기록 */}
+          {!isSample && isRental(property.housingType ?? '') && provinceOf(property) && (
+            <WaitStatus
+              province={provinceOf(property)}
+              // 청약홈은 district=광역·region=시군구, LH 는 region=광역뿐이라 주소에서 시·군·구를 읽는다
+              sigungu={
+                property.district
+                  ? property.region?.trim() || ''
+                  : (property.address ?? '').split(/\s+/).find(w => /[시군구]$/.test(w) && w !== provinceOf(property)) ?? ''
+              }
+            />
+          )}
+
           {/* 주변 생활 상권 — 좌표가 주소·공고명으로 찾은 자리일 때만. 지역 기준점이면 남의 동네를 보여 주게 된다 */}
           {!isSample &&
             property.lat !== null &&
@@ -890,6 +905,8 @@ export default function NoticeDetail({ id }: { id: string }) {
                 <NearbyStores lat={property.lat} lng={property.lng} approximate={property.geoSource === 'NAME'} />
               </section>
             )}
+          {/* 출퇴근 대중교통(TransitRoutes · /api/transit)은 ODsay 키 인증이 통과하면 이 자리에 붙인다.
+              2026-10-28 실측: 서버·Referer 유무와 관계없이 ApiKeyAuthFailed — 실패하는 버튼은 내보내지 않는다 */}
 
           {/* 공식 일정 */}
           <section className="cs-sa-doc__sec">

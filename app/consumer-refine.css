@@ -1018,3 +1018,167 @@ body:has(.cs-ticker) .cs-maker__scene {
     max-height: 420px;
   }
 }
+
+/* 공공임대 입주 대기 — 단지 한 줄에 이름과 숫자 */
+.cs-wait__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.cs-wait__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cs-wait__who {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.cs-wait__who b {
+  font-size: 16px;
+  color: var(--title);
+}
+.cs-wait__sub,
+.cs-wait__types {
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.cs-wait__types {
+  color: var(--accent);
+  font-weight: 700;
+}
+.cs-wait__nums {
+  display: flex;
+  gap: 14px;
+  margin: 0;
+  flex-shrink: 0;
+  text-align: right;
+}
+.cs-wait__nums dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+.cs-wait__nums dd {
+  margin: 2px 0 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--title);
+  white-space: nowrap;
+}
+@media (max-width: 359px) {
+  .cs-wait__row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .cs-wait__nums {
+    text-align: left;
+  }
+}
+
+/* 출퇴근 대중교통 */
+.cs-transit__hubs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cs-transit__hub {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--title);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cs-transit__hub[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.cs-transit__out {
+  margin-top: 18px;
+  min-height: 24px;
+}
+.cs-transit__sum {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  color: var(--title);
+}
+.cs-transit__sum b {
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--accent);
+}
+.cs-transit__sum span {
+  font-size: 18px;
+  font-weight: 700;
+}
+.cs-transit__sum em {
+  font-style: normal;
+  font-size: 15px;
+  color: var(--muted);
+}
+.cs-transit__legs {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.cs-transit__legs li {
+  display: grid;
+  grid-template-columns: minmax(84px, max-content) 1fr;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 15px;
+  color: var(--title);
+}
+.cs-transit__line {
+  font-weight: 800;
+  color: var(--accent);
+}
+.cs-transit__legs li[data-mode='BUS'] .cs-transit__line {
+  color: var(--title);
+}
+.cs-transit__seg {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+/* 통계 KPI — 좁은 폭에서 '82.3 : 1 · 서울'이 말줄임으로 잘렸다. 숫자는 붙이고 지역명은 다음 줄로 */
+@media (max-width: 420px) {
+  .cs-sb .cs-sb-kpis dd {
+    white-space: normal;
+    overflow: visible;
+    font-size: 26px;
+  }
+  .cs-sb .cs-sb-kpis dd small {
+    white-space: nowrap;
+  }
+}
+
+/* 통계 카드 — 좁은 두 칸에서 '과열'이 한 글자씩 세로로 쪼개졌다. 막대가 줄고 낱말은 붙는다 */
+.cs-heatcard__label {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.cs-heat {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.cs-heat__seg {
+  flex: 0 1 auto;
+  min-width: 6px;
+}
