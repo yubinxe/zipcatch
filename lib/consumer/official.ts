@@ -16,6 +16,7 @@ import * as repo from '@/lib/db/repo'
 const SOURCE_LABEL: Record<string, string> = {
   APPLYHOME: '청약홈 (공공데이터포털)',
   LH: 'LH 청약플러스 (공공데이터포털)',
+  MYHOME: '마이홈포털 (국토교통부)',
 }
 
 /**

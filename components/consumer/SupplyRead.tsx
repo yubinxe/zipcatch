@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import SupplyMap, { type ProvinceSupply } from './SupplyMap'
 
 interface ShortRow {
   pblancNo: string
@@ -23,6 +24,8 @@ interface Read {
   reside: { name: string; applied: number; share: number }[]
   wentToRank2: number
   hottest: { pblancNo: string; houseTy: string; rate: number; supply: number }[]
+  provinces?: ProvinceSupply[]
+  unplaced?: number
 }
 
 /**
@@ -125,6 +128,11 @@ export default function SupplyRead() {
         결과입니다. 접수 경쟁률은 <b>마감 뒤에만</b> 생기므로, 지금 접수 중인 공고의 결과를 미리
         말하지는 않습니다.
       </p>
+
+      {/* ── 전국 지도 — 같은 기록을 17개 광역으로 ── */}
+      {data.provinces && data.provinces.length > 0 && (
+        <SupplyMap provinces={data.provinces} unplaced={data.unplaced ?? 0} notices={data.notices} />
+      )}
 
       {/* ── 판독 1. 어디가 비었나 ── */}
       <section className="cs-read__block">

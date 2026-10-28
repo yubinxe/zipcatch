@@ -21,6 +21,8 @@ import './consumer-footer.css'
 import './crm.css'
 import './consumer-news.css'
 import './consumer-3d.css'
+/* 3.1 정밀 개선 — 챗봇 자리·캐러셀·지도 중심·제작자 장면·요금제. 반드시 맨 뒤 */
+import './consumer-refine.css'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zipcatch.vercel.app').replace(/\/$/, '')
 

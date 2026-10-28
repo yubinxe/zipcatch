@@ -35,3 +35,21 @@ export function hasMolitKey(): boolean {
 export function hasDataPortalKey(): boolean {
   return dataPortalKey().length > 0
 }
+
+/**
+ * 마이홈포털(국토교통부) — 공공주택 모집공고 · 예비입주자 대기현황.
+ *
+ * 두 서비스가 같은 인증키로 활용신청돼 있다. 이 키를 따로 받았다면 MYHOME_API_KEY 로,
+ * 아니면 공용 키로 물러선다. 서버에서만 읽는다.
+ */
+export function myhomeKey(): string {
+  return (process.env.MYHOME_API_KEY ?? '').trim() || dataPortalKey()
+}
+
+/**
+ * ODsay 대중교통 경로. 서버에서만 부르고, 사용자가 '경로 보기'를 누를 때만 쓴다
+ * (무료 등급은 하루 호출 수가 적다 — 전국 일괄 호출 금지).
+ */
+export function odsayKey(): string {
+  return (process.env.ODSAY_API_KEY ?? '').trim()
+}

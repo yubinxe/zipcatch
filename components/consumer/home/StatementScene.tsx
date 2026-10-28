@@ -1,7 +1,7 @@
 'use client'
 
 import { Fragment, useEffect, useState, type CSSProperties } from 'react'
-import { KOREA_MAP_VIEWBOX, KOREA_PROVINCES } from '@/lib/korea-map-data'
+import { KOREA_PROVINCES, KOREA_VISUAL_VIEWBOX } from '@/lib/korea-map-data'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import ScrollStage from './ScrollStage'
 
@@ -51,7 +51,7 @@ export default function StatementScene() {
   return (
     <ScrollStage length={3.2} className="cs-scene cs-scene--statement" label="흩어진 공고를 한 장의 지도로">
       <div className="cs-scene__map" aria-hidden="true" style={{ '--lit': Math.max(1, lit.length) } as CSSProperties}>
-        <svg viewBox={KOREA_MAP_VIEWBOX}>
+        <svg viewBox={KOREA_VISUAL_VIEWBOX}>
           {KOREA_PROVINCES.map(p => {
             const geo = KOREA_REGIONS.find(r => r.code === p.code)
             const i = geo ? order.get(geo.name) : undefined

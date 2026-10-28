@@ -55,6 +55,8 @@ const DATA_H = 1.3
 const LIFT = 0.2
 /** 카메라가 정수리에서 기운 각(라디안) */
 const POLAR = 0.9
+/** 첫 장면의 기울기 — 평면 지도처럼 거의 바로 위에서 본다 */
+const INTRO_POLAR = 0.12
 /** 해안선 다듬기 — SVG 0.55칸 안쪽의 잔 마디는 펴고, 6.5×6.5칸보다 작은 바위섬은 세우지 않는다 */
 const SIMPLIFY = 0.55 * UNIT
 const MIN_ISLAND = 42 * UNIT * UNIT
@@ -899,26 +901,33 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
     const peakTop = (d: number) => (peaks.length ? spanAt(d, peaks).y1 + tagRoom : -Infinity)
     let lo = 3
     let hi = 60
+    /*
+     * 본토의 가운데를 칸의 가운데에 못 박는다. 예전에는 솟은 기둥·숫자 표가 설 자리를
+     * 위에 남기려고 시점을 위로 밀었고, 그만큼 지도가 칸 아래로 내려앉아 보였다.
+     * 이제는 밀지 않고, 위아래·좌우 어느 쪽이든 넘치면 그만큼 물러선다(dist).
+     */
+    const fits = (d: number) => {
+      const s = spanAt(d)
+      const all = swaySpan(d)
+      const cxm = (s.x0 + s.x1) / 2
+      const cym = (s.y0 + s.y1) / 2
+      const top = Math.max(all.y1, peakTop(d))
+      return (
+        s.x1 - s.x0 < 1.84 &&
+        s.y1 - s.y0 < 1.66 &&
+        Math.max(all.x1 - cxm, cxm - all.x0) < 0.95 &&
+        Math.max(top - cym, cym - all.y0) < 0.95
+      )
+    }
     for (let i = 0; i < 24; i++) {
       const mid = (lo + hi) / 2
-      const s = spanAt(mid)
-      // 섬과 흔들리는 끝은 칸 안에만 들면 된다 — 본토를 칸에 꽉 채운다
-      const all = swaySpan(mid)
-      const top = Math.max(all.y1, peakTop(mid))
-      if (s.x1 - s.x0 < 1.86 && s.y1 - s.y0 < 1.68 && all.x1 - all.x0 < 1.9 && top - all.y0 < 1.9) hi = mid
+      if (fits(mid)) hi = mid
       else lo = mid
     }
     dist = hi
-    const all = swaySpan(dist)
     const s = spanAt(dist)
-    const top = Math.max(all.y1, peakTop(dist))
-    // 본토를 가운데에 두되, 섬과 솟은 기둥·표가 칸 밖으로 나가지 않는 데까지만 민다
-    const M = 0.95
-    let cx = (s.x0 + s.x1) / 2
-    cx = Math.min(Math.max(cx, all.x1 - M), all.x0 + M)
-    // 위로 조금 여유를 둔다 — 높이 솟은 지역과 숫자 표가 설 자리
-    let cy = (s.y0 + s.y1) / 2 + 0.06
-    cy = Math.min(Math.max(cy, top - 0.98), all.y0 + M)
+    const cx = (s.x0 + s.x1) / 2
+    const cy = (s.y0 + s.y1) / 2
     view.td = dist
     view.tx = cx
     view.ty = cy
@@ -1099,14 +1108,23 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
     // 천천히 좌우로 흔들리는 시선 + 손 따라 기우는 시선
     pointer.sx += ((pointer.inside ? pointer.x : 0) - pointer.sx) * k(3)
     pointer.sy += ((pointer.inside ? pointer.y : 0) - pointer.sy) * k(3)
-    const intro = ease(t / 2.4)
-    const az = Math.sin(t * 0.19) * 0.17 + pointer.sx * 0.14 + (1 - intro) * 0.35
-    const polar = POLAR - (1 - intro) * 0.3 + Math.sin(t * 0.15) * 0.025 + pointer.sy * 0.06
+    /*
+     * 첫 장면은 평면 지도와 같은 구도 — 북쪽이 위인 채 거의 바로 위에서 내려다본다.
+     * 평면 지도가 걷히는 동안(0.7초)은 그대로 두었다가, 그 뒤에 천천히 기울어진다.
+     * 그래서 2D 에서 3D 로 넘어가는 순간 그림이 튀지 않는다.
+     * 시간에 따라 저절로 흔들리던 시선은 없앴다 — 손끝과 스크롤에만 따른다.
+     */
+    const intro = ease((t - 0.7) / 2.2)
+    // 첫 화면을 내려 지나갈수록 조금 더 눕는다 — 스크롤이 입체감을 연다
+    const hr = host.getBoundingClientRect()
+    const scrolled = Math.min(1, Math.max(0, -hr.top / Math.max(1, window.innerHeight * 0.6)))
+    const az = (pointer.sx * 0.14) * intro
+    const polar = INTRO_POLAR + (POLAR - INTRO_POLAR) * intro + pointer.sy * 0.06 * intro + scrolled * 0.16
     view.d += (view.td - view.d) * k(2.4)
     view.x += (view.tx - view.x) * k(2.4)
     view.y += (view.ty - view.y) * k(2.4)
     applyView()
-    place(view.d * (1 + (1 - intro) * 0.2), polar, az)
+    place(view.d, polar, az)
 
     if (frames === 2 && !readySent) {
       readySent = true

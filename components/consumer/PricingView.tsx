@@ -185,6 +185,7 @@ export default function PricingView() {
             <span className="cs-pr__per">/ 30일</span>
           </div>
           <p className="cs-pr__note">한 번 결제 · 자동 갱신 없음</p>
+          <p className="cs-pr__pass-beta">출시 전 검증 중인 가격 · 지금은 결제 없이 무료</p>
           <Link href="/compare" className="cs-btn cs-btn--primary cs-pr__cta">
             지금은 무료로 써 보기
           </Link>

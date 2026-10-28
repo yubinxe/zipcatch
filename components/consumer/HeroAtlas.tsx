@@ -2,7 +2,9 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { KOREA_MAP_VIEWBOX, KOREA_PROVINCES } from '@/lib/korea-map-data'
+import { KOREA_PROVINCES, KOREA_VISUAL_VIEWBOX } from '@/lib/korea-map-data'
+import IslandInset from './IslandInset'
+import { mapProvince } from '@/lib/consumer/classify'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import Atlas3D from './three/Atlas3D'
 import { KOREA_SILHOUETTE } from './three/korea-silhouette'
@@ -31,6 +33,8 @@ interface Pin {
   id: string
   name: string
   province: string
+  /** 시·군·구 — 통합된 광역(전남·광주)을 지도의 두 칸으로 가를 때 쓴다 */
+  region?: string | null
   kind: 'RENT' | 'SALE'
   daysLeft: number | null
 }
@@ -144,7 +148,7 @@ export default function HeroAtlas() {
     )
     let unplaced = 0
     for (const pin of data?.pins ?? []) {
-      const read = byName.get(pin.province)
+      const read = byName.get(mapProvince(pin.province, pin.region))
       if (!read) {
         unplaced++
         continue
@@ -238,7 +242,7 @@ export default function HeroAtlas() {
         <div className="cs-atlas__stage" data-3d={live ? 'on' : undefined}>
           <svg
             className="cs-atlas__map"
-            viewBox={KOREA_MAP_VIEWBOX}
+            viewBox={KOREA_VISUAL_VIEWBOX}
             role="img"
             aria-label={
               active && !empty
@@ -281,6 +285,11 @@ export default function HeroAtlas() {
           </svg>
           {/* 같은 칸 위에 겹친다 — 칸의 크기는 평면 지도가(좁은 카드에서는 CSS 가) 정한다 */}
           <Atlas3D state={scene} onHover={setHover} onPick={choose} onLive={setLive} />
+          {(() => {
+            const gb = KOREA_PROVINCES.find(p => p.id === 'north-gyeongsang')
+            const read = gb ? reads.get(gb.code) : undefined
+            return <IslandInset level={drawn ? shade(read?.count ?? 0, max) : 0} on={gb?.code === activeCode} />
+          })()}
         </div>
 
         <div className="cs-atlas__read" aria-live="polite">
@@ -388,13 +397,8 @@ export default function HeroAtlas() {
       )}
 
       <p className="cs-atlas__source">
-        청약홈 · LH 청약플러스 접수 중·예정 공고
-        {unplaced > 0 && ` · 지역 미표기 ${unplaced}건은 지도 밖`}
-        {' · 지도 윤곽 '}
-        <a href="https://github.com/VictorCazanave/svg-maps" target="_blank" rel="noopener noreferrer">
-          svg-maps
-        </a>{' '}
-        (CC BY 4.0)
+        청약홈 · LH 청약플러스 접수 중·예정 공고 ·{' '}
+        <a href="/sources">출처와 라이선스</a>
       </p>
     </div>
   )
