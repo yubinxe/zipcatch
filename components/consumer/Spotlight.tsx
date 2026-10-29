@@ -154,6 +154,7 @@ export default function Spotlight() {
           </svg>
           <input
             ref={input}
+            autoFocus
             role="combobox"
             aria-expanded="true"
             aria-controls={listId}
