@@ -23,6 +23,11 @@ import './consumer-news.css'
 import './consumer-3d.css'
 /* 3.1 정밀 개선 — 챗봇 자리·캐러셀·지도 중심·제작자 장면·요금제. 반드시 맨 뒤 */
 import './consumer-refine.css'
+/* 4.0 — 공고 카드 · 지도 진입 · 서체 굵기(맨 뒤: 앞 층의 같은 규칙을 이긴다) */
+import './consumer-cards.css'
+import './consumer-mapintro.css'
+import './consumer-scenes.css'
+import './consumer-type.css'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zipcatch.vercel.app').replace(/\/$/, '')
 

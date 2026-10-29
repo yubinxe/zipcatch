@@ -1,0 +1,221 @@
+/* ============================================================
+   4.0 서체 층 — 굵기와 크기의 바닥을 한 번에 올린다(맨 뒤에 싣는다).
+
+   피드백: '글자가 작고, 화면마다 굵기 결이 다르다.'
+   1) 본문 기본 굵기 450 → 500. Pretendard 가변 글꼴이라 실제 굵기로 그려진다.
+   2) 제목은 800, 이름·항목 제목은 700 으로 한 결을 맞춘다(500·600 으로 가늘던 제목들).
+   3) 13.5px 보다 작던 한글 라벨·메타는 14px 바닥으로 올린다.
+      예외: 영문 눈썹(자간 넓은 대문자), 지도·차트 눈금, 폰 상태 표시줄, 달력의 좁은 칸 —
+      칸 크기가 글자 크기로 정해져 있어 키우면 넘친다.
+   아래 '작은 글씨' 목록은 앞 층에서 13.5px 미만으로 정한 선택자를 그대로 옮겨 적은 것이다
+   (같은 선택자를 뒤에서 다시 적어 이긴다 — !important 를 쓰지 않는다).
+   ============================================================ */
+
+.cs {
+  font-weight: 500;
+  letter-spacing: -0.014em;
+}
+
+/* ── 제목 — 800 한 결 ───────────────────────────────────── */
+.cs .cs-section-title,
+.cs-jr__title,
+.cs .cs-remember__lead,
+.cs .cs-pr__pass-title,
+.cs-read__h,
+.cs-ydl__title {
+  font-weight: 800;
+  letter-spacing: -0.032em;
+}
+
+/* ── 이름·항목 제목 — 700 ──────────────────────────────── */
+.cs-jr__verb,
+.cs-bp__name,
+.cs-mini__title,
+.cs-ticker__name,
+.cs-stat__name,
+.cs-news__title,
+.cs-cal__name,
+.cs-map__name,
+.cs-spsply__name,
+.cs-sa-sched__h {
+  font-weight: 700;
+}
+
+/* ── 부제·본문 — 가늘던 400 을 500 으로 ─────────────────── */
+.cs-lead,
+.cs-choice__sub,
+.cs-check__sub,
+.cs-cmp__sub,
+.cs-jr__desc {
+  font-weight: 500;
+}
+
+/* ── Four Steps — 옆 차례와 견본 글씨를 키운다 ──────────────── */
+.cs-jr__rail li {
+  font-size: 16px;
+  font-weight: 600;
+}
+.cs-jr__rail li[data-on] {
+  font-weight: 800;
+}
+.cs-jr__verb {
+  font-size: 30px;
+  font-weight: 800;
+}
+.cs-jr__desc {
+  font-size: 18px;
+}
+.cs-jr__spec--chips span {
+  font-size: 16px;
+  padding: 16px 20px;
+}
+.cs-jr__spec--chips em {
+  font-size: 16px;
+  font-weight: 800;
+}
+.cs-jr__spec--table b,
+.cs-jr__spec--check li,
+.cs-jr__spec--line li {
+  font-size: 16px;
+}
+
+/* ── 작은 글씨의 바닥 14px ─────────────────────────────── */
+.cs-sky__cap,
+.cs-pr__list i,
+.cs-pr__soon,
+.cs-pr__yes,
+.cs-pr__table td small,
+.cs-dvs__verdict cite,
+.cs-flow__label,
+.cs-flow__stat span,
+.cs-flow__stat small,
+.cs-flow__thin,
+.cs-flow__legend,
+.cs-flow__months button,
+.cs-flow__table thead th,
+.cs-flow__table td:last-child,
+.cs-flow__deal-main span,
+.cs-flow__deal-price small,
+.cs-flow__source code,
+.cs-flow__limits,
+.cs-maker__ch-text span,
+.cs .cs-maker .cs-maker__legal p,
+.cs .cs-maker .cs-maker__legal .cs-maker__copy,
+.cs-open__src,
+.cs-open__dday,
+.cs-open__crumb,
+.cs-open__fact dt,
+.cs-rail__label b,
+.cs-wz-scale,
+.cs-wz-ticket dt,
+.cs .cs-wz-source,
+.cs .cs-wz-foot,
+.cs-rail__label,
+.cs-wz-tile__sub,
+.cs-nr-switch__count,
+.cs-nr .cs-nr-head__query,
+.cs-nr-head__query code,
+.cs-nr-edition__grid dt,
+.cs-nr-edition__foot,
+.cs-nr-row__go,
+.cs-nr .cs-nr-vacancy__detail,
+.cs-nr .cs-nr-rules__more li,
+.cs-nr .cs-nr-rules__source,
+.cs-nr .cs-nr-facts li,
+.cs-phone__presence,
+.cs-phone__notice,
+.cs-phone__day span,
+.cs-phone__faq-title,
+.cs-phone__count,
+.cs-phone__note,
+.cs-src__grid span,
+.cs-maker__big-k,
+.cs .cs-maker .cs-maker__ch-text span,
+.cs .cs-pr__pass-buy .cs-pr__pass-stub,
+.cs-smap__facts dt,
+.cs-smap__table thead th,
+.cs-wait__sub,
+.cs-wait__types,
+.cs-wait__nums dt,
+.cs-decide__tag,
+.cs-decide__label small,
+.cs-decide__sub,
+.cs-decide__label span,
+.cs-sb .cs-sb-void__k,
+.cs-sb .cs-sb-close__k,
+.cs-sb .cs-sb-toc a span,
+.cs-sb .cs-sb-entry__watch b,
+.cs-sb .cs-sb-inst__tag,
+.cs-sb-mix__k,
+.cs-sb-knob__of,
+.cs-sb-knob__unit em,
+.cs-sb .cs-sb-cmp .cs-choose__label,
+.cs-sb .cs-sb-verdict__k,
+.cs-sb .cs-sb-verdict__ref dt,
+.cs-sb .cs-dvs__head > div:first-child::before,
+.cs-sb-term__src,
+.cs-sb .cs-choose__label,
+.cs-sb .cs-sb-kpis dt,
+.cs-sb .cs-sb-heatkey li,
+.cs-sb .cs-heatcard__rank,
+.cs-sb-scorecard__tag,
+.cs-sb .cs-sb-ages__key,
+.cs-sb .cs-read__table thead th,
+.cs-sb .cs-read__ty,
+.cs-sb .cs-mk__table th,
+.cs-pr__pass-stub,
+.cs-sb .cs-pr__group th,
+.cs-sb .cs-sb-gate__note,
+.cs-seoul__yr,
+.cs-seoul__table thead th,
+.cs-sa .cs-sa-facts li > span:first-child:not(:only-child),
+.cs-sa .cs-chip__n,
+.cs-notice__k,
+.cs-notice__due-k,
+.cs-notice__dday,
+.cs-notice__src,
+.cs-sa .cs-notice__index,
+.cs-sa :is(.cs-notice,
+.cs-sa-rail) .cs-badge,
+.cs-sa .cs-notice :is(.cs-official,
+.cs-sample),
+.cs-sa .cs-notice__caution::before,
+.cs-sa .cs-map__bar .cs-choose__label,
+.cs-sa .cs-map__key,
+.cs-sa .cs-map__legend-day,
+.cs-sa .cs-map__meta,
+.cs-sa .cs-map__dday,
+.cs-sa-steps__n,
+.cs-sa-brief__nums dt,
+.cs-sa-next__k,
+.cs-sa-ticket__k,
+.cs-sa .cs-sa-dock__slots li,
+.cs-sa-colcard__k,
+.cs-sa-colcard__k b,
+.cs-sa .cs-sa-colcard .cs-cmp__sub,
+.cs-sa-due__k,
+.cs-sa .cs-sa-facts2 dt,
+.cs-sa .cs-sa-rail__src,
+.cs-sa-doc__sec::before,
+.cs-sa .cs-sa-doc .cs-table thead th,
+.cs-sa .cs-sa-spec .cs-cmp__rowhead,
+.cs-ticker__sample,
+.cs-chat__note,
+.cs-score__ref dt,
+.cs-pill__n,
+.cs-news__rank,
+.cs-cal__over,
+.cs-cal__w,
+.cs-cal__today,
+.cs-cal__tag,
+.cs-board__next-k,
+.cs-board__nm,
+.cs-regionmark__sub,
+.cs-emblem__name,
+.cs-notice__sp-tag,
+.cs-mk__n,
+.cs-mk__spread,
+.cs-mk__size-sub,
+.cs-mk__month-label {
+  font-size: 14px;
+}

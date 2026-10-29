@@ -322,3 +322,78 @@ body:has(.cs-ticker) .cs .cs-footer.cs-maker {
     transition: none !important;
   }
 }
+
+/* ═════════════════════════════════════════════════════════
+   4.0 — 만든 사람 장면의 배경: 해가 막 진 도시
+   위는 깊은 남색, 지평선 쪽은 잉걸빛 주황. 그 아래로 아파트 단지의 실루엣과
+   불 켜진 창. 움직이는 것은 빛 덩이(transform)와 창의 깜빡임(opacity)뿐이다.
+   ═════════════════════════════════════════════════════════ */
+.cs-maker__sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 70% at 50% 108%, rgba(255, 128, 52, 0.55) 0%, rgba(214, 76, 34, 0.32) 28%, rgba(120, 44, 70, 0.22) 48%, transparent 70%),
+    radial-gradient(60% 40% at 18% 0%, rgba(70, 92, 170, 0.28), transparent 70%),
+    linear-gradient(180deg, #0b0e1a 0%, #141a33 38%, #2a1d33 66%, #4a2228 86%, #5a2a1e 100%);
+}
+.cs-maker__glow i {
+  mix-blend-mode: screen;
+}
+.cs-maker__glow i:nth-child(2) {
+  background: radial-gradient(circle, rgba(255, 150, 80, 0.36), transparent 62%);
+}
+/* 지평선에서 올라오는 빛줄기 몇 가닥 */
+.cs-maker__shafts {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 70%;
+  background:
+    linear-gradient(90deg, transparent 0 14%, rgba(255, 178, 122, 0.07) 15%, transparent 17% 40%, rgba(255, 178, 122, 0.06) 41%, transparent 42.5% 71%, rgba(255, 178, 122, 0.08) 72%, transparent 73.5%);
+  -webkit-mask-image: linear-gradient(0deg, #000 10%, transparent 90%);
+  mask-image: linear-gradient(0deg, #000 10%, transparent 90%);
+}
+.cs-maker__city {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: clamp(150px, 26vh, 260px);
+}
+.cs-maker__city-back rect {
+  fill: #2b1c2c;
+  opacity: 0.85;
+}
+.cs-maker__city-front rect {
+  fill: #0d0f18;
+}
+.cs-maker__city-lit rect {
+  fill: #ffc58a;
+  opacity: 0.85;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cs-maker__city-lit rect:nth-child(7n) {
+    animation: csWindow 6s ease-in-out infinite;
+  }
+  .cs-maker__city-lit rect:nth-child(11n) {
+    animation: csWindow 9s ease-in-out infinite reverse;
+  }
+}
+@keyframes csWindow {
+  0%, 60%, 100% { opacity: 0.85; }
+  70%, 90% { opacity: 0.12; }
+}
+/* 글이 도시 위에서 읽히도록 — 가운데 아래를 살짝 눌러 준다 */
+.cs-maker__stage {
+  z-index: 1;
+}
+/* 글이 도시의 지붕 위에서 끝나도록 아래를 비워 둔다 */
+.cs-maker__scene {
+  padding-bottom: calc(clamp(150px, 26vh, 260px) * 0.55);
+}
+.cs .cs-maker .cs-maker__line,
+.cs .cs-maker .cs-maker__role {
+  text-shadow: 0 1px 18px rgba(11, 14, 20, 0.6);
+}

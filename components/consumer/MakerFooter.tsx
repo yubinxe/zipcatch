@@ -1,4 +1,5 @@
 import Reveal from './Reveal'
+import MakerSkyline from './MakerSkyline'
 
 /**
  * 바닥글 — 이 서비스를 만든 사람에게로 이어지는 길.
@@ -84,8 +85,11 @@ export default function MakerFooter() {
     <footer className="cs-footer cs-maker">
       <section className="cs-maker__scene" aria-labelledby="cs-maker-name">
         <div className="cs-maker__glow" aria-hidden="true">
+          <span className="cs-maker__sky" />
           <i />
           <i />
+          <span className="cs-maker__shafts" />
+          <MakerSkyline />
         </div>
         <div className="cs-wrap cs-maker__stage">
           <Reveal>
