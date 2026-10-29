@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { isGuardedDeploy } from '@/lib/runtime/deploy-guard'
 
 /**
  * Supabase 서버 클라이언트.
@@ -32,14 +33,46 @@ export function getSupabase(): SupabaseClient | null {
     return null
   }
 
-  cached = createClient(url, key, {
+  const client = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { 'x-application-name': 'jipcatch' } },
   })
+  cached = isGuardedDeploy() ? readOnly(client) : client
   return cached
 }
 
 /** 테스트·재설정용 */
 export function resetSupabaseClient() {
   cached = undefined
+}
+
+const WRITES = new Set(['insert', 'update', 'upsert', 'delete'])
+
+/** 쓰기 쪽 사슬 — 무엇을 이어 불러도 같은 실패로 끝난다 */
+function refused(): unknown {
+  const result = { data: null, error: { message: '미리보기 배포는 DB 에 쓰지 않습니다.', code: 'PREVIEW_READ_ONLY' } }
+  const chain: unknown = new Proxy(function () {}, {
+    get: (_t, prop) => (prop === 'then' ? (ok: (v: unknown) => unknown) => Promise.resolve(result).then(ok) : chain),
+    apply: () => chain,
+  })
+  return chain
+}
+
+/** 미리보기 배포용 — 읽기는 그대로, insert·update·upsert·delete·rpc 는 막는다 */
+function readOnly(client: SupabaseClient): SupabaseClient {
+  return new Proxy(client, {
+    get(target, prop, recv) {
+      if (prop === 'rpc') return () => refused()
+      if (prop !== 'from') return Reflect.get(target, prop, recv)
+      return (table: string) => {
+        const q = target.from(table)
+        return new Proxy(q, {
+          get(t, p, r) {
+            if (typeof p === 'string' && WRITES.has(p)) return () => refused()
+            return Reflect.get(t, p, r)
+          },
+        })
+      }
+    },
+  })
 }
