@@ -20,4 +20,6 @@ export const FEATURES = {
   spotlight: !off(process.env.NEXT_PUBLIC_FEATURE_SPOTLIGHT),
   /** F. 내 조건의 지도 (결과 화면) */
   universe: !off(process.env.NEXT_PUBLIC_FEATURE_UNIVERSE),
+  /** G. 업무지구까지 (상세·비교) */
+  commute: !off(process.env.NEXT_PUBLIC_FEATURE_COMMUTE),
 } as const

@@ -11,6 +11,8 @@ import SaveButton from './SaveButton'
 import { ddayText, EmptyMark } from './NoticeCard'
 import BattleChart, { type BattleItem } from './battle/BattleChart'
 import { FEATURES } from '@/lib/features'
+import CommuteExplorer from './CommuteExplorer'
+import { provinceOf } from '@/lib/consumer/classify'
 
 /**
  * 공고 비교.
@@ -270,6 +272,22 @@ export default function CompareView() {
       </header>
 
       {FEATURES.battle && items.length >= 2 && <BattleChart items={items.map(toBattle)} />}
+      {FEATURES.commute && items.length >= 2 && (
+        <section className="cs-battle cs-battle--commute" aria-label="업무지구까지">
+          <h2 className="cs-battle__t">업무지구까지</h2>
+          <CommuteExplorer
+            heading={false}
+            items={items.map(d => ({
+              id: d.property.id,
+              name: d.property.name,
+              province: provinceOf(d.property),
+              lat: d.property.lat,
+              lng: d.property.lng,
+              geoSource: d.property.geoSource,
+            }))}
+          />
+        </section>
+      )}
 
       <div className="cs-sa-spec" data-cols={items.length}>
         <table className="cs-table cs-cmp__table">
