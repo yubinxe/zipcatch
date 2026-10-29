@@ -45,3 +45,229 @@
   outline: 2px solid var(--glow);
   outline-offset: 3px;
 }
+
+/* ============================================================
+   ONE MAP — 내릴수록 지도가 눕고, 공고가 있는 곳이 솟는다.
+   --p   스크롤 진행 0→1 (ScrollStage)
+   --t   눕는 정도 — 6~80% 를 0→1 로, 부드러운 시작·끝(smoothstep)
+   --x   쌓인 장이 벌어지는 정도 — 12~80%
+   입체(WebGL, three/Statement3D)가 서면 같은 칸의 CSS 입체는 걷힌다.
+   CSS 입체: 바닥판(모든 지역) 위로, 불이 든 지역만 공고 수만큼의 장을 겹쳐 쌓는다.
+   ============================================================ */
+.cs-scene--statement .cs-stage__pin {
+  --ta: clamp(0, calc((var(--p) - 0.06) / 0.74), 1);
+  --t: calc(var(--ta) * var(--ta) * (3 - 2 * var(--ta)));
+  --xa: clamp(0, calc((var(--p) - 0.12) / 0.68), 1);
+  --x: calc(var(--xa) * var(--xa) * (3 - 2 * var(--xa)));
+}
+
+/* 지도 칸 — 글이 끝나는 곳(--copy-r, StatementScene 이 잰다)에서 화면 오른쪽까지 */
+.cs-scene--statement .cs-scene__map {
+  inset: calc(var(--header-h) + 2svh) max(2.5vw, calc(50% - 720px)) calc(var(--ticker-h) + 2svh)
+    calc(var(--copy-r, 50%) + clamp(16px, 3vw, 56px));
+  display: block;
+  padding: 0;
+  container-type: size;
+  perspective: 1600px;
+  perspective-origin: 50% 24%;
+}
+/* 지평선 빛 — 지도가 누울수록 그 뒤로 낮게 번진다(투명도만 바뀐다) */
+.cs-scene--statement .cs-scene__map::before {
+  content: '';
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  top: 28%;
+  height: 60%;
+  background:
+    radial-gradient(50% 34% at 50% 50%, rgba(255, 128, 52, 0.2), transparent 72%),
+    radial-gradient(70% 16% at 50% 46%, rgba(255, 178, 122, 0.1), transparent 80%);
+  opacity: calc(0.2 + 0.8 * var(--t));
+  pointer-events: none;
+}
+.cs-scene--statement .cs-scene__map .cs-sm-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.cs-sm-relief {
+  /* 한 장의 높이 — 칸 높이를 따라 */
+  --step: 0.62cqh;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: min(80cqh, 104cqw, 780px);
+  aspect-ratio: 426 / 660;
+  transform-style: preserve-3d;
+  transform: translate3d(-50%, -50%, 0)
+    translateY(calc(var(--t) * 3cqh))
+    rotateX(calc(var(--t) * 58deg))
+    rotateZ(calc(var(--t) * 9deg))
+    scale(calc(0.94 + 0.34 * var(--t)));
+  transition: opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+/* 바닥에 지는 그림자와 공고가 몰린 쪽의 낮은 빛 */
+.cs-sm-shadow {
+  position: absolute;
+  inset: -6% -14%;
+  background:
+    radial-gradient(42% 40% at 48% 46%, rgba(0, 0, 0, 0.6), transparent 72%),
+    radial-gradient(34% 26% at 40% 34%, rgba(255, 110, 40, 0.16), transparent 75%);
+  opacity: var(--t);
+  transform: translateZ(-1px);
+}
+.cs-scene--statement .cs-scene__map .cs-sm-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateZ(calc(var(--j, 0) * var(--step) * var(--x)));
+}
+
+/* 바닥판 — 공고가 없는 곳은 어두운 석판, 있는 곳은 숯빛 */
+.cs-scene--statement .cs-scene__land {
+  fill: #141b29;
+  stroke: rgba(148, 163, 184, calc(0.24 - 0.08 * var(--t)));
+  stroke-width: 1;
+}
+.cs-scene--statement .cs-scene__land[data-lit] {
+  --s: calc(0.14 + 0.38 * var(--i) / max(1, var(--lit) - 1));
+  --k: clamp(0, calc((var(--p) - var(--s) + 0.08) / 0.32), 1);
+  fill: #2a150d;
+  fill-opacity: 1;
+  stroke: rgba(255, 178, 122, calc(0.2 + 0.4 * var(--k)));
+  filter: none;
+}
+
+/* 쌓는 장 — 차례(--i)가 오면 아래 장부터 하나씩 나타나 제 높이(--l)까지 선다 */
+.cs-sm-wall,
+.cs-sm-cap {
+  --s: calc(0.14 + 0.38 * var(--i) / max(1, var(--lit) - 1));
+  --k: clamp(0, calc((var(--p) - var(--s)) / 0.26), 1);
+  opacity: clamp(0, calc(var(--k) * var(--l) - var(--j) + 1), 1);
+}
+/* 옆벽 — 아래는 어둡고 위로 갈수록 달아오른다. 테두리를 같은 색으로 두껍게 그려 장 사이 틈을 메운다 */
+.cs-sm-wall {
+  --wl: calc(8% + 16% * var(--j) / var(--layers));
+  fill: hsl(18 72% var(--wl));
+  stroke: hsl(18 72% var(--wl));
+  stroke-width: 3.2;
+  stroke-linejoin: round;
+}
+/* 윗면 — 공고가 많은 곳일수록 밝게. 전부 같은 밝기면 지도가 한 덩어리가 된다 */
+.cs-sm-cap {
+  --peak: calc(var(--l) / var(--layers));
+  fill: hsl(calc(14 + 12 * var(--peak)) calc(60% + 40% * var(--peak)) calc(20% + 40% * var(--peak)));
+  stroke: rgba(255, 214, 176, calc(0.35 + 0.5 * var(--peak)));
+  stroke-width: 1;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 calc(var(--peak) * 10px) rgba(255, 128, 52, 0.75));
+}
+
+/* 입체(WebGL)가 서면 — CSS 입체는 걷히고 캔버스가 같은 칸을 채운다 */
+.cs-scene__map[data-3d='on'] .cs-sm-relief {
+  opacity: 0;
+}
+.cs-scene__map[data-3d='on'] .cs3d-canvas {
+  opacity: 1;
+}
+.cs-sm-host {
+  z-index: 1;
+}
+/* 캔버스의 네모난 가장자리가 드러나지 않게 사방을 녹인다 */
+.cs-sm-host .cs3d-canvas {
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent, #000 8%, #000 94%, transparent),
+    linear-gradient(180deg, transparent, #000 4%, #000 94%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent, #000 8%, #000 94%, transparent),
+    linear-gradient(180deg, transparent, #000 4%, #000 94%, transparent);
+  mask-composite: intersect;
+}
+
+/* 숫자 표 — 가장 많은 세 곳의 꼭대기에서 가는 선으로 내려온다 */
+.cs-sm-tags {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cs-sm-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: -50% -100%;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding-bottom: 28px;
+  white-space: nowrap;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 1px 14px rgba(5, 7, 12, 0.9);
+  will-change: transform, opacity;
+}
+.cs-sm-tag::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 1px;
+  height: 22px;
+  background: linear-gradient(rgba(255, 178, 122, 0.85), rgba(255, 178, 122, 0));
+}
+.cs-sm-tag::before {
+  content: '';
+  position: absolute;
+  left: calc(50% - 2.5px);
+  bottom: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ffd2a8;
+  box-shadow: 0 0 10px 2px rgba(255, 138, 61, 0.8);
+}
+.cs-sm-tag b {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.86);
+}
+.cs-sm-tag i {
+  font-style: normal;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--glow);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 좁은 화면 — 지도는 글 아래·뒤로 물러나 조용히 눕는다(CSS 입체만) */
+@media (max-width: 760px) {
+  .cs-scene--statement .cs-scene__map {
+    inset: auto 0 var(--ticker-h) 0;
+    height: 56svh;
+    perspective: 1000px;
+    /* 위쪽(글이 놓이는 쪽)은 지도를 녹여 글이 지지 않게 — 덮개 대신 가림막(mask)이라 경계가 보이지 않는다 */
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.35) 40%, #000 82%);
+    mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.35) 40%, #000 82%);
+  }
+  .cs-scene--statement .cs-scene__map::after {
+    display: none;
+  }
+  .cs-sm-relief {
+    top: 60%;
+    height: min(86cqh, 124cqw);
+    opacity: 0.7;
+  }
+  .cs-scene--statement .cs-scene__map::before {
+    top: 30%;
+    opacity: calc(0.15 + 0.5 * var(--t));
+  }
+  .cs-sm-cap {
+    filter: none;
+  }
+}
