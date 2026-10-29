@@ -16,4 +16,6 @@ export const FEATURES = {
   battle: !off(process.env.NEXT_PUBLIC_FEATURE_BATTLE),
   /** D. 세 갈래 주거비 비교 */
   playground: !off(process.env.NEXT_PUBLIC_FEATURE_PLAYGROUND),
+  /** E. ⌘K 빠른 검색 */
+  spotlight: !off(process.env.NEXT_PUBLIC_FEATURE_SPOTLIGHT),
 } as const

@@ -31,6 +31,7 @@ import './consumer-type.css'
 import './consumer-explore.css'
 import './consumer-battle.css'
 import './consumer-playground.css'
+import './consumer-spotlight.css'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zipcatch.vercel.app').replace(/\/$/, '')
 
