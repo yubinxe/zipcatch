@@ -210,3 +210,7 @@
 
 /* 트레이가 떠 있는 동안 대화 단추의 말풍선은 접는다 — 같은 자리를 다툰다 */
 body:has(.cs-tray) .cs-chat-hint { display: none; }
+
+/* 비교표의 화면 낭독용 글(.cs-sr, absolute)이 가로 스크롤 칸을 빠져나가 휴대폰 화면을 551px 로
+   넓히던 것을 막는다(3건 비교에서 재현, 2026-10-29 운영 확인). 칸을 기준 상자로 만든다 */
+.cs-sa .cs-sa-spec { position: relative; }

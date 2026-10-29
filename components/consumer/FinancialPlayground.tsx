@@ -3,6 +3,7 @@
 import { useId, useMemo, useRef, useState } from 'react'
 import { cumulative, type CostInput } from '@/lib/consumer/housing-cost'
 import { FEATURES } from '@/lib/features'
+import ShareStudio from './ShareStudio'
 
 /**
  * 세 갈래 주거비 — 보증금 많고 월세 적은 집, 그 반대, 그 사이를 같은 기간 위에 겹친다.
@@ -116,6 +117,29 @@ export default function FinancialPlayground() {
       <div className="fp-head">
         <h3 className="fp-title">세 갈래로 견주기</h3>
         <p className="fp-sub">같은 집을 보증금과 월세의 배합만 바꿔 놓고, 시간이 지나며 비용이 어떻게 벌어지는지 봅니다.</p>
+        <ShareStudio
+          card={() => ({
+            kicker: 'Housing cost',
+            title: `${months}개월 주거비, 세 갈래로`,
+            rows: lines.map((l, i) => ({
+              label: `${scns[i].name} · 보증금 ${won(scns[i].deposit)} · 월 ${scns[i].rent}만원`,
+              value: won(l.total[months]),
+              sub: `현금 ${won(l.cash[months])} · 처음 내 돈 ${won(l.monthly.own)}`,
+              bar: l.total[months] / top,
+              tone: i,
+            })),
+            assumptions: [
+              `관리비 ${scns.map(s => s.fee).join('/')}만원`,
+              `보증금 중 대출 ${shared.loanPct}%`,
+              `대출 금리 ${shared.loanRate}%`,
+              `예금 금리 ${shared.saveRate}%`,
+              '보증금 원금 제외',
+            ],
+            source: '집캐치 주거비 계산 (사용자 입력값)',
+            asOf: new Date().toISOString().slice(0, 10),
+            slug: 'housing-cost',
+          })}
+        />
       </div>
 
       <div className="fp-scns">

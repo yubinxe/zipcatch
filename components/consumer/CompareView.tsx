@@ -12,6 +12,7 @@ import { ddayText, EmptyMark } from './NoticeCard'
 import BattleChart, { type BattleItem } from './battle/BattleChart'
 import { FEATURES } from '@/lib/features'
 import CommuteExplorer from './CommuteExplorer'
+import ShareStudio from './ShareStudio'
 import { provinceOf } from '@/lib/consumer/classify'
 
 /**
@@ -265,6 +266,29 @@ export default function CompareView() {
             </span>
             다른 값만 보기
           </button>
+          <ShareStudio
+            card={() => {
+              const b = items.map(toBattle)
+              const top = Math.max(1, ...b.map(x => x.price ?? 0))
+              return {
+                kicker: 'Side by side',
+                title: `공고 ${items.length}건 나란히`,
+                rows: b.map((x, i) => ({
+                  label: x.name,
+                  value: x.price === null ? '금액 원문 확인' : `${formatMan(x.price)}${x.priceKind === 'DEPOSIT' ? ' (보증금)' : ''}`,
+                  sub: [
+                    x.supply ? `공급 ${x.supply.toLocaleString('ko-KR')}세대` : '공급 원문 확인',
+                    x.daysLeft === null ? '마감 지남·미정' : x.daysLeft === 0 ? '오늘 마감' : `마감 D-${x.daysLeft}`,
+                  ].join(' · '),
+                  bar: x.price === null ? null : x.price / top,
+                  tone: i,
+                })),
+                source: [...new Set(items.map(d => d.property.source))].join(' · '),
+                asOf: (items.map(d => d.property.collectedAt ?? '').sort().at(-1) ?? '').slice(0, 10) || '수집 시각 미상',
+                slug: 'compare',
+              }
+            }}
+          />
           <Link href="/saved" className="cs-sa-backlink">
             관심공고에서 다시 고르기
           </Link>

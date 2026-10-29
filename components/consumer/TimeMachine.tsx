@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { KOREA_PROVINCES, KOREA_VISUAL_VIEWBOX } from '@/lib/korea-map-data'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import { addDays, diffDays, readDay, series, type TimelineNotice } from '@/lib/consumer/timeline-core'
+import ShareStudio from './ShareStudio'
 
 interface TimelineData {
   today: string
@@ -188,6 +189,26 @@ export default function TimeMachine({
               </p>
               <span className="tm-date__rel" data-tone={relation(day, data.today).tone}>
                 {relation(day, data.today).text}
+              </span>
+              <span className="tm-date__share">
+                <ShareStudio
+                  card={() => ({
+                    kicker: 'Time machine',
+                    title: `${dateLabel(day).ymd} 지역별 공고 — 마감 전 ${read.open + read.undated}건 · 예정 ${read.upcoming}건`,
+                    rows: provinces.slice(0, 6).map(p => ({
+                      label: p.name,
+                      value: `${p.open}건`,
+                      sub: p.upcoming ? `접수 예정 ${p.upcoming}건` : undefined,
+                      bar: p.open / Math.max(1, maxOpen),
+                      tone: 1,
+                    })),
+                    assumptions: ['공고 원문 접수 일정으로 되짚은 상태', '시작일 미기재 공고는 처음 수집한 날부터'],
+                    assumptionsLabel: '읽는 법',
+                    source: '청약홈 · LH 청약플러스 (공공데이터포털)',
+                    asOf: data.collectedAt ? `수집 ${data.collectedAt.slice(0, 10)}` : '수집 시각 미상',
+                    slug: `timemachine-${day}`,
+                  })}
+                />
               </span>
             </div>
 

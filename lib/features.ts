@@ -22,4 +22,6 @@ export const FEATURES = {
   universe: !off(process.env.NEXT_PUBLIC_FEATURE_UNIVERSE),
   /** G. 업무지구까지 (상세·비교) */
   commute: !off(process.env.NEXT_PUBLIC_FEATURE_COMMUTE),
+  /** H. 결과를 이미지로 (비교·주거비·타임머신) */
+  share: !off(process.env.NEXT_PUBLIC_FEATURE_SHARE),
 } as const
