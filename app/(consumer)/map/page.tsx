@@ -2,7 +2,7 @@ import NoticeMap from '@/components/consumer/NoticeMap'
 import Link from 'next/link'
 import { KAKAO_JS_KEY, KAKAO_SDK_URL } from '@/components/consumer/kakao-sdk'
 import PageMasthead from '@/components/consumer/PageMasthead'
-import TimeMachine from '@/components/consumer/TimeMachine'
+import MapTimeScope from '@/components/consumer/map/MapTimeScope'
 import { FEATURES } from '@/lib/features'
 import '../../consumer-timemachine.css'
 
@@ -64,9 +64,8 @@ export default function MapPage() {
         </div>
       </PageMasthead>
       {/* 화면 제목이 이미 같은 말을 했다. 조각의 머리는 접는다 */}
-      <NoticeMap heading={false} />
-      {/* 4.0 확장 — 위 지도와 독립. NEXT_PUBLIC_FEATURE_TIME_MACHINE=0 이면 걷힌다 */}
-      {FEATURES.timeMachine && <TimeMachine />}
+      {/* 4.0 확장 — 타임머신이 위 지도와 날짜를 나눠 쓴다. NEXT_PUBLIC_FEATURE_TIME_MACHINE=0 이면 예전 지도 그대로 */}
+      {FEATURES.timeMachine ? <MapTimeScope /> : <NoticeMap heading={false} />}
     </div>
   )
 }

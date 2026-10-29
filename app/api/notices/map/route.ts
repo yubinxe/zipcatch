@@ -2,6 +2,7 @@ import { listOfficialProperties } from '@/lib/consumer/official'
 import { isRental, provinceOf } from '@/lib/consumer/classify'
 import { resolveCoord } from '@/lib/consumer/geo'
 import { checkUrgency } from '@/lib/crm/services/scoring'
+import { dayKey } from '@/lib/consumer/timeline-core'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,10 +24,15 @@ export const dynamic = 'force-dynamic'
  * 함께 넘긴다 — 지도에 안 보이는 공고가 없는 공고처럼 읽히면 지도를 믿고
  * 목록을 안 보게 된다.
  */
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    /*
+     * range=all — 타임머신이 지난 날짜로 되감을 때만 쓴다. 이미 끝난 공고까지 싣고
+     * 접수 시작일·처음 저장한 날을 함께 넘긴다. 기본 응답(지금 넣을 수 있는 것)은 그대로다.
+     */
+    const wide = new URL(req.url).searchParams.get('range') === 'all'
     const now = new Date()
-    const all = await listOfficialProperties({ openOnly: true, limit: 400 })
+    const all = await listOfficialProperties({ openOnly: !wide, limit: wide ? 1000 : 400 })
 
     const pins = []
     let noCoord = 0
@@ -35,7 +41,7 @@ export async function GET() {
 
     for (const p of all) {
       const urgency = checkUrgency(p, now)
-      if (urgency.level === 'CLOSED') continue
+      if (urgency.level === 'CLOSED' && !wide) continue
 
       const province = provinceOf(p)
       byProvince.set(province, (byProvince.get(province) ?? 0) + 1)
@@ -65,6 +71,10 @@ export async function GET() {
         deposit: p.deposit,
         monthlyRent: p.monthlyRent,
         applicationEnd: p.applicationEnd,
+        ...(wide && {
+          applicationStart: dayKey(p.applicationStart),
+          seen: dayKey(p.applicationStart) ? null : dayKey(p.firstSeenAt),
+        }),
         daysLeft: urgency.daysLeft,
         urgencyLabel: urgency.label,
         lat: coord.lat,

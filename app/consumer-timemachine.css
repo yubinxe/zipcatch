@@ -269,3 +269,48 @@
 @media (prefers-reduced-motion: reduce) {
   .tm-land, .tm-rank__bar i, .tm-btn { transition: none; }
 }
+
+/* ── 지도 판의 되감기 표시 (타임머신과 연동될 때만 나타난다) ── */
+.cs-map__rewind {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  margin: -6px 0 12px;
+  padding: 10px 12px 10px 14px;
+  border-radius: 10px;
+  background: rgba(127, 163, 217, 0.1);
+  box-shadow: 0 0 0 1px rgba(127, 163, 217, 0.28) inset;
+  font-size: 13px;
+  color: #D5D9E0;
+  animation: tm-rise 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cs-map__rewind b { color: #fff; font-variant-numeric: tabular-nums; }
+.cs-map__rewind-note { font-size: 12px; color: #8A93A3; }
+.cs-map__rewind-btn {
+  margin-left: auto;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cs-map__rewind-btn:hover { background: rgba(255, 255, 255, 0.06); }
+.cs-map__rewind-btn:focus-visible { outline: 2px solid #FF8A3D; outline-offset: 2px; }
+/* 되감은 날 기준 아직 접수 전 — 테두리만, 속은 비운다 */
+.cs-pin.cs-pin--soon {
+  background: rgba(11, 14, 20, 0.72);
+  color: #BFD0EC;
+  border-style: dashed;
+  border-color: #7FA3D9;
+}
+@keyframes tm-rise {
+  from { opacity: 0; translate: 0 -4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs-map__rewind { animation: none; }
+}

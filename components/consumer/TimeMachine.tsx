@@ -43,13 +43,25 @@ function shade(count: number, max: number): 0 | 1 | 2 | 3 | 4 {
  * 지도 화면 아래에 덧붙는 독립 조각이다. 위의 카카오 지도·목록은 건드리지 않는다.
  * 지도는 첫 화면과 같은 시도 경로(SVG)를 쓴다 — 날짜를 끌 때마다 WebGL 을 다시 그리지 않도록.
  */
-export default function TimeMachine() {
+export default function TimeMachine({
+  jump,
+  onChange,
+}: {
+  /** 바깥(지도)에서 날짜를 옮길 때 — 예: 지도의 '오늘로'. n 이 바뀌면 같은 날로도 다시 옮긴다 */
+  jump?: { day: string; n: number } | null
+  /** 날짜가 바뀔 때마다 위 지도에 알린다 */
+  onChange?: (day: string, today: string) => void
+} = {}) {
   const [data, setData] = useState<TimelineData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [day, setDay] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
   const [focus, setFocus] = useState<string | null>(null)
   const timer = useRef<number | null>(null)
+  const notify = useRef(onChange)
+  useEffect(() => {
+    notify.current = onChange
+  }, [onChange])
 
   useEffect(() => {
     let alive = true
@@ -69,6 +81,19 @@ export default function TimeMachine() {
       alive = false
     }
   }, [])
+
+  useEffect(() => {
+    if (day && data) notify.current?.(day, data.today)
+  }, [day, data])
+  // 바깥에서 옮긴 날은 그리는 중에 받아 둔다 (효과로 받으면 한 번 더 그린다)
+  const [seenJump, setSeenJump] = useState(jump)
+  if (jump !== seenJump) {
+    setSeenJump(jump)
+    if (jump) {
+      setPlaying(false)
+      setDay(jump.day)
+    }
+  }
 
   const total = data ? diffDays(data.from, data.to) : 0
   const index = data && day ? diffDays(data.from, day) : 0
