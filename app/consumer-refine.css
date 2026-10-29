@@ -4,10 +4,10 @@
    지도 중심, 제작자 장면, 요금제 정렬). 앞 층의 같은 규칙은 이 파일이 이긴다.
    ============================================================ */
 
-/* ── 챗봇 버튼 — 12% 크게, 화면 끝에서 화면 폭의 12% 만큼 더 안쪽으로 ── */
+/* ── 챗봇 버튼 — 12% 크게, 화면 오른쪽 끝 가까이(데스크톱 60px) ── */
 :root {
   --fab-size: 65px; /* 58 × 1.12 */
-  --fab-right: calc(48px + 12vw);
+  --fab-right: 60px;
   --fab-bottom: 24px;
 }
 body:has(.cs-ticker) {
@@ -16,7 +16,7 @@ body:has(.cs-ticker) {
 @media (max-width: 760px) {
   :root {
     --fab-size: 63px; /* 56 × 1.12 */
-    --fab-right: calc(24px + 12vw);
+    --fab-right: 22px;
     --fab-bottom: 18px;
   }
   body:has(.cs-ticker) {

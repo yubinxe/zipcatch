@@ -300,7 +300,7 @@ export default function ChatWidget() {
       {hint && phase === 'closed' && (
         <div className="cs-chat-hint" role="status">
           <button type="button" className="cs-chat-hint__body" onClick={openPhone}>
-            <b>궁금한 점이 있다면</b> 물어보세요
+            <b>궁금한 점이 있다면</b> 물어보세요!
           </button>
           <button type="button" className="cs-chat-hint__close" onClick={dismissHint} aria-label="안내 닫기">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
