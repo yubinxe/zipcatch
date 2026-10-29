@@ -1,0 +1,236 @@
+/* ============================================================
+   홈 — 장면 바깥의 지면을 스크롤로 넘기는 결
+   (consumer-*.css 맨 뒤. 홈 .cs-home 안의 .cs-ap 덩어리만 다룬다)
+
+   원칙
+   - 서버가 그린 상태가 끝 상태다. 숨기는 일은 Reveal 이 data-reveal='out' 을
+     붙였을 때만 일어난다 — 자바스크립트가 없거나 늦어도 글은 보인다.
+   - 스크롤에 묶인 값은 Reveal(scrub)이 적는 --sp(들어오는 정도)·--sv(지나가는
+     정도) 하나로 CSS 가 계산한다. 값이 없으면 끝 상태(1 · 0.5)로 읽힌다.
+   - 움직이는 것은 translate · scale · opacity (머리글의 가림막만 clip-path).
+     transform 은 손대지 않아 기존 hover 들뜸과 겹치지 않는다.
+   - 움직임을 줄인 사용자에게는 아래 규칙이 아예 적용되지 않는다(no-preference 안).
+   ============================================================ */
+
+.cs-home .cs-ap {
+  --ap-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  /* 들어오는 정도를 easeOutCubic 으로 — 끝에서 천천히 내려앉는다 */
+  --ap-e: calc(1 - (1 - var(--sp, 1)) * (1 - var(--sp, 1)) * (1 - var(--sp, 1)));
+}
+
+/* 덩어리 껍데기는 통째로 흐려지지 않는다. 안의 조각이 차례로 선다 */
+.cs-home .cs-ap[data-reveal] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition: none;
+}
+
+/* ── 띠의 경계 — 칼로 자른 면 대신 위아래로 번지는 바탕 ──────
+   띠 색을 상자 그림자 대신 가장자리가 옅어지는 바탕 한 장으로 깐다.
+   clip-path(띠 원래 규칙)가 위아래를 자르고 .cs-home 이 옆을 자른다 */
+.cs-home .cs-band.cs-ap:not(.cs-band--night) {
+  isolation: isolate;
+  background: transparent;
+  box-shadow: none;
+}
+.cs-home .cs-band.cs-ap:not(.cs-band--night)::before {
+  content: '';
+  position: absolute;
+  inset: 0 -100vmax;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(14, 19, 29, 0) 0,
+    #0e131d min(160px, 18%),
+    #0e131d max(calc(100% - 160px), 82%),
+    rgba(14, 19, 29, 0) 100%
+  );
+}
+
+/* 저장 띠 — 밤과 같은 색이라 경계가 없다. 대신 바닥에서 주황 빛이 떠오른다 */
+.cs-home .cs-ap--saved {
+  isolation: isolate;
+}
+.cs-home .cs-ap--saved::after {
+  content: '';
+  position: absolute;
+  inset: 0 -100vmax;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(46% 70% at 50% 112%, rgba(255, 138, 61, 0.16), transparent 70%),
+    radial-gradient(30% 40% at 50% 104%, rgba(255, 178, 122, 0.1), transparent 70%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* ════════════════════════════════════════════════════════
+     1. 섹션 머리 — 번호 · 눈썹 · 제목이 가림막 아래에서 올라온다
+     ════════════════════════════════════════════════════════ */
+
+  /* 가림막: 자기 바닥선에 붙은 창. 글을 내린 만큼 아래를 가리면
+     글이 바닥선 밑에서 솟아오르는 것처럼 보인다(상자는 제자리) */
+  .cs-home .cs-ap[data-reveal] .cs-sec-eyebrow,
+  .cs-home .cs-ap[data-reveal] .cs-sec-head .cs-section-title,
+  .cs-home .cs-ap[data-reveal] .cs-cal__title {
+    clip-path: inset(-0.3em -0.6em -0.3em -0.6em);
+    transition:
+      translate 1.1s var(--ap-ease),
+      clip-path 1.1s var(--ap-ease);
+  }
+  .cs-home .cs-ap[data-reveal] .cs-sec-head .cs-section-title,
+  .cs-home .cs-ap[data-reveal] .cs-cal__title {
+    transition-delay: 0.08s;
+  }
+  .cs-home .cs-ap[data-reveal='out'] .cs-sec-eyebrow,
+  .cs-home .cs-ap[data-reveal='out'] .cs-sec-head .cs-section-title,
+  .cs-home .cs-ap[data-reveal='out'] .cs-cal__title {
+    translate: 0 105%;
+    clip-path: inset(-0.3em -0.6em 105% -0.6em);
+  }
+
+  /* 부제 · 머리 오른쪽 링크 — 제목이 자리 잡은 뒤에 번진다 */
+  .cs-home .cs-ap[data-reveal] .cs-sec-head .cs-sub,
+  .cs-home .cs-ap[data-reveal] .cs-cal__sub,
+  .cs-home .cs-ap[data-reveal] .cs-sec-head > .cs-btn,
+  .cs-home .cs-ap[data-reveal] .cs-cal__tools {
+    transition:
+      opacity 1s var(--ap-ease) 0.3s,
+      translate 1.1s var(--ap-ease) 0.3s;
+  }
+  .cs-home .cs-ap[data-reveal='out'] .cs-sec-head .cs-sub,
+  .cs-home .cs-ap[data-reveal='out'] .cs-cal__sub,
+  .cs-home .cs-ap[data-reveal='out'] .cs-sec-head > .cs-btn,
+  .cs-home .cs-ap[data-reveal='out'] .cs-cal__tools {
+    opacity: 0;
+    translate: 0 14px;
+  }
+
+  /* 뒤에 깔린 큰 번호 — 천천히 짙어지고, 지나가는 동안 글보다 느리게 흐른다 */
+  .cs-home .cs-ap .cs-sec-index {
+    transform: translate3d(0, calc((0.5 - var(--sv, 0.5)) * 140px), 0);
+  }
+  .cs-home .cs-ap[data-reveal] .cs-sec-index {
+    transition:
+      opacity 1.6s var(--ap-ease),
+      translate 1.6s var(--ap-ease);
+  }
+  .cs-home .cs-ap[data-reveal='out'] .cs-sec-index {
+    opacity: 0;
+    translate: 0 30%;
+  }
+
+  /* ════════════════════════════════════════════════════════
+     2. 본문 — 한 덩어리는 살짝 작은 데서 제 크기로
+     ════════════════════════════════════════════════════════ */
+  .cs-home .cs-ap[data-reveal] :is(.cs-sim, .cs-bp, .cs-cal, .cs-carousel, .cs-empty, .cs-error) {
+    transform-origin: 50% 0;
+    transition:
+      opacity 1s var(--ap-ease) 0.16s,
+      translate 1.2s var(--ap-ease) 0.16s,
+      scale 1.2s var(--ap-ease) 0.16s;
+  }
+  .cs-home .cs-ap[data-reveal='out'] :is(.cs-sim, .cs-bp, .cs-cal, .cs-carousel, .cs-empty, .cs-error) {
+    opacity: 0;
+    translate: 0 48px;
+    scale: 0.96;
+  }
+  /* 달력은 상자째 서고, 안의 제목이 뒤따라 오른다 */
+  .cs-home .cs-ap--cal[data-reveal] .cs-cal__title {
+    transition-delay: 0.3s;
+  }
+  .cs-home .cs-ap--cal[data-reveal] :is(.cs-cal__sub, .cs-cal__tools) {
+    transition-delay: 0.5s;
+  }
+  .cs-home .cs-ap--cal[data-reveal] .cs-sec-eyebrow {
+    transition-delay: 0.22s;
+  }
+
+  /* 네 장면 — 키가 큰 덩어리(붙는 판 포함)라 크기는 두고 올라오기만 */
+  .cs-home .cs-ap--journey[data-reveal] .cs-jr {
+    transition:
+      opacity 1.1s var(--ap-ease) 0.16s,
+      translate 1.2s var(--ap-ease) 0.16s;
+  }
+  .cs-home .cs-ap--journey[data-reveal='out'] .cs-jr {
+    opacity: 0;
+    translate: 0 56px;
+  }
+
+  /* ════════════════════════════════════════════════════════
+     3. 목록 — 하나씩 차례로 (신뢰 카드 · 질문 · 저장하면 달라지는 것)
+     hover 의 transform 들뜸은 그대로 두고 그 전환도 함께 적는다
+     ════════════════════════════════════════════════════════ */
+  .cs-home .cs-ap[data-reveal] :is(.cs-steps3 > *, .cs-faq > *, .cs-remember__list > li, .cs-remember__top) {
+    --ap-d: 0.2s;
+    transition:
+      opacity 1s var(--ap-ease) var(--ap-d),
+      translate 1.15s var(--ap-ease) var(--ap-d),
+      scale 1.15s var(--ap-ease) var(--ap-d),
+      transform 0.55s var(--ap-ease),
+      box-shadow 0.55s var(--ap-ease),
+      background-color 0.4s ease;
+  }
+  .cs-home .cs-ap[data-reveal='out'] :is(.cs-steps3 > *, .cs-faq > *, .cs-remember__list > li, .cs-remember__top) {
+    opacity: 0;
+    translate: 0 40px;
+    scale: 0.97;
+  }
+  .cs-home .cs-ap[data-reveal] :is(.cs-steps3, .cs-faq, .cs-remember__list) > :nth-child(2) { --ap-d: 0.29s; }
+  .cs-home .cs-ap[data-reveal] :is(.cs-steps3, .cs-faq, .cs-remember__list) > :nth-child(3) { --ap-d: 0.38s; }
+  .cs-home .cs-ap[data-reveal] :is(.cs-steps3, .cs-faq, .cs-remember__list) > :nth-child(4) { --ap-d: 0.47s; }
+  .cs-home .cs-ap[data-reveal] :is(.cs-steps3, .cs-faq, .cs-remember__list) > :nth-child(n + 5) { --ap-d: 0.56s; }
+  /* 저장 띠 — 위 줄(문장 + 버튼)이 먼저, 세 줄은 그 뒤 */
+  .cs-home .cs-ap--saved[data-reveal] .cs-remember__list > li { --ap-d: 0.42s; }
+  .cs-home .cs-ap--saved[data-reveal] .cs-remember__list > li:nth-child(2) { --ap-d: 0.52s; }
+  .cs-home .cs-ap--saved[data-reveal] .cs-remember__list > li:nth-child(3) { --ap-d: 0.62s; }
+
+  /* ════════════════════════════════════════════════════════
+     4. 스크롤에 묶인 것 — 손을 멈추면 같이 멈춘다
+     ════════════════════════════════════════════════════════ */
+
+  /* 저장 판 — 멀리서 다가와 제 크기가 되고, 바닥의 빛이 함께 떠오른다 */
+  .cs-home .cs-ap--saved .cs-remember {
+    scale: calc(0.93 + 0.07 * var(--ap-e));
+    transform-origin: 50% 0;
+  }
+  .cs-home .cs-ap--saved::after {
+    opacity: var(--ap-e);
+    translate: 0 calc((1 - var(--ap-e)) * 80px);
+  }
+
+  /* 마지막 띠 — 판은 0.95 → 1, 큰 제목은 0.92 → 1 로 다가온다 */
+  .cs-home .cs-ap--cta .cs-cta-band {
+    scale: calc(0.95 + 0.05 * var(--ap-e));
+  }
+  .cs-home .cs-ap--cta .cs-cta-band .cs-section-title {
+    scale: calc(0.92 + 0.08 * var(--ap-e));
+    opacity: calc(0.25 + 0.75 * var(--ap-e));
+  }
+  .cs-home .cs-ap--cta .cs-cta-band::before {
+    opacity: var(--ap-e);
+  }
+  .cs-home .cs-ap--cta[data-reveal] .cs-cta-band .cs-btn {
+    transition:
+      opacity 1s var(--ap-ease) 0.35s,
+      translate 1.1s var(--ap-ease) 0.35s,
+      transform 0.28s var(--ap-ease),
+      box-shadow 0.28s var(--ap-ease),
+      background-color 0.28s var(--ap-ease);
+  }
+  .cs-home .cs-ap--cta[data-reveal='out'] .cs-cta-band .cs-btn {
+    opacity: 0;
+    translate: 0 18px;
+  }
+
+  @media (max-width: 760px) {
+    .cs-home .cs-ap .cs-sec-index {
+      transform: translate3d(0, calc((0.5 - var(--sv, 0.5)) * 80px), 0);
+    }
+    .cs-home .cs-ap[data-reveal='out'] :is(.cs-sim, .cs-bp, .cs-cal, .cs-carousel, .cs-empty, .cs-error) {
+      translate: 0 32px;
+    }
+  }
+}
+
