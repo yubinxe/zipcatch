@@ -117,7 +117,16 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       special: special && special.hasData ? special : null,
       rent: rent && rent.ok && rent.bands.length > 0 ? rent : null,
       /** 지도에 찍을 자리. 이름으로 찾은 것도 포함된다 */
-      place: where ? { lat: where.lat, lng: where.lng, dong: where.dong, sigungu: where.sigungu } : null,
+      place: where
+        ? {
+            lat: where.lat,
+            lng: where.lng,
+            dong: where.dong,
+            sigungu: where.sigungu,
+            /** 실거래 흐름(/flow)으로 이을 시·군·구 코드 — 주소로 찾은 법정동코드의 앞 5자리 */
+            lawd: where.bCode ? where.bCode.slice(0, 5) : null,
+          }
+        : null,
       trade: trade
         ? {
             ...trade,

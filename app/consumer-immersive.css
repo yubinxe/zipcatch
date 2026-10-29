@@ -355,193 +355,278 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
-/* ── 장면 2 — 카드가 공고로 열린다 ─────────────────────── */
+/* ── 장면 2 — 카드가 공고로 열린다 ─────────────────────────
+   --p   스크롤 진행 0→1 (ScrollStage)
+   --z   넓어지는 구간 18~58% 를 0→1 로
+   --e   --z 에 부드러운 시작·끝(smoothstep)을 입힌 값 — 급가속·급정지 없이
+   --sx0 · --sy0  작은 카드 ÷ 다 열린 판 (OpenNoticeScene 이 칸을 재어 적는다)
+   ────────────────────────────────────────────────────────── */
 .cs-scene--open .cs-stage__pin {
-  --z: clamp(0, calc((var(--p) - 0.14) / 0.56), 1);
-  background:
-    radial-gradient(60% 50% at 50% 100%, rgba(255, 122, 48, 0.18), transparent 70%),
-    var(--night);
+  --z: clamp(0, calc((var(--p) - 0.18) / 0.4), 1);
+  --e: calc(var(--z) * var(--z) * (3 - 2 * var(--z)));
+  /* 작은 카드 — 데스크톱은 가로로 긴 카드, 화면 높이가 낮으면 높이를 줄인다 */
+  --cw: min(560px, calc(100vw - 48px));
+  --ch: min(340px, calc(100svh - var(--header-h) - var(--ticker-h) - 200px));
+  /* 작은 카드는 장면 제목 아래로 조금 내려 앉는다 — 넓어지며 가운데로 돌아온다 */
+  --cy: 4svh;
+  background: var(--night);
 }
 .cs-open__head {
   position: absolute;
   left: 0;
   right: 0;
   top: calc(var(--header-h) + clamp(28px, 6vh, 64px));
-  z-index: 2;
-  opacity: clamp(0, calc(1 - var(--z) * 2.4), 1);
-  transform: translateY(calc(var(--z) * -40px));
+  z-index: 3;
+  opacity: clamp(0, calc(1 - (var(--p) - 0.1) * 8), 1);
+  transform: translateY(calc(clamp(0, var(--p) - 0.1, 0.2) * -120px));
 }
 .cs-open__frame {
+  --sx0: 0.4;
+  --sy0: 0.4;
   position: absolute;
   inset: var(--header-h) 0 0;
-  display: grid;
-  place-items: center;
-}
-.cs-open__card {
-  /* 다 열린 크기로 그려 두고 처음엔 작게 줄인다 — 열릴 때 글이 번지지 않게 */
-  position: relative;
-  width: 100vw;
-  height: calc(100svh - var(--header-h));
-  transform: translateY(calc((1 - var(--z)) * 6svh)) scale(calc(0.4 + 0.6 * var(--z)));
-  border-radius: calc(56px * (1 - var(--z)));
   overflow: hidden;
-  background:
-    radial-gradient(80% 60% at 100% 0%, rgba(255, 138, 61, calc(0.28 - 0.18 * var(--z))), transparent 60%),
-    linear-gradient(160deg, #1A2232, #0E131D 70%);
-  border: 1px solid rgba(255, 255, 255, calc(0.16 * (1 - var(--z))));
-  box-shadow: 0 60px 120px -40px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 178, 122, calc(0.25 * (1 - var(--z))));
+}
+/* 낮은 채도의 앰버 빛 한 줄기 — 판이 넓어지는 동안 왼쪽에서 오른쪽으로 천천히 옮겨 간다 */
+.cs-open__frame::before {
+  content: '';
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  bottom: -30%;
+  height: 80%;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(232, 150, 104, 0.12), transparent 70%);
+  transform: translate3d(calc(-12% + 24% * var(--e)), 0, 0);
+  pointer-events: none;
+}
+
+/* 넓어지는 판 — 화면 크기로 그려 두고 transform 으로만 줄인다 */
+.cs-open__sheet {
+  --sx: calc(var(--sx0) + (1 - var(--sx0)) * var(--e));
+  --sy: calc(var(--sy0) + (1 - var(--sy0)) * var(--e));
+  --r: calc(28px * (1 - var(--e)));
+  position: absolute;
+  inset: 0;
+  /* 가로·세로를 따로 줄이므로 모서리도 축마다 되돌려 둥근 모양을 지킨다 */
+  border-radius: calc(var(--r) / var(--sx)) / calc(var(--r) / var(--sy));
+  background: linear-gradient(168deg, #1a2231 0%, #131a26 55%, #10151f 100%);
+  transform: translate3d(0, calc((1 - var(--e)) * var(--cy)), 0) scale(var(--sx), var(--sy));
   will-change: transform;
 }
+
+/* 닫힌 카드의 얼굴 — 실제 크기로 그린다(줄여 그리지 않으니 글이 번지지 않는다) */
 .cs-open__face {
   position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 8vw 9vw;
-  opacity: clamp(0, calc((0.62 - var(--z)) * 3.6), 1);
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  width: var(--cw);
+  height: var(--ch);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 14px;
+  padding: clamp(22px, 2.6vw, 30px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 40px 80px -40px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  opacity: clamp(0, calc(1 - (var(--z) - 0.12) * 2.4), 1);
+  transform: translate(-50%, calc(-50% + (1 - var(--e)) * var(--cy))) scale(calc(1 + 0.05 * var(--e)));
+  pointer-events: none;
 }
-.cs-open__tags {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 36px;
-}
-.cs-open__tag {
-  padding: 12px 26px;
-  border-radius: 12px;
-  font-size: 34px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-}
-.cs-open__tag--hot {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-.cs-open__name {
-  margin: 0;
-  font-size: clamp(64px, 7.4vw, 120px);
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.045em;
-  color: #fff;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.cs-open__where {
-  margin: 24px 0 0;
-  font-size: 40px;
-  color: rgba(255, 255, 255, 0.62);
-}
-.cs-open__body {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: min(1180px, 100%);
-  margin: 0 auto;
-  padding: 0 var(--pad-page) var(--ticker-h);
-  opacity: clamp(0, calc((var(--z) - 0.5) * 3.6), 1);
-}
-.cs-open__top {
+.cs-open__face-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
+  min-width: 0;
 }
-.cs-open__crumb {
+.cs-open__src {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--glow);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.56);
 }
+.cs-open__face .cs-open__face-name {
+  align-self: center;
+  margin: 0;
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  color: #fff;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cs-open__face .cs-open__face-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.62);
+}
+.cs-open__face-foot span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cs-open__face-foot span:last-child {
+  flex-shrink: 0;
+}
+
+/* 마감 표지 — 홈 띠의 카드와 같은 규칙: 사흘 안이면 채운 주황, 아니면 옅은 빛 */
 .cs-open__dday {
   flex-shrink: 0;
-  white-space: nowrap;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 20px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 13px;
   font-weight: 800;
-  color: #fff;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: rgba(255, 138, 61, 0.16);
+  color: var(--glow);
+}
+.cs-open__dday[data-hot] {
   background: var(--accent);
-  box-shadow: 0 14px 30px -12px rgba(255, 110, 40, 0.8);
+  color: #fff;
+}
+
+/* 열린 공고 — 한 장의 문서 */
+.cs-open__doc {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* 넘칠 때는 위가 잘리지 않게 위에서부터 채운다 */
+  justify-content: safe center;
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  padding: 0 var(--pad-page) calc(var(--ticker-h) + env(safe-area-inset-bottom, 0px));
+}
+/* 차례로 서는 줄 — --at 에서 시작해 진행률 6% 동안 들어오고, 그 뒤로는 움직이지 않는다 */
+.cs-open__r {
+  --a: clamp(0, calc((var(--p) - var(--at, 0.6)) / 0.06), 1);
+  opacity: var(--a);
+  transform: translate3d(0, calc((1 - var(--a)) * 14px), 0);
+}
+.cs-open__crumb {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--glow);
 }
 .cs-open__title {
-  margin: 18px 0 0;
-  font-size: clamp(32px, 4.2vw, 60px);
+  margin: 14px 0 0;
+  max-width: 22em;
+  font-size: clamp(30px, 4vw, 54px);
   font-weight: 800;
-  line-height: 1.14;
-  letter-spacing: -0.045em;
+  line-height: 1.16;
+  letter-spacing: -0.04em;
+  color: #fff;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.cs-open__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 20px;
+  font-size: 16px;
+  font-weight: 700;
   color: #fff;
 }
+.cs-open__status .cs-open__dday {
+  min-height: 32px;
+  padding: 0 14px;
+  font-size: 15px;
+}
 .cs-open__addr {
-  margin: 14px 0 0;
-  font-size: 17px;
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.6;
   color: rgba(255, 255, 255, 0.6);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 .cs-open__facts {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-  margin: clamp(24px, 5vh, 48px) 0 0;
+  margin: clamp(28px, 5vh, 48px) 0 0;
 }
+/* 위 괘선은 칸마다 따로 긋는다 — 칸이 들어올 때 선도 같이 들어오게 */
 .cs-open__fact {
-  --f: clamp(0, calc((var(--p) - 0.6 - var(--i) * 0.05) * 9), 1);
-  padding: 22px 22px 24px;
-  border-radius: 16px;
-  background: var(--glass);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  opacity: var(--f);
-  transform: translateY(calc((1 - var(--f)) * 28px));
+  min-width: 0;
+  padding: 18px 20px 4px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+.cs-open__fact + .cs-open__fact {
+  padding-left: 20px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
 }
 .cs-open__fact dt {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.55);
 }
 .cs-open__fact dd {
-  margin: 10px 0 0;
-  font-size: clamp(20px, 1.8vw, 28px);
+  margin: 8px 0 0;
+  font-size: clamp(20px, 1.9vw, 28px);
   font-weight: 800;
   letter-spacing: -0.03em;
+  line-height: 1.2;
   color: #fff;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 .cs-open__go {
   align-self: flex-start;
-  margin-top: clamp(24px, 5vh, 44px);
-  opacity: clamp(0, calc((var(--p) - 0.86) * 10), 1);
+  margin-top: clamp(28px, 5vh, 44px);
+  min-height: 52px;
+  padding: 0 24px;
+  gap: 10px;
 }
-/* 키보드로 들어오면 장면이 덜 열렸어도 몸을 다 보여준다 — 보이지 않는 곳에 초점이 앉지 않게 */
-.cs-open__body:focus-within,
-.cs-open__body:focus-within .cs-open__fact,
-.cs-open__go:focus-visible {
+.cs-open__go svg {
+  transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.cs-open__go:hover svg {
+  transform: translateX(3px);
+}
+.cs-open__go:active {
+  transform: translateY(1px);
+}
+/* 키보드로 들어오면 장면이 덜 열렸어도 문서를 다 보여준다 — 보이지 않는 곳에 초점이 앉지 않게 */
+.cs-open__doc:focus-within .cs-open__r {
   opacity: 1;
   transform: none;
 }
-
-/* ── 공고 상세 — 카드 한 장이 펼쳐지듯 열린다 ─────────────── */
-@media (prefers-reduced-motion: no-preference) {
-  .cs-open-in {
-    animation: csOpenIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
+.cs-open__doc:focus-within ~ .cs-open__face,
+.cs-open__frame:focus-within .cs-open__face {
+  opacity: 0;
 }
-@keyframes csOpenIn {
-  from {
-    opacity: 0;
-    clip-path: inset(6% 5% 30% 5% round 28px);
-    transform: translateY(18px) scale(0.985);
-  }
-  to {
-    opacity: 1;
-    clip-path: inset(0 0 0 0 round 0);
-    transform: none;
-  }
+.cs-open__frame:focus-within .cs-open__sheet {
+  transform: none;
+  border-radius: 0;
 }
 
 /* ── 좁은 화면 ──────────────────────────────────────────── */
@@ -574,30 +659,40 @@
   .cs-scene__facts {
     gap: 12px 26px;
   }
-  .cs-open__card {
-    transform: translateY(calc((1 - var(--z)) * 4svh)) scale(calc(0.62 + 0.38 * var(--z)));
-    border-radius: calc(36px * (1 - var(--z)));
+  .cs-scene--open .cs-stage__pin {
+    --cw: calc(100vw - 40px);
+    --ch: min(290px, calc(100svh - var(--header-h) - var(--ticker-h) - 230px));
+    --cy: 44px;
   }
   .cs-open__face {
-    padding: 10vw 8vw;
+    border-radius: 22px;
   }
-  .cs-open__tag {
-    font-size: 22px;
-    padding: 8px 16px;
+  .cs-open__face .cs-open__face-name {
+    font-size: clamp(22px, 6.6vw, 28px);
   }
-  .cs-open__name {
-    font-size: 44px;
-    -webkit-line-clamp: 3;
-  }
-  .cs-open__where {
-    font-size: 24px;
+  .cs-open__title {
+    font-size: clamp(26px, 7.2vw, 34px);
   }
   .cs-open__facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    margin-top: 24px;
   }
-  .cs-open__fact {
-    padding: 16px;
+  .cs-open__fact,
+  .cs-open__fact + .cs-open__fact {
+    padding: 14px 12px 12px 0;
+    border-left: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .cs-open__fact:nth-child(even) {
+    padding-left: 14px;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .cs-open__fact dd {
+    font-size: 20px;
+  }
+  .cs-open__go {
+    align-self: stretch;
+    justify-content: center;
   }
   .cs-carousel__btn {
     width: 42px;
@@ -608,5 +703,41 @@
 @media (prefers-reduced-motion: reduce) {
   .cs-carousel__track .cs-notice {
     transition: none;
+  }
+}
+
+/* 화면이 낮은 기기 — 문서와 단추가 아래로 잘리지 않게 간격을 줄인다 */
+@media (max-height: 700px) {
+  .cs-open__title {
+    font-size: clamp(24px, 6.4vw, 40px);
+    /* 전체 이름은 상세 화면에 있다 — 낮은 화면에서는 세 줄까지만 */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .cs-open__status {
+    margin-top: 12px;
+    font-size: 15px;
+  }
+  .cs-open__addr {
+    margin-top: 6px;
+    font-size: 14px;
+  }
+  .cs-open__facts {
+    margin-top: 16px;
+  }
+  .cs-open__fact,
+  .cs-open__fact + .cs-open__fact {
+    padding-top: 10px;
+    padding-bottom: 8px;
+  }
+  .cs-open__fact dd {
+    margin-top: 4px;
+    font-size: 18px;
+  }
+  .cs-open__go {
+    margin-top: 18px;
+    min-height: 48px;
   }
 }

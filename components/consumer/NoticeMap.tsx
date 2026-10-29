@@ -1,11 +1,19 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MAP_SCOPE, type MapScope } from '@/lib/consumer/geo'
 import { formatManOr } from '@/lib/crm/services/scoring'
 import { PillChoice } from './Choose'
 import { loadKakao } from './kakao-sdk'
+import MapIntro, {
+  createHandoff,
+  introStartLevel,
+  prefersReducedMotion,
+  type Handoff,
+  type IntroAim,
+  type IntroPin,
+} from './map/MapIntro'
 
 /**
  * 지도로 보는 공고 (카카오맵).
@@ -100,24 +108,11 @@ function labelKakaoChrome(box: HTMLElement | null) {
   }
 }
 
-/**
- * 지도가 서기 전 · 열지 못했을 때 판 위에 눕는 나라.
- *
- * 윤곽 한 장을 다섯 겹으로 쌓아 두께를 만들고 비스듬히 눕힌다. 홈의 "One Map"
- * 이 이 화면까지 이어져 온 것이다. 꾸밈이며 아무 위치·수치도 담지 않는다.
- */
-function MapLand() {
-  return (
-    <div className="cs-sa-land" aria-hidden="true">
-      <div className="cs-sa-land__slab">
-        <i />
-        <i />
-        <i />
-        <i />
-        <i />
-      </div>
-    </div>
-  )
+/** 범위가 가리키는 시도 — 벡터 지도에서 살짝 밝혀 어디로 가는지 먼저 보이게 한다 */
+const SCOPE_SVG_IDS: Record<MapScope, string[]> = {
+  서울: ['seoul'],
+  수도권: ['seoul', 'gyeonggi', 'incheon'],
+  전국: [],
 }
 
 export default function NoticeMap({
@@ -154,6 +149,19 @@ export default function NoticeMap({
   /** 지금 화면에 들어온 공고 — 지도를 움직이면 따라 바뀐다 */
   const [visible, setVisible] = useState<Pin[]>([])
   const [hovered, setHovered] = useState<string | null>(null)
+  /**
+   * 첫 장면(벡터 지도 → 카카오 지도). 'done' 이 되면 벡터 층이 내려간다.
+   * 카카오 지도가 서면 handoff 가 생기고, 벡터는 그 지도의 실제 범위로 착지한다.
+   */
+  const [intro, setIntro] = useState<'on' | 'done'>('on')
+  const [handoff, setHandoff] = useState<Handoff | null>(null)
+  const [skip, setSkip] = useState(0)
+  /** 첫 장면이 끝날 level — 그동안 옆 목록은 이 자리로 센다. 장면이 끝나면 비운다 */
+  const introTargetRef = useRef<number | null>(null)
+  const endIntro = useCallback(() => {
+    introTargetRef.current = null
+    setIntro('done')
+  }, [])
 
   /**
    * 지도 SDK 를 **공고와 나란히** 불러 온다.
@@ -249,6 +257,18 @@ export default function NoticeMap({
         // 첫 화면을 여기서 정한다. 그린 뒤에는 옮기지 않는다.
         frame(kakao, map, pinsInScope(data.pins), false)
         framedRef.current = scope
+        /*
+         * 단, 첫 장면 동안은 한 단 넓게 열어 둔다. 벡터 지도가 여기까지 다가와 넘겨주면
+         * 마지막 한 단은 카카오가 직접 당긴다 — 바꿔 끼우는 게 아니라 한 번의 움직임이
+         * 된다. 사용자가 손대기 전에 끝나는 움직임이고, 끝나는 자리는 위에서 정한 그대로다.
+         */
+        const target = map.getLevel()
+        const start = introStartLevel(target, map.getCenter().getLat(), prefersReducedMotion())
+        if (start !== target) {
+          introTargetRef.current = target
+          map.setLevel(start)
+        }
+        setHandoff(createHandoff(kakao, map, target))
         labelKakaoChrome(host.current)
         setReady(true)
         /*
@@ -367,12 +387,24 @@ export default function NoticeMap({
       if (!b) return
       const sw = b.getSouthWest()
       const ne = b.getNorthEast()
+      /*
+       * 첫 장면 동안 카카오 지도는 한 단 넓게 서 있다. 그 범위로 목록을 세면 장면이
+       * 끝나는 순간 목록이 한 번 줄어든다 — 사용자가 손대지 않았는데 바뀌는 목록이다.
+       * 장면이 끝날 자리(가운데를 두고 한 단마다 절반)로 미리 센다.
+       */
+      const lv = map.getLevel()
+      const tl = introTargetRef.current
+      const f = tl !== null && lv > tl ? 2 ** (tl - lv) : 1
+      const cLat = (sw.getLat() + ne.getLat()) / 2
+      const cLng = (sw.getLng() + ne.getLng()) / 2
+      const hLat = ((ne.getLat() - sw.getLat()) / 2) * f
+      const hLng = ((ne.getLng() - sw.getLng()) / 2) * f
       const inView = data.pins.filter(
         p =>
-          p.lat >= sw.getLat() &&
-          p.lat <= ne.getLat() &&
-          p.lng >= sw.getLng() &&
-          p.lng <= ne.getLng(),
+          p.lat >= cLat - hLat &&
+          p.lat <= cLat + hLat &&
+          p.lng >= cLng - hLng &&
+          p.lng <= cLng + hLng,
       )
       inView.sort((a, z) => (a.daysLeft ?? 9999) - (z.daysLeft ?? 9999))
       setVisible(inView)
@@ -402,6 +434,40 @@ export default function NoticeMap({
     // scope 가 바뀌면 다시 맞출 기회를 준다
   }, [ready, data, scope])
 
+  /** 벡터 지도가 다가갈 곳 — 카카오 지도가 처음 담을 것과 같은 공고들 */
+  const aim = useMemo<IntroAim>(() => {
+    const allow = SCOPE_PROVINCES[scope]
+    const pins = data ? (allow ? data.pins.filter(p => allow.includes(p.province)) : data.pins) : []
+    return {
+      points: pins.map(p => ({ lat: p.lat, lng: p.lng })),
+      center: MAP_SCOPE[scope].center,
+      level: LEVEL[scope],
+      settled: !!data,
+    }
+  }, [data, scope])
+
+  const introPins = useMemo<IntroPin[]>(
+    () =>
+      (data?.pins ?? []).map(p => ({
+        lat: p.lat,
+        lng: p.lng,
+        kind: p.kind,
+        hot: p.daysLeft !== null && p.daysLeft >= 0 && p.daysLeft <= 3,
+      })),
+    [data],
+  )
+
+  /**
+   * 옆 목록. 지도가 서 있으면 보이는 범위를 따르고, 지도를 열지 못했으면 고른 범위의
+   * 공고를 마감 순으로 그대로 보여 준다 — 지도가 없다고 목록까지 비우지 않는다.
+   */
+  const listed = useMemo(() => {
+    if (!error || !data) return visible
+    const allow = SCOPE_PROVINCES[scope]
+    const pins = allow ? data.pins.filter(p => allow.includes(p.province)) : [...data.pins]
+    return pins.sort((a, z) => (a.daysLeft ?? 9999) - (z.daysLeft ?? 9999))
+  }, [error, data, scope, visible])
+
   return (
     // 앵커(id)를 여기 두지 않는다. 이 조각은 /notices 와 /map 두 곳에 놓이는데,
     // /notices 에서는 바깥 감싸개가 이미 id="map" 을 들고 있어 한 화면에 같은
@@ -425,7 +491,14 @@ export default function NoticeMap({
           <PillChoice
             label="범위"
             value={scope}
-            onChange={v => setScope(v as MapScope)}
+            onChange={v => {
+              setScope(v as MapScope)
+              // 첫 장면이 아직 걷히는 중이면 마저 걷고 옮긴다 — 두 움직임이 겹치지 않게
+              if (intro !== 'done') {
+                introTargetRef.current = null
+                setSkip(n => n + 1)
+              }
+            }}
             items={(Object.keys(MAP_SCOPE) as MapScope[]).map(k => {
               const allow = SCOPE_PROVINCES[k]
               const n = data
@@ -470,52 +543,70 @@ export default function NoticeMap({
         </div>
 
         <div className="cs-map">
-          {error ? (
-            <div className="cs-map__fallback">
-              <MapLand />
-              <div className="cs-sa-map__why" role="status">
+          {/*
+            판은 하나다. 벡터 지도(MapIntro)가 먼저 서서 공고가 있는 곳으로 다가가고,
+            카카오 지도가 서면 그 위에서 걷힌다. 카카오를 열지 못하면 벡터 지도가 그대로
+            남아 고른 범위와 공고 위치를 보여 준다 — 회색 판이나 빈 칸을 남기지 않는다.
+            같은 자리에 두어야 오류가 나도 벡터 지도가 처음부터 다시 날지 않는다.
+          */}
+          <div className="cs-map__stage cs-mi-stage" data-mi={error ? 'fallback' : intro}>
+            {!error && <div className="cs-map__canvas" ref={host} role="application" aria-label="공고 지도" />}
+            {(error || intro !== 'done') && (
+              <MapIntro
+                mode={error ? 'fallback' : 'intro'}
+                aim={aim}
+                highlight={SCOPE_SVG_IDS[scope]}
+                pins={introPins}
+                handoff={error ? null : handoff}
+                skip={skip}
+                onDone={endIntro}
+              />
+            )}
+            {/*
+              무엇을 기다리는지 두 줄로 따로 적는다 — 지도 엔진과 공고 위치는 서로 다른
+              곳에서 오고, 어느 쪽이 늦는지가 보여야 기다림이 덜 막막하다.
+              꾸며낸 진행률은 쓰지 않는다. 둘 다 오면 조용히 걷힌다.
+            */}
+            {!error && intro !== 'done' && (
+              <div className="cs-map__shell" role="status" aria-live="polite" data-ready={ready || undefined}>
+                <ul className="cs-map__shell-steps">
+                  <li data-done={!!sdk || undefined}>
+                    <i aria-hidden="true" />
+                    {sdk ? '지도 엔진 준비됨' : '지도 엔진을 받는 중'}
+                  </li>
+                  <li data-done={!!data || undefined}>
+                    <i aria-hidden="true" />
+                    {data ? `공고 위치 ${data.pins.length}건 받음` : '공고 위치를 받는 중'}
+                  </li>
+                </ul>
+              </div>
+            )}
+            {error && (
+              <div className="cs-sa-map__why" role="status" data-mi-avoid>
                 <span className="cs-vacancy__eyebrow">지도를 열지 못했습니다</span>
                 <p className="cs-vacancy__title">{error}</p>
-                <p className="cs-vacancy__desc">지도가 없어도 공고는 목록에서 전부 보실 수 있어요.</p>
+                <p className="cs-vacancy__desc">
+                  {data && data.pins.length > 0
+                    ? '공고 위치는 이 그림과 목록에서 보실 수 있어요.'
+                    : '지도가 없어도 공고는 목록에서 전부 보실 수 있어요.'}
+                </p>
               </div>
-            </div>
-          ) : (
-            <div className="cs-map__stage">
-              <div className="cs-map__canvas" ref={host} role="application" aria-label="공고 지도" />
-              {/*
-                지도가 서기 전의 자리. 회색 판 대신 나라 윤곽을 먼저 세우고,
-                무엇을 기다리는지 두 줄로 따로 적는다 — 지도 엔진과 공고 위치는
-                서로 다른 곳에서 오고, 어느 쪽이 늦는지가 보여야 기다림이 덜 막막하다.
-                지도가 서면 걷힌다. 꾸며낸 진행률은 쓰지 않는다.
-              */}
-              {!ready && (
-                <div className="cs-map__shell" role="status" aria-live="polite">
-                  {/* 윤곽은 정적 파일을 가면(mask)으로 쓴다 — 문서에 직접 그리면 HTML 이 80KB 불어난다 */}
-                  <MapLand />
-                  <ul className="cs-map__shell-steps">
-                    <li data-done={!!sdk || undefined}>
-                      <i aria-hidden="true" />
-                      {sdk ? '지도 엔진 준비됨' : '지도 엔진을 받는 중'}
-                    </li>
-                    <li data-done={!!data || undefined}>
-                      <i aria-hidden="true" />
-                      {data ? `공고 위치 ${data.pins.length}건 받음` : '공고 위치를 받는 중'}
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
           <aside className="cs-map__side" aria-label="보이는 범위의 공고">
             <div className="cs-map__side-head">
               <strong>보이는 범위의 공고</strong>
-              <span className="cs-num">{visible.length}건</span>
+              <span className="cs-num">{listed.length}건</span>
             </div>
-            {visible.length === 0 ? (
+            {listed.length === 0 ? (
               <p className="cs-note" style={{ padding: '18px 16px' }}>
-                {error
+                {error && !data
                   ? '지도를 열지 못해 범위를 셀 수 없어요.'
+                  : error && scopeCount === 0
+                    ? `지금 ${scope}에는 접수 중인 공고가 없어요. 다른 범위를 눌러 보세요.`
+                    : error
+                      ? '지도를 열지 못해 범위를 셀 수 없어요.'
                   : !ready
                     ? '지도가 서면 보이는 범위의 공고를 마감 순으로 정리해요.'
                     : scopeCount === 0
@@ -524,7 +615,7 @@ export default function NoticeMap({
               </p>
             ) : (
               <ul className="cs-map__list">
-                {visible.map(p => (
+                {listed.map(p => (
                   <li key={p.id} data-hover={hovered === p.id} data-kind={p.kind.toLowerCase()}>
                     <Link
                       href={`/notices/${p.id}`}

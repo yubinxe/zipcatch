@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { KOREA_PROVINCES, KOREA_VISUAL_VIEWBOX } from '@/lib/korea-map-data'
-import IslandInset from './IslandInset'
 import { mapProvince } from '@/lib/consumer/classify'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import Atlas3D from './three/Atlas3D'
@@ -285,11 +284,6 @@ export default function HeroAtlas() {
           </svg>
           {/* 같은 칸 위에 겹친다 — 칸의 크기는 평면 지도가(좁은 카드에서는 CSS 가) 정한다 */}
           <Atlas3D state={scene} onHover={setHover} onPick={choose} onLive={setLive} />
-          {(() => {
-            const gb = KOREA_PROVINCES.find(p => p.id === 'north-gyeongsang')
-            const read = gb ? reads.get(gb.code) : undefined
-            return <IslandInset level={drawn ? shade(read?.count ?? 0, max) : 0} on={gb?.code === activeCode} />
-          })()}
         </div>
 
         <div className="cs-atlas__read" aria-live="polite">

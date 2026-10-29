@@ -1,0 +1,47 @@
+/* ============================================================
+   4.0 장면 배경 — '검은 바탕만 뜨는' 장면에 공기를 넣는다.
+   사진을 들일 수 있게 되기 전까지는 빛으로만: 위는 깊은 남색, 지평선 쪽은 잉걸빛.
+   ============================================================ */
+
+/* ONE MAP — 지도 뒤로 지평선 빛이 깔린다 */
+.cs-scene--statement .cs-stage__pin {
+  background:
+    radial-gradient(70% 55% at 72% 62%, rgba(255, 128, 52, 0.16), transparent 70%),
+    radial-gradient(90% 60% at 50% 115%, rgba(214, 76, 34, 0.22), transparent 70%),
+    linear-gradient(180deg, #0b0e14 0%, #10152a 55%, #1d1726 100%);
+}
+
+/* 장면 끝의 '지도에서 직접 보기' — 지도에 불이 다 들어온 뒤에 나타난다 */
+.cs .cs-scene__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  min-height: 48px;
+  margin-top: clamp(20px, 3vh, 32px);
+  padding: 0 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 178, 122, 0.5);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  opacity: clamp(0, calc((var(--p) - 0.78) * 8), 1);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+.cs .cs-scene__go:hover,
+.cs .cs-scene__go:focus-visible {
+  background: rgba(255, 138, 61, 0.14);
+  border-color: var(--glow);
+}
+.cs .cs-scene__go svg {
+  transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.cs .cs-scene__go:hover svg {
+  transform: translateX(3px);
+}
+.cs .cs-scene__go:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--glow);
+  outline-offset: 3px;
+}

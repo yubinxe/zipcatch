@@ -33,7 +33,8 @@ export default function DeadlineTicker() {
       .then((json: { notices: { property: Record<string, string>; urgency: { label: string; daysLeft: number | null } }[] }) => {
         if (!alive) return
         const rows = json.notices
-          .filter(n => n.urgency.daysLeft !== null && n.urgency.daysLeft <= 14)
+          // 이미 마감된 공고(음수)는 마감 임박 띠에 싣지 않는다 — "D--3" 같은 표기가 나오지 않게
+          .filter(n => n.urgency.daysLeft !== null && n.urgency.daysLeft >= 0 && n.urgency.daysLeft <= 14)
           .slice(0, 8)
           .map(n => ({
             id: String(n.property.id),

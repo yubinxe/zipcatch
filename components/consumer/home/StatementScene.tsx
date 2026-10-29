@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 import { Fragment, useEffect, useState, type CSSProperties } from 'react'
 import { KOREA_PROVINCES, KOREA_VISUAL_VIEWBOX } from '@/lib/korea-map-data'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
@@ -105,6 +107,14 @@ export default function StatementScene() {
             </div>
           ))}
         </div>
+
+        {/* 장면의 끝 — 같은 지도를 손으로 움직여 보는 곳으로. 지도 화면은 이 그림에서 이어 들어간다 */}
+        <Link href="/map" className="cs-scene__go">
+          지도에서 직접 보기
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </Link>
       </div>
     </ScrollStage>
   )
