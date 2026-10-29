@@ -18,4 +18,6 @@ export const FEATURES = {
   playground: !off(process.env.NEXT_PUBLIC_FEATURE_PLAYGROUND),
   /** E. ⌘K 빠른 검색 */
   spotlight: !off(process.env.NEXT_PUBLIC_FEATURE_SPOTLIGHT),
+  /** F. 내 조건의 지도 (결과 화면) */
+  universe: !off(process.env.NEXT_PUBLIC_FEATURE_UNIVERSE),
 } as const
