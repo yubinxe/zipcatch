@@ -17,5 +17,10 @@
       "path": "/api/cron/routines",
       "schedule": "20 0 * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "claude/*": false
+    }
+  }
 }
