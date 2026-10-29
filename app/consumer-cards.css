@@ -1,1 +1,557 @@
-/* consumer-cards — 작업 중 */
+/* consumer-cards
+ * ─────────────────────────────────────────────────────────────
+ * 공고 카드 (components/consumer/NoticeCard.tsx · .cs-nc)
+ *
+ * 한 장에 위계는 하나다.
+ *   머리   상태 · 유형 한 줄 (조용하게)            오른쪽 끝에 공식/예시 표
+ *   이름   공고명이 주인공. 두 줄 고정 높이 — 이웃 카드와 줄이 맞는다
+ *   자리   지역 · 전용면적
+ *   금액   큰 숫자 + 작은 단위 (tabular). 모르면 '공고문 확인', 0 으로 채우지 않는다
+ *   주의   아이콘 한 개와 한 줄. 상자로 소리치지 않는다
+ *   바닥   접수 마감일 · D-day · 출처 | 저장
+ *
+ * 밝은 지면과 밤 지면(.cs-home)이 같은 구조를 쓰고, 색만 아래 토큰으로 갈아 낀다.
+ * 예전 .cs-notice 규칙 묶음(consumer.css · spaces · immersive · refine · type)과
+ * 섞이지 않도록 이름을 새로 지었다. 상세 화면은 여전히 .cs-notice__caution ·
+ * .cs-notice__reasons 를 쓰므로 그 규칙은 그대로 둔다.
+ * ───────────────────────────────────────────────────────────── */
+
+.cs-nc {
+  /* 밝은 지면 */
+  --nc-bg: #ffffff;
+  --nc-line: rgba(11, 14, 20, 0.09);
+  --nc-line-hover: rgba(194, 65, 12, 0.34);
+  --nc-divider: rgba(11, 14, 20, 0.07);
+  --nc-shadow: 0 1px 2px rgba(11, 14, 20, 0.05);
+  --nc-shadow-hover: 0 18px 36px -22px rgba(11, 14, 20, 0.26);
+  --nc-title: #0b0e14;
+  --nc-body: #2a2f38;
+  --nc-muted: #5f6673;
+  --nc-soft: #f1f2f4;
+  --nc-accent: #c2410c;
+  --nc-accent-text: #c2410c;
+  --nc-accent-soft: #fff1e8;
+  --nc-open: #15803d;
+  --nc-soon: #a16207;
+  --nc-next: #2f5bb7;
+  --nc-ring: #c2410c;
+  --nc-pad: 26px;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  padding: var(--nc-pad) var(--nc-pad) calc(var(--nc-pad) - 4px);
+  border: 1px solid var(--nc-line);
+  border-radius: 18px;
+  background: var(--nc-bg);
+  box-shadow: var(--nc-shadow);
+  color: var(--nc-body);
+  font-family: var(--font-sans);
+  text-align: left;
+  transition:
+    transform 0.24s cubic-bezier(0.2, 0.7, 0.2, 1),
+    border-color 0.24s ease,
+    box-shadow 0.24s ease;
+}
+
+/* 밤 지면 — 홈의 '지금 살펴볼 모집공고' */
+:is(.cs-home, .cs-night, .cs-band--night) .cs-nc {
+  --nc-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.028));
+  --nc-line: rgba(255, 255, 255, 0.09);
+  --nc-line-hover: rgba(255, 178, 122, 0.42);
+  --nc-divider: rgba(255, 255, 255, 0.08);
+  --nc-shadow: 0 24px 48px -34px rgba(0, 0, 0, 0.9);
+  --nc-shadow-hover: 0 30px 60px -32px rgba(0, 0, 0, 0.95);
+  --nc-title: #f6f7f9;
+  --nc-body: rgba(255, 255, 255, 0.8);
+  --nc-muted: rgba(255, 255, 255, 0.58);
+  --nc-soft: rgba(255, 255, 255, 0.08);
+  --nc-accent: #c2410c;
+  --nc-accent-text: var(--glow, #ffb27a);
+  --nc-accent-soft: rgba(255, 138, 61, 0.14);
+  --nc-open: #6fd394;
+  --nc-soon: #f2c35b;
+  --nc-next: #9db8ff;
+  --nc-ring: var(--glow, #ffb27a);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cs-nc:hover {
+    transform: translateY(-2px);
+    border-color: var(--nc-line-hover);
+    box-shadow: var(--nc-shadow-hover);
+  }
+}
+
+/* 카드 전체가 상세로 가는 링크 — 글자 위에 덮는다 */
+.cs-nc .cs-nc__link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+.cs-nc .cs-nc__link:focus-visible {
+  outline: 2px solid var(--nc-ring);
+  outline-offset: 3px;
+}
+
+.cs-nc .cs-nc__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  min-width: 0;
+  padding-bottom: 20px;
+}
+
+/* ── 머리 — 상태 · 유형 ─────────────────────────────────── */
+.cs-nc .cs-nc__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  height: 20px;
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.cs-nc .cs-nc__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  color: var(--nc-muted);
+}
+.cs-nc .cs-nc__status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.cs-nc .cs-nc__status[data-tone='hot'] {
+  color: var(--nc-accent-text);
+  font-weight: 700;
+}
+.cs-nc .cs-nc__status[data-tone='soon'] {
+  color: var(--nc-soon);
+}
+.cs-nc .cs-nc__status[data-tone='open'] {
+  color: var(--nc-open);
+}
+.cs-nc .cs-nc__status[data-tone='next'] {
+  color: var(--nc-next);
+}
+.cs-nc .cs-nc__status[data-tone='off'] i {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.cs-nc .cs-nc__type {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--nc-muted);
+  font-weight: 500;
+}
+.cs-nc .cs-nc__status + .cs-nc__type {
+  padding-left: 10px;
+  border-left: 1px solid var(--nc-divider);
+  line-height: 12px;
+}
+.cs-nc .cs-nc__flag {
+  flex: none;
+  color: var(--nc-soon);
+  font-weight: 700;
+}
+.cs-nc .cs-nc__origin {
+  flex: none;
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--nc-muted);
+}
+/* 예시 공고는 점선 테두리 — 실제 공고로 읽히지 않게 한 번 더 표시한다 */
+.cs-nc .cs-nc__origin[data-origin='sample'] {
+  padding: 0 7px;
+  border: 1px dashed currentColor;
+  border-radius: 6px;
+  line-height: 20px;
+  color: var(--nc-soon);
+}
+
+/* ── 이름 — 주인공. 두 줄 고정 높이 ─────────────────────── */
+.cs-nc .cs-nc__title {
+  --lh: 1.36;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: calc(2em * var(--lh));
+  font-size: 21px;
+}
+.cs-nc .cs-nc__name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  max-height: calc(2em * var(--lh));
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 1em;
+  font-weight: 800;
+  line-height: var(--lh);
+  letter-spacing: -0.03em;
+  color: var(--nc-title);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.cs-nc .cs-nc__nw {
+  white-space: nowrap;
+}
+
+.cs-nc .cs-nc__where {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 8px 0 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--nc-muted);
+  white-space: nowrap;
+}
+.cs-nc .cs-nc__where > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cs-nc .cs-nc__dot {
+  flex: none;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+/* 조건을 벗어난 만큼 — 유사 후보 층에서만 */
+.cs-nc .cs-nc__over {
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--nc-soon);
+}
+
+/* 특별공급 결과 한 줄 */
+.cs-nc .cs-nc__sp {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--nc-muted);
+}
+.cs-nc .cs-nc__sp-tag {
+  padding: 0 7px;
+  border: 1px solid var(--nc-divider);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--nc-muted);
+}
+.cs-nc .cs-nc__sp b {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--nc-accent-text);
+}
+.cs-nc .cs-nc__sp[data-tone='UNDER'] b {
+  color: var(--nc-open);
+}
+
+/* ── 금액 ─────────────────────────────────────────────── */
+.cs-nc .cs-nc__price {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 16px;
+  margin: 22px 0 0;
+}
+.cs-nc .cs-nc__price[data-kind='unknown'] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.cs-nc .cs-nc__cell {
+  min-width: 0;
+}
+.cs-nc .cs-nc__price dt {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--nc-muted);
+}
+.cs-nc .cs-nc__v {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin: 0;
+  overflow: hidden;
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 32px;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--nc-title);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cs-nc .cs-nc__v small {
+  line-height: 1;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--nc-muted);
+}
+.cs-nc .cs-nc__v[data-plain='true'] {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--nc-body);
+}
+
+/* 맞는 이유 */
+.cs-nc .cs-nc__reasons {
+  display: grid;
+  gap: 6px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-nc .cs-nc__reasons li {
+  position: relative;
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--nc-body);
+}
+.cs-nc .cs-nc__reasons li::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0.42em;
+  width: 9px;
+  height: 5px;
+  border-left: 1.75px solid var(--nc-open);
+  border-bottom: 1.75px solid var(--nc-open);
+  transform: rotate(-45deg);
+}
+
+/* 확인 필요 — 아이콘 한 개와 한 줄 */
+.cs-nc .cs-nc__caution {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  margin: 16px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--nc-muted);
+}
+.cs-nc .cs-nc__caution svg {
+  flex: none;
+  opacity: 0.85;
+}
+.cs-nc .cs-nc__caution > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 바닥 — 마감일 · D-day · 출처 | 저장 ───────────────── */
+.cs-nc .cs-nc__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--nc-divider);
+}
+.cs-nc .cs-nc__meta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.cs-nc .cs-nc__due {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.cs-nc .cs-nc__due-k {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nc-muted);
+}
+.cs-nc .cs-nc__due-v {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--nc-title);
+}
+.cs-nc .cs-nc__dday {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 6px;
+  background: var(--nc-soft);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--nc-title);
+}
+.cs-nc .cs-nc__dday[data-hot='true'] {
+  background: var(--nc-accent);
+  color: #fff;
+}
+.cs-nc .cs-nc__src {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  line-height: 18px;
+  color: var(--nc-muted);
+}
+.cs-nc .cs-nc__acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+/* 저장 — 44px 손끝 자리 */
+.cs-nc .cs-save {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--nc-line);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--nc-muted);
+  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+.cs-nc .cs-save svg {
+  width: 20px;
+  height: 20px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .cs-nc .cs-save:hover {
+    border-color: var(--nc-line-hover);
+    color: var(--nc-accent-text);
+  }
+}
+.cs-nc .cs-save[data-on='true'] {
+  border-color: transparent;
+  background: var(--nc-accent-soft);
+  color: var(--nc-accent-text);
+}
+.cs-nc .cs-save:focus-visible {
+  outline: 2px solid var(--nc-ring);
+  outline-offset: 2px;
+}
+
+/* 관심공고의 '비교' 담기 — 저장 곁에 선다. 좁으면 마감 줄이 한 줄을 다 쓴다 */
+.cs-nc .cs-pick__box {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  z-index: 2;
+  min-height: 44px;
+  border-radius: 12px;
+}
+.cs-nc .cs-nc__foot:has(.cs-pick__box) {
+  flex-wrap: wrap;
+  row-gap: 12px;
+}
+.cs-nc .cs-nc__foot:has(.cs-pick__box) .cs-nc__meta {
+  flex: 1 1 100%;
+}
+.cs-nc .cs-nc__foot:has(.cs-pick__box) .cs-nc__acts {
+  margin-left: auto;
+}
+.cs-pick[data-on='true'] .cs-nc {
+  border-color: var(--nc-title);
+  box-shadow: 0 0 0 1px var(--nc-title), var(--nc-shadow-hover);
+}
+
+/* ── 상태 ─────────────────────────────────────────────── */
+/* 접수가 끝난 공고 — 가라앉힌다. 지우지는 않는다 */
+.cs-nc[data-level='CLOSED'] {
+  --nc-bg: #f7f8f9;
+  box-shadow: none;
+}
+:is(.cs-home, .cs-night, .cs-band--night) .cs-nc[data-level='CLOSED'] {
+  --nc-bg: rgba(255, 255, 255, 0.02);
+}
+.cs-nc[data-level='CLOSED'] :is(.cs-nc__name, .cs-nc__v, .cs-nc__due-v) {
+  color: var(--nc-muted);
+}
+
+/* 조건을 벗어난 후보 — 지면과 같은 톤, 괘선만 */
+.cs-nc.cs-nc--nearby {
+  --nc-bg: rgba(245, 246, 247, 0.88);
+  box-shadow: none;
+}
+
+/* 캐러셀 — 장마다 높이가 같다 */
+.cs-carousel__track > .cs-nc {
+  height: 100%;
+}
+
+/* ── 좁은 화면 ─────────────────────────────────────────── */
+/* 목록이 한 줄로 쌓이면 맞출 이웃이 없다 — 이름 칸을 비워 두지 않는다.
+   캐러셀은 옆 장과 나란히 서므로 그대로 둔다 */
+@media (max-width: 720px) {
+  .cs-notice-grid .cs-nc .cs-nc__title {
+    height: auto;
+  }
+}
+@media (max-width: 560px) {
+  .cs-nc {
+    --nc-pad: 20px;
+    border-radius: 16px;
+  }
+  .cs-nc .cs-nc__title {
+    font-size: 19px;
+  }
+  .cs-nc .cs-nc__v {
+    font-size: 23px;
+    line-height: 30px;
+  }
+  .cs-nc .cs-nc__price {
+    margin-top: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-nc,
+  .cs-nc .cs-save {
+    transition: none;
+  }
+  .cs-nc:hover {
+    transform: none;
+  }
+}
