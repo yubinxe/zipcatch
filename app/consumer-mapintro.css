@@ -1,1 +1,130 @@
-/* consumer-mapintro — 작업 중 */
+/* consumer-mapintro
+   지도 화면의 첫 장면 — 나라 전체에서 공고가 있는 곳으로 다가가 카카오 지도로 이어진다.
+   (components/consumer/map/MapIntro.tsx)
+
+   움직이는 것은 두 가지뿐이다: 세계 층의 transform(카메라)과 판 전체의 opacity(걷힘).
+   둘 다 스크립트가 Web Animations 로 합성기에 넘긴다. 여기서는 모양만 정한다 —
+   큰 층에 filter·box-shadow 를 애니메이션하지 않는다. */
+
+.cs-mi-stage {
+  position: relative;
+}
+
+/* 판 — 카카오 지도 칸과 같은 자리·같은 모서리에 덮인다 */
+.cs-mi {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 12px;
+  /* 바다 — 판에 붙은 빛 번짐은 두지 않는다. 지도가 움직이는 동안 제자리에 남아 얼룩처럼 보인다 */
+  background: linear-gradient(180deg, #0C1119 0%, #080B11 100%);
+  contain: layout paint;
+  isolation: isolate;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* 가장자리를 눌러 깊이를 준다. 움직이지 않는 층이라 한 번만 그려진다 */
+.cs-mi::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(120% 95% at 50% 48%, transparent 58%, rgba(5, 7, 11, 0.6) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* 세계 층 — 아무 transform 없이도 전국이 판 가운데에 선다(서버가 그린 첫 장면).
+   카메라는 이 위에 transform 만 더한다 */
+.cs-mi__world {
+  position: absolute;
+  inset: 7% 6%;
+  transform-origin: 0 0;
+}
+.cs-mi__world svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 위경도 격자 — 1도 간격. 다가갈수록 칸이 벌어져 속도가 읽힌다 */
+.cs-mi__grid {
+  fill: none;
+  stroke: rgba(255, 178, 122, 0.075);
+  stroke-width: 0.5;
+}
+
+/* 땅 — 홈 지도와 같은 문법: 어두운 땅, 가는 따뜻한 경계 */
+.cs-mi__land {
+  fill: #1A2333;
+  stroke: rgba(255, 178, 122, 0.34);
+  /* 목적지 축척에 맞춘 굵기(MapIntro 가 정한다) — 당겨도 2px 을 넘지 않는다 */
+  stroke-width: var(--mi-sw, 0.5);
+  stroke-linejoin: round;
+}
+/* 고른 범위 — 어디로 가는지 먼저 보이게, 조금만 데운다 */
+.cs-mi__land[data-on] {
+  /* 주황을 땅에 섞으면 밤 판 위에서 흙빛이 된다. 땅은 한 톤 밝히고, 빛은 경계가 맡는다 */
+  fill: #233149;
+  stroke: rgba(255, 178, 122, 0.9);
+}
+
+/* 공고 위치 — 카카오 지도의 표시가 뜰 바로 그 자리 */
+.cs-mi__pins circle {
+  fill: var(--cal-rent-soft, #DCE6F7);
+  opacity: 0.9;
+}
+.cs-mi__pins circle[data-kind='sale'] {
+  fill: var(--glow, #FFB27A);
+}
+.cs-mi__pins circle[data-hot] {
+  fill: #FF8A3D;
+  opacity: 1;
+}
+
+/* 기다림 표시 — 빨리 오면 아예 보이지 않는다(0.8초 뒤에야 떠오른다). 늦으면 무엇을
+   기다리는지 말하고, 둘 다 오면 조용히 걷힌다 */
+.cs-sa .cs-mi-stage .cs-map__shell {
+  transition: opacity 0.4s ease;
+}
+.cs-sa .cs-mi-stage .cs-map__shell[data-ready] {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cs-sa .cs-mi-stage .cs-map__shell-steps {
+    animation: cs-mi-wait 0.36s ease 0.8s backwards;
+  }
+}
+@keyframes cs-mi-wait {
+  from {
+    opacity: 0;
+  }
+}
+
+/* 열지 못했을 때 — 카카오 칸이 없으니 벡터 판이 그 높이를 잡는다 */
+.cs-mi-stage[data-mi='fallback'] .cs-mi {
+  position: relative;
+  height: var(--map-h);
+}
+.cs-sa .cs-mi-stage[data-mi='fallback'] .cs-sa-map__why {
+  max-width: 400px;
+}
+
+@media (max-width: 760px) {
+  /* 좁은 판에서는 그림을 위에, 이유를 그 아래에 — 이유가 지도를 덮지 않게 쌓는다 */
+  .cs-mi-stage[data-mi='fallback'] .cs-mi {
+    height: 300px;
+  }
+  .cs-sa .cs-mi-stage[data-mi='fallback'] .cs-sa-map__why {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    max-width: none;
+    margin: 10px 0 0;
+  }
+}
