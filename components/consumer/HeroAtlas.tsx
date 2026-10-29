@@ -6,6 +6,7 @@ import { KOREA_PROVINCES, KOREA_VISUAL_VIEWBOX } from '@/lib/korea-map-data'
 import { mapProvince } from '@/lib/consumer/classify'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import Atlas3D from './three/Atlas3D'
+import ExploreLauncher from './explore/ExploreLauncher'
 import { KOREA_SILHOUETTE } from './three/korea-silhouette'
 import type { AtlasState } from './three/atlas-scene'
 
@@ -393,6 +394,7 @@ export default function HeroAtlas() {
       <p className="cs-atlas__source">
         청약홈 · LH 청약플러스 접수 중·예정 공고 ·{' '}
         <a href="/sources">출처와 라이선스</a>
+        <ExploreLauncher className="cs-atlas__explore">입체 지도로 탐험 →</ExploreLauncher>
       </p>
     </div>
   )

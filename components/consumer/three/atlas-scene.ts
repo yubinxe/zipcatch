@@ -27,6 +27,11 @@ export interface AtlasState {
   active: string | null
   /** 숫자 표를 붙일 지역 — 앞에 올수록 먼저 자리를 잡는다 */
   labels: string[]
+  /**
+   * 탐험 모드 — 고른 지역(active)으로 카메라가 다가간다. 없거나 false 면 예전처럼
+   * 전국을 담는 자리에 머문다(첫 화면은 이 값을 넘기지 않는다).
+   */
+  zoom?: boolean
 }
 
 export interface AtlasCallbacks {
@@ -443,6 +448,9 @@ const ease = (x: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3)
 
 export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: AtlasCallbacks): AtlasHandle {
   const target = new THREE.Vector3(0, 0.12, 0.18)
+  const baseTarget = target.clone()
+  /** 탐험 모드의 초점 — 0 이면 전국, 1 이면 고른 지역에 붙는다 */
+  const focus = { amt: 0, x: baseTarget.x, z: baseTarget.z }
   let dist = 12
   let state: AtlasState = { counts: {}, max: 0, active: null, labels: [] }
   let riseAt = -1
@@ -1123,8 +1131,26 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
     view.d += (view.td - view.d) * k(2.4)
     view.x += (view.tx - view.x) * k(2.4)
     view.y += (view.ty - view.y) * k(2.4)
+    // 탐험 모드: 고른 지역으로 시선을 옮기고 거리를 좁힌다. 같은 감쇠로 미끄러진다
+    const want = state.zoom && ap ? 1 : 0
+    focus.amt += (want - focus.amt) * k(2.2)
+    if (ap) {
+      focus.x += (ap.anchor.x - focus.x) * k(2.6)
+      focus.z += (ap.anchor.z - focus.z) * k(2.6)
+    }
+    target.set(
+      baseTarget.x + (focus.x - baseTarget.x) * focus.amt,
+      baseTarget.y,
+      baseTarget.z + (focus.z - baseTarget.z) * focus.amt,
+    )
+    const vx = view.x
+    const vy = view.y
+    view.x *= 1 - focus.amt
+    view.y *= 1 - focus.amt
     applyView()
-    place(view.d, polar, az)
+    view.x = vx
+    view.y = vy
+    place(view.d * (1 - 0.45 * focus.amt), polar, az)
 
     if (frames === 2 && !readySent) {
       readySent = true

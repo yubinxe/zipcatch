@@ -10,4 +10,6 @@ const off = (v: string | undefined) => (v ?? '').trim() === '0'
 export const FEATURES = {
   /** A. 지도 화면의 날짜 되감기 */
   timeMachine: !off(process.env.NEXT_PUBLIC_FEATURE_TIME_MACHINE),
+  /** B. 입체 지도 탐험 모드 */
+  explore: !off(process.env.NEXT_PUBLIC_FEATURE_EXPLORE),
 } as const

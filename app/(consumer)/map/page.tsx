@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { KAKAO_JS_KEY, KAKAO_SDK_URL } from '@/components/consumer/kakao-sdk'
 import PageMasthead from '@/components/consumer/PageMasthead'
 import MapTimeScope from '@/components/consumer/map/MapTimeScope'
+import ExploreLauncher from '@/components/consumer/explore/ExploreLauncher'
 import { FEATURES } from '@/lib/features'
 import '../../consumer-timemachine.css'
 
@@ -61,6 +62,9 @@ export default function MapPage() {
           <Link href="/notices" className="cs-sa-mlink">
             목록으로 보기 <i aria-hidden="true">→</i>
           </Link>
+          <ExploreLauncher className="cs-sa-mlink cs-sa-mlink--btn">
+            입체 지도로 탐험 <i aria-hidden="true">→</i>
+          </ExploreLauncher>
         </div>
       </PageMasthead>
       {/* 화면 제목이 이미 같은 말을 했다. 조각의 머리는 접는다 */}
