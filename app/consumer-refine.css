@@ -1460,3 +1460,13 @@ body:has(.cs-ticker) .cs-maker__scene {
   outline-offset: 4px;
   border-radius: 8px;
 }
+
+/* 장면의 행동 단추가 밑으로 들어오면 버튼·말풍선이 잠시 비켜 준다(ChatWidget 이 data-tucked 를 단다).
+   말풍선은 등장 애니메이션이 불투명도를 쥐고 있어 !important 로 덮는다 */
+html body .cs-chat-fab.cs-phone-fab[data-tucked],
+.cs-chat-hint[data-tucked] {
+  opacity: 0 !important;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+}

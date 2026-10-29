@@ -213,7 +213,9 @@ export default function ConsumerHome() {
 
 
       {/* ── 지금 살펴볼 공고 ────────────────────────────── */}
-      <HomeNoticeStrip />
+      <Reveal scrub className="cs-ap cs-ap--strip">
+        <HomeNoticeStrip />
+      </Reveal>
 
       {/* ── 장면 — 흩어진 공고가 한 장의 지도로 ────────── */}
       <StatementScene />
@@ -225,10 +227,12 @@ export default function ConsumerHome() {
       <DecideScene />
 
       {/* ── 마감이 언제 몰리는지 ────────────────────────── */}
-      <DeadlineCalendar />
+      <Reveal className="cs-ap cs-ap--cal">
+        <DeadlineCalendar />
+      </Reveal>
 
       {/* ── 준비 순서 ───────────────────────────────────── */}
-      <section className="cs-wrap cs-section cs-band">
+      <Reveal as="section" scrub className="cs-wrap cs-section cs-band cs-ap cs-ap--journey">
         <SectionHead
           index="02"
           eyebrow="Four Steps"
@@ -236,10 +240,10 @@ export default function ConsumerHome() {
           sub="고르고, 견주고, 확인하고, 챙기는 네 장면. 장면마다 실제로 쓰는 화면이 하나씩 있습니다."
         />
         <Journey />
-      </section>
+      </Reveal>
 
       {/* ── 주거비 환산 ─────────────────────────────────── */}
-      <Reveal as="section" id="cost" className="cs-wrap cs-section">
+      <Reveal as="section" scrub id="cost" className="cs-wrap cs-section cs-ap cs-ap--cost">
         <SectionHead
           index="03"
           eyebrow="Monthly Cost"
@@ -252,7 +256,7 @@ export default function ConsumerHome() {
 
       {/* ── 지금 짓고 있는 집 ───────────────────────────── */}
       {/* 당첨 뒤에도 기다림은 이어진다. 지역마다 공사가 얼마나 남았는지 */}
-      <Reveal as="section" className="cs-wrap cs-section cs-band">
+      <Reveal as="section" scrub className="cs-wrap cs-section cs-band cs-ap cs-ap--build">
         <SectionHead
           index="04"
           eyebrow="Under Construction"
@@ -263,7 +267,7 @@ export default function ConsumerHome() {
       </Reveal>
 
       {/* ── 알림 ────────────────────────────────────────── */}
-      <Reveal as="section" className="cs-wrap cs-section cs-band cs-band--night">
+      <Reveal as="section" scrub className="cs-wrap cs-section cs-band cs-band--night cs-ap cs-ap--saved">
         <SectionHead index="05" eyebrow="Saved Search" title="다음에도, 처음부터 찾지 않도록" />
         {/*
           저장 권유. 버튼은 버튼의 키(56px)로 둔다 — 지면 높이만큼 늘린 먹판은
@@ -318,7 +322,7 @@ export default function ConsumerHome() {
       </Reveal>
 
       {/* ── 신뢰 ────────────────────────────────────────── */}
-      <Reveal as="section" className="cs-wrap cs-section">
+      <Reveal as="section" scrub className="cs-wrap cs-section cs-ap cs-ap--trust">
         <SectionHead
           index="06"
           eyebrow="Trust"
@@ -351,7 +355,7 @@ export default function ConsumerHome() {
       </Reveal>
 
       {/* ── FAQ ─────────────────────────────────────────── */}
-      <Reveal as="section" className="cs-wrap cs-section">
+      <Reveal as="section" scrub className="cs-wrap cs-section cs-ap cs-ap--faq">
         <SectionHead index="07" eyebrow="FAQ" title="처음이라 궁금하신 것들" />
         <div className="cs-faq">
           {FAQ.map(f => (
@@ -375,7 +379,7 @@ export default function ConsumerHome() {
       </Reveal>
 
       {/* ── 마지막 CTA ──────────────────────────────────── */}
-      <Reveal as="section" className="cs-wrap cs-section">
+      <Reveal as="section" scrub className="cs-wrap cs-section cs-ap cs-ap--cta">
         <div className="cs-cta-band">
           <h2 className="cs-section-title">
             내 조건에 맞는 공고,

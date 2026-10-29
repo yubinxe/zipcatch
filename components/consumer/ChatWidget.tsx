@@ -28,6 +28,8 @@ const CLOSE_MS = 340
 
 /** 안내 말풍선 — 닫으면 이 브라우저에서는 다시 띄우지 않는다 */
 const HINT_KEY = 'zc:chat-hint-dismissed'
+/** 떠 있는 버튼이 비켜 줘야 하는 행동 단추 */
+const FAB_CLEAR = '.cs-open__go, .cs-scene__go, [data-fab-clear]'
 /** 첫 화면을 다 읽을 틈을 준 뒤에 말을 건다 */
 const HINT_DELAY_MS = 2400
 
@@ -94,6 +96,49 @@ export default function ChatWidget() {
     if (seen) return
     const t = setTimeout(() => setHint(true), HINT_DELAY_MS)
     return () => clearTimeout(t)
+  }, [])
+
+  /*
+   * 장면의 행동 단추(공고 자세히 보기·지도에서 직접 보기)가 떠 있는 버튼·말풍선 밑으로
+   * 들어오면 잠시 비켜 준다. 좁은 화면에서는 전체 폭 단추라 늘 겹친다.
+   * 닫은 것이 아니므로 단추가 지나가면 다시 나온다.
+   */
+  const [tucked, setTucked] = useState(false)
+  useEffect(() => {
+    let raf = 0
+    let last = false
+    const hit = (a: DOMRect, b: DOMRect) =>
+      a.left < b.right + 8 && a.right > b.left - 8 && a.top < b.bottom + 8 && a.bottom > b.top - 8
+    const check = () => {
+      raf = 0
+      const fab = fabRef.current?.getBoundingClientRect()
+      const bubble = document.querySelector('.cs-chat-hint')?.getBoundingClientRect()
+      let over = false
+      for (const el of document.querySelectorAll<HTMLElement>(FAB_CLEAR)) {
+        const r = el.getBoundingClientRect()
+        if (r.bottom < 0 || r.top > window.innerHeight || !r.width) continue
+        if (Number(getComputedStyle(el).opacity) < 0.1) continue
+        if ((fab && hit(r, fab)) || (bubble && hit(r, bubble))) {
+          over = true
+          break
+        }
+      }
+      if (over !== last) {
+        last = over
+        setTucked(over)
+      }
+    }
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(check)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    onScroll()
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
   }, [])
 
   const openPhone = () => {
@@ -286,6 +331,7 @@ export default function ChatWidget() {
         className="cs-chat-fab cs-phone-fab"
         onClick={openPhone}
         data-hidden={phase === 'open' || undefined}
+        data-tucked={tucked || undefined}
         aria-haspopup="dialog"
         aria-expanded={shown}
         aria-label="집캐치에게 물어보기"
@@ -298,7 +344,7 @@ export default function ChatWidget() {
 
       {/* 말을 거는 말풍선 — 누르면 대화가 열리고, X 로 닫으면 다시 나오지 않는다 */}
       {hint && phase === 'closed' && (
-        <div className="cs-chat-hint" role="status">
+        <div className="cs-chat-hint" role="status" data-tucked={tucked || undefined}>
           <button type="button" className="cs-chat-hint__body" onClick={openPhone}>
             <b>궁금한 점이 있다면</b> 물어보세요!
           </button>

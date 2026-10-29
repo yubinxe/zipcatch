@@ -28,6 +28,7 @@ import './consumer-cards.css'
 import './consumer-mapintro.css'
 import './consumer-scenes.css'
 import './consumer-type.css'
+/* 4.0 확장 기능 — 모두 제 접두사(.sx · .cs-tray · .fp · .sp · .hu · .cx · .ss)로 범위가 갇혀 있다 */
 import './consumer-explore.css'
 import './consumer-battle.css'
 import './consumer-playground.css'
@@ -35,6 +36,8 @@ import './consumer-spotlight.css'
 import './consumer-universe.css'
 import './consumer-commute.css'
 import './consumer-share.css'
+/* 홈 — 장면 바깥 지면의 스크롤 결(머리 가림막·차례 등장·다가오는 마지막 띠). 맨 뒤 */
+import './consumer-apple.css'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zipcatch.vercel.app').replace(/\/$/, '')
 
