@@ -10,6 +10,7 @@ import type { ReactNode } from 'react'
 import { useConsumer } from './ConsumerProvider'
 import BrandMark from './BrandMark'
 import MakerFooter from './MakerFooter'
+import CompareTray from './battle/CompareTray'
 
 /**
  * 메뉴 이름은 **화면 제목이 아니라 이름표**다.
@@ -116,6 +117,7 @@ export default function ConsumerShell({ children }: { children: ReactNode }) {
       <main id="consumer-main" className="cs-main">{children}</main>
 
       <MakerFooter />
+      <CompareTray />
     </div>
   )
 }

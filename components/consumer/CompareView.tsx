@@ -9,6 +9,8 @@ import type { Property } from '@/lib/crm/types'
 import type { SpecialRead } from '@/lib/adapters/applyhome-special'
 import SaveButton from './SaveButton'
 import { ddayText, EmptyMark } from './NoticeCard'
+import BattleChart, { type BattleItem } from './battle/BattleChart'
+import { FEATURES } from '@/lib/features'
 
 /**
  * 공고 비교.
@@ -77,6 +79,22 @@ function priceCell(d: Detail): string {
   if (deposit !== null) bits.push(`보증금 ${formatMan(deposit)}`)
   if (monthlyRent !== null) bits.push(`월 ${monthlyRent.toLocaleString()}만원`)
   return bits.join(' · ')
+}
+
+/** 차이 막대에 넘길 값 — 원문에 없는 값은 null 로 둔다 */
+function toBattle(d: Detail): BattleItem {
+  const amounts = (d.supplyModels ?? []).map(m => m.topAmount).filter((n): n is number => n !== null)
+  const areas = (d.supplyModels ?? []).map(m => m.exclusiveArea).filter((n): n is number => n !== null)
+  const price = amounts.length ? Math.min(...amounts) : d.property.deposit
+  return {
+    id: d.property.id,
+    name: d.property.name,
+    supply: d.property.supplyCount > 0 ? d.property.supplyCount : null,
+    price: price ?? null,
+    priceKind: amounts.length ? 'SALE' : d.property.deposit !== null ? 'DEPOSIT' : null,
+    areaMax: areas.length ? Math.max(...areas) : d.property.area,
+    daysLeft: d.urgency.level === 'CLOSED' ? null : d.urgency.daysLeft,
+  }
 }
 
 function specialCell(d: Detail): string {
@@ -224,7 +242,7 @@ export default function CompareView() {
 
   return (
     <div className="cs-cmp">
-      <header className="cs-sa-deck cs-sa-cmpbar">
+      <header className="cs-sa-deck cs-sa-cmpbar" style={{ viewTransitionName: 'cs-compare' }}>
         <div className="cs-sa-cmpbar__nums">
           <p className="cs-sa-cmpbar__lead">
             <b className="cs-num">{items.length}</b>건을 나란히 놓았습니다.{' '}
@@ -250,6 +268,8 @@ export default function CompareView() {
           </Link>
         </div>
       </header>
+
+      {FEATURES.battle && items.length >= 2 && <BattleChart items={items.map(toBattle)} />}
 
       <div className="cs-sa-spec" data-cols={items.length}>
         <table className="cs-table cs-cmp__table">

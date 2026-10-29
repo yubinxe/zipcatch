@@ -7,6 +7,7 @@ import type { Property } from '@/lib/crm/types'
 import { formatManOr } from '@/lib/crm/services/scoring'
 import type { SpecialBrief } from '@/lib/adapters/applyhome-special'
 import SaveButton from './SaveButton'
+import CompareToggle from './battle/CompareToggle'
 
 export function statusBadge(urgency: Candidate['urgency']) {
   switch (urgency.level) {
@@ -320,7 +321,8 @@ export default function NoticeCard({
           <span className="cs-nc__src">{property.source}</span>
         </div>
         <div className="cs-nc__acts">
-          {pick}
+          {/* 부르는 쪽이 제 고르기(관심공고)를 넘기면 그것을, 아니면 비교 담기 */}
+          {pick ?? <CompareToggle id={property.id} name={property.name} />}
           <SaveButton propertyId={property.id} />
         </div>
       </div>

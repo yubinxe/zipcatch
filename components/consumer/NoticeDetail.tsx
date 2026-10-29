@@ -10,6 +10,7 @@ import { ddayText, shortDate, statusBadge } from './NoticeCard'
 import PageMasthead from './PageMasthead'
 import SpecialSupply from './SpecialSupply'
 import SaveButton from './SaveButton'
+import CompareToggle from './battle/CompareToggle'
 import NoticeCalendar, { marksFrom } from './NoticeCalendar'
 import NearbyStores from './NearbyStores'
 import WaitStatus from './WaitStatus'
@@ -430,6 +431,7 @@ export default function NoticeDetail({ id }: { id: string }) {
                 <SaveButton propertyId={property.id} />
                 <span aria-hidden="true">{saved ? '관심공고에 담았어요' : '관심공고에 저장'}</span>
               </label>
+              <CompareToggle id={property.id} name={property.name} className="cs-cmpt cs-cmpt--rail" />
               {!closed && !hasDeadlineAlert && (
                 <button
                   type="button"

@@ -12,4 +12,6 @@ export const FEATURES = {
   timeMachine: !off(process.env.NEXT_PUBLIC_FEATURE_TIME_MACHINE),
   /** B. 입체 지도 탐험 모드 */
   explore: !off(process.env.NEXT_PUBLIC_FEATURE_EXPLORE),
+  /** C. 비교 담기 · 트레이 · 차이 시각화 */
+  battle: !off(process.env.NEXT_PUBLIC_FEATURE_BATTLE),
 } as const
