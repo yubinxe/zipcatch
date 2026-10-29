@@ -14,4 +14,6 @@ export const FEATURES = {
   explore: !off(process.env.NEXT_PUBLIC_FEATURE_EXPLORE),
   /** C. 비교 담기 · 트레이 · 차이 시각화 */
   battle: !off(process.env.NEXT_PUBLIC_FEATURE_BATTLE),
+  /** D. 세 갈래 주거비 비교 */
+  playground: !off(process.env.NEXT_PUBLIC_FEATURE_PLAYGROUND),
 } as const

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useId, useState } from 'react'
+import { monthlyCost } from '@/lib/consumer/housing-cost'
 
 /**
  * 한 달에 실제로 나가는 돈.
@@ -109,16 +110,16 @@ export default function CostSimulator() {
   const [v, setV] = useState<Inputs>(DEFAULTS)
   const set = (key: keyof Inputs) => (n: number) => setV(prev => ({ ...prev, [key]: n }))
 
-  const loan = (v.deposit * v.loanPct) / 100
-  const own = v.deposit - loan
+  // 계산식은 세 갈래 비교(FinancialPlayground)와 함께 쓴다
+  const m = monthlyCost(v)
   const parts = [
-    { key: 'rent', label: '월 임대료', value: v.rent },
-    { key: 'fee', label: '관리비', value: v.fee },
-    { key: 'interest', label: '대출 이자', value: (loan * v.loanRate) / 100 / 12 },
-    { key: 'forgone', label: '못 받는 예금 이자', value: (own * v.saveRate) / 100 / 12 },
+    { key: 'rent', label: '월 임대료', value: m.rent },
+    { key: 'fee', label: '관리비', value: m.fee },
+    { key: 'interest', label: '대출 이자', value: m.interest },
+    { key: 'forgone', label: '못 받는 예금 이자', value: m.forgone },
   ]
-  const sum = parts.reduce((s, p) => s + p.value, 0)
-  const cash = v.rent + v.fee + parts[2].value
+  const sum = m.total
+  const cash = m.cash
   const ratio = v.income > 0 ? (cash / v.income) * 100 : null
   // 보증금 1,000만원이 한 달에 얼마와 같은지 — 지금 넣은 조달 비율과 금리로 섞어 본다
   const blended = (v.loanPct / 100) * v.loanRate + (1 - v.loanPct / 100) * v.saveRate

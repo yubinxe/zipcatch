@@ -6,6 +6,7 @@ import Reveal from '@/components/consumer/Reveal'
 import HeroAtlas from '@/components/consumer/HeroAtlas'
 import Journey from '@/components/consumer/Journey'
 import CostSimulator from '@/components/consumer/CostSimulator'
+import FinancialPlayground from '@/components/consumer/FinancialPlayground'
 import BuildProgress from '@/components/consumer/BuildProgress'
 import StatementScene from '@/components/consumer/home/StatementScene'
 import OpenNoticeScene from '@/components/consumer/home/OpenNoticeScene'
@@ -246,6 +247,7 @@ export default function ConsumerHome() {
           sub="보증금과 월 임대료를 한 달 단위로 옮겨, 서로 다른 공고를 같은 잣대로 봅니다."
         />
         <CostSimulator />
+        <FinancialPlayground />
       </Reveal>
 
       {/* ── 지금 짓고 있는 집 ───────────────────────────── */}
