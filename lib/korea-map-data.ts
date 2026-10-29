@@ -44,10 +44,42 @@ export interface KoreaProvincePath {
   code: string
 }
 
+/** 울릉도·독도는 본토에서 동쪽으로 멀리(원본 x 512~524) 떨어져 있다. 이보다 동쪽에서 시작하는 조각을 섬으로 본다 */
+const REMOTE_ISLAND_X = 450
+
+/**
+ * 경로에서 본토와 멀리 떨어진 섬 조각을 걷어낸다.
+ *
+ * 원본 경북 경로는 'm 522.6,128.2 … z m -223.29,222.72 …' — 첫 조각이 울릉도이고
+ * 둘째 조각(본토)은 상대 좌표로 이어진다. 'z' 뒤 현재 점은 그 조각의 시작점이므로,
+ * 첫 조각을 지울 때 둘째 조각의 시작을 절대 좌표로 바꿔 적는다.
+ * 모양이 예상과 다르면(절대 좌표, 조각 셋 이상 등) 손대지 않고 원본을 돌려준다.
+ */
+function withoutRemoteIsland(path: string): string {
+  const head = /^\s*m\s*(-?[\d.]+)[ ,](-?[\d.]+)/.exec(path)
+  if (!head) return path
+  const x0 = Number(head[1])
+  const y0 = Number(head[2])
+  if (!(x0 > REMOTE_ISLAND_X)) return path
+  const cut = /z\s*m\s*(-?[\d.]+)[ ,](-?[\d.]+)/i.exec(path)
+  if (!cut || cut.index === undefined) return path
+  const rest = path.slice(cut.index + cut[0].length)
+  if (/m/i.test(rest)) return path
+  const x = +(x0 + Number(cut[1])).toFixed(4)
+  const y = +(y0 + Number(cut[2])).toFixed(4)
+  // 경로 첫머리의 소문자 m 은 절대 위치로 읽히고, 뒤따르는 좌표쌍은 상대 l 로 읽힌다 — 원본 문법 그대로
+  return `m ${x},${y}${rest}`
+}
+
+/**
+ * 화면에 그리는 시도 경로 — 울릉도·독도 조각은 뺀다(첫 화면·장면·지도 진입 모두 본토와 제주만).
+ * 섬은 데이터에서 지우지 않는다: 지역 코드·집계·선택은 경북 그대로이고,
+ * 원본 경로는 공급 지도의 작은 상자(IslandInset)가 KOREA_ISLAND_PROVINCE 로 쓴다.
+ */
 export const KOREA_PROVINCES: KoreaProvincePath[] = southKoreaMap.locations.map((loc: SvgMapLocation) => ({
   id: loc.id,
   name: loc.name,
-  path: loc.path,
+  path: withoutRemoteIsland(loc.path),
   code: SVG_ID_TO_REGION_CODE[loc.id] ?? loc.id,
 }))
 
@@ -82,7 +114,7 @@ export const REGION_CENTROID_BY_CODE = Object.fromEntries(
  * 원본 viewBox(0 0 524 631)는 울릉도·독도(x 512~524)까지 담느라 오른쪽 4분의 1이
  * 비어 있다. 그대로 칸에 맞추면 본토가 왼쪽 위로 쏠려 보인다(실측: 왼쪽 40px · 위 33px).
  * 본토(x 1~397, y 0~527)와 제주(y ~630)를 감싸고 사방에 같은 여백을 둔다.
- * 울릉도·독도는 경북 경로 안에 그대로 남는다(데이터·집계·선택은 그대로). 이 틀 밖에 놓일 뿐이다.
+ * 울릉도·독도 조각은 KOREA_PROVINCES 에서 걷어냈다(데이터·집계·선택은 경북 그대로).
  * 첫 화면 지도는 별도 상자 없이 본토·제주만 보여 주고, 공급 지도(SupplyMap)는
  * KOREA_ISLAND_INSET 으로 따로 그린다.
  */
@@ -92,4 +124,7 @@ export const KOREA_VISUAL_VIEWBOX = '-14 -14 426 660'
 export const KOREA_ISLAND_INSET = '506 121 24 24'
 
 /** 울릉도·독도가 들어 있는 경로(경북) */
-export const KOREA_ISLAND_PROVINCE = KOREA_PROVINCES.find(p => p.id === 'north-gyeongsang')
+export const KOREA_ISLAND_PROVINCE = (() => {
+  const loc = southKoreaMap.locations.find(l => l.id === 'north-gyeongsang')
+  return loc ? { id: loc.id, name: loc.name, path: loc.path, code: SVG_ID_TO_REGION_CODE[loc.id] } : undefined
+})()
