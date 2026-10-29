@@ -185,10 +185,15 @@ export default function ConsumerHome() {
             가입 없이 먼저 확인하세요 · 청약홈·LH 실제 모집공고
           </p>
 
-          <span className="cs-lux-scroll" aria-hidden="true">
-            <i />
+          {/* 누르면 바로 아래 '지금 살펴볼 공고'로 내려간다 — 화살표가 갈 곳을 가리킨다 */}
+          <a href="#notices-now" className="cs-lux-scroll">
+            <span className="cs-lux-scroll__arrow" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M6 13l6 6 6-6" />
+              </svg>
+            </span>
             아래로 내려 공고 보기
-          </span>
+          </a>
         </div>
 
         {/* 예시 카드 대신 실제 집계. 지금 어디에 공고가 열려 있는지가 첫 화면의 주인공이다 */}

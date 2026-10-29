@@ -72,7 +72,7 @@ export default function HomeNoticeStrip() {
   }, [region, type, key])
 
   return (
-    <section className="cs-wrap cs-section">
+    <section id="notices-now" className="cs-wrap cs-section cs-notices-now">
       {/* 홈 섹션은 01부터 번호가 이어진다 */}
       <div className="cs-sec-head">
         <span className="cs-sec-index" aria-hidden="true">

@@ -4,10 +4,10 @@
    지도 중심, 제작자 장면, 요금제 정렬). 앞 층의 같은 규칙은 이 파일이 이긴다.
    ============================================================ */
 
-/* ── 챗봇 버튼 — 12% 크게, 화면 끝에서 한 걸음 안쪽으로 ────────── */
+/* ── 챗봇 버튼 — 12% 크게, 화면 끝에서 화면 폭의 12% 만큼 더 안쪽으로 ── */
 :root {
   --fab-size: 65px; /* 58 × 1.12 */
-  --fab-right: 48px;
+  --fab-right: calc(48px + 12vw);
   --fab-bottom: 24px;
 }
 body:has(.cs-ticker) {
@@ -16,7 +16,7 @@ body:has(.cs-ticker) {
 @media (max-width: 760px) {
   :root {
     --fab-size: 63px; /* 56 × 1.12 */
-    --fab-right: 24px;
+    --fab-right: calc(24px + 12vw);
     --fab-bottom: 18px;
   }
   body:has(.cs-ticker) {
@@ -1418,4 +1418,45 @@ body:has(.cs-ticker) .cs-maker__scene {
   .cs-decide__label small {
     display: none;
   }
+}
+
+/* ── 첫 화면 '아래로 내려 공고 보기' — 화살표를 단 링크 ───────────── */
+.cs-notices-now {
+  scroll-margin-top: var(--header-h);
+}
+.cs .cs-lux-scroll {
+  gap: 12px;
+  min-height: 44px;
+  text-decoration: none;
+  color: var(--body);
+  cursor: pointer;
+}
+.cs-lux-scroll__arrow {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 178, 122, 0.45);
+  color: var(--glow);
+  transition: border-color 0.25s ease, background-color 0.25s ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cs-lux-scroll__arrow svg {
+    animation: csScrollNudge 2.2s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  }
+}
+@keyframes csScrollNudge {
+  0%, 100% { transform: translateY(-2px); }
+  50% { transform: translateY(3px); }
+}
+.cs .cs-lux-scroll:hover .cs-lux-scroll__arrow,
+.cs .cs-lux-scroll:focus-visible .cs-lux-scroll__arrow {
+  border-color: var(--glow);
+  background: rgba(255, 138, 61, 0.12);
+}
+.cs .cs-lux-scroll:focus-visible {
+  outline: 2px solid var(--glow);
+  outline-offset: 4px;
+  border-radius: 8px;
 }
