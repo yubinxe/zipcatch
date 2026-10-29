@@ -2,6 +2,9 @@ import NoticeMap from '@/components/consumer/NoticeMap'
 import Link from 'next/link'
 import { KAKAO_JS_KEY, KAKAO_SDK_URL } from '@/components/consumer/kakao-sdk'
 import PageMasthead from '@/components/consumer/PageMasthead'
+import TimeMachine from '@/components/consumer/TimeMachine'
+import { FEATURES } from '@/lib/features'
+import '../../consumer-timemachine.css'
 
 export const metadata = {
   title: '지도로 보는 공고 — 집캐치',
@@ -62,6 +65,8 @@ export default function MapPage() {
       </PageMasthead>
       {/* 화면 제목이 이미 같은 말을 했다. 조각의 머리는 접는다 */}
       <NoticeMap heading={false} />
+      {/* 4.0 확장 — 위 지도와 독립. NEXT_PUBLIC_FEATURE_TIME_MACHINE=0 이면 걷힌다 */}
+      {FEATURES.timeMachine && <TimeMachine />}
     </div>
   )
 }
