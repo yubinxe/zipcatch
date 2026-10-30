@@ -26,4 +26,6 @@ export const FEATURES = {
   share: !off(process.env.NEXT_PUBLIC_FEATURE_SHARE),
   /** 4.1 공고 제목이 이어지는 화면 전환 */
   transitions: !off(process.env.NEXT_PUBLIC_FEATURE_TRANSITIONS),
+  /** PROPERTY EXPERIENCE — 공고의 주택형을 입체로 보고 견주기 */
+  complex: !off(process.env.NEXT_PUBLIC_FEATURE_COMPLEX),
 } as const

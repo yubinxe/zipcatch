@@ -13,6 +13,7 @@ import SaveButton from './SaveButton'
 import CompareToggle from './battle/CompareToggle'
 import CommuteExplorer from './CommuteExplorer'
 import NoticeTitleMorph from './NoticeTitleMorph'
+import ComplexLauncher from './complex/ComplexLauncher'
 import NoticeCalendar, { marksFrom } from './NoticeCalendar'
 import NearbyStores from './NearbyStores'
 import WaitStatus from './WaitStatus'
@@ -97,6 +98,8 @@ export default function NoticeDetail({ id }: { id: string }) {
   const [data, setData] = useState<DetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  /** 주택형 탐험에서 마지막으로 고른 주택형 — 표의 그 줄을 짚는다 */
+  const [pickedType, setPickedType] = useState<string | null>(null)
   /** 이 지역이 요즘 어느 정도로 붐비는지. 공고 본문과 별개로 늦게 와도 된다 */
   const [region, setRegion] = useState<RegionStat | null>(null)
   /** 근처에서 최근에 끝난 청약 — 지역 평균보다 가까운 참고다 */
@@ -483,8 +486,32 @@ export default function NoticeDetail({ id }: { id: string }) {
           {/* 주택형별 공급 — 총계만으로는 "내가 넣을 평형이 몇 세대이고 얼마인가"에
               답할 수 없다. 답하지 못하면 결국 공고문 PDF 를 열게 된다. */}
           {supplyModels.length > 0 && (
-            <section className="cs-sa-doc__sec">
+            <section className="cs-sa-doc__sec" id="supply-models">
               <h2 className="cs-sa-doc__h">주택형별 공급</h2>
+              <ComplexLauncher
+                notice={{
+                  propertyId: property.id,
+                  announcementId: property.announcementId,
+                  name: property.name,
+                  source: property.source,
+                  sourceUrl: property.sourceUrl,
+                  models: supplyModels,
+                }}
+                picked={pickedType}
+                onPicked={name => {
+                  setPickedType(name)
+                  // 돌아오면 고른 줄로 — 표가 화면 밖이면 그 자리까지만 옮긴다
+                  if (name)
+                    requestAnimationFrame(() =>
+                      document.querySelector(`[data-model="${CSS.escape(name)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }),
+                    )
+                }}
+              />
+              {pickedType && (
+                <p className="cx-picked" role="status">
+                  탐험에서 고른 주택형 <b>{pickedType}</b> — 아래 표에 표시했어요. 일정·원문은 이 화면 그대로입니다.
+                </p>
+              )}
               <div className="cs-models">
                 <table className="cs-table">
                   <thead>
@@ -498,7 +525,7 @@ export default function NoticeDetail({ id }: { id: string }) {
                   </thead>
                   <tbody>
                     {supplyModels.map(m => (
-                      <tr key={m.name}>
+                      <tr key={m.name} data-model={m.name} data-on={m.name === pickedType || undefined}>
                         <td className="cs-table__key">{m.name}</td>
                         <td className="cs-num">
                           {/* 원자료는 83.978 처럼 소수가 길다. 그대로 적으면 정밀해
