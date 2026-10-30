@@ -26,33 +26,44 @@ type RouteRead = { status: 'OK'; minutes: number; transfers: number } | { status
 let service: 'unknown' | 'ok' | 'down' = 'unknown'
 let calls = 0
 const MAX_CALLS = 6
-const cache = new Map<string, RouteRead>()
+/** 같은 (공고, 목적지)는 한 번만 묻는다 — 진행 중인 요청도 나눠 쓴다 */
+const cache = new Map<string, Promise<Exclude<RouteRead, 'loading'>>>()
+/** 첫 요청이 서비스가 열려 있는지 알려 줄 때까지 나머지는 기다린다 */
+let probe: Promise<unknown> | null = null
 
-async function route(item: CommuteItem, hub: Hub): Promise<RouteRead> {
-  const key = `${item.id}|${hub.name}`
-  const hit = cache.get(key)
-  if (hit && hit !== 'loading') return hit
+async function ask(item: CommuteItem, hub: Hub): Promise<Exclude<RouteRead, 'loading'>> {
   if (service === 'down' || calls >= MAX_CALLS) return { status: 'DOWN' }
   calls++
   const q = new URLSearchParams({ sx: String(item.lng), sy: String(item.lat), ex: String(hub.x), ey: String(hub.y) })
   try {
+    // 서비스가 닫혀 있으면 502 와 함께 상태를 JSON 으로 준다 — 본문을 읽는다
     const j = await fetch(`/api/transit?${q}`).then(r => r.json())
-    let out: RouteRead
     if (j.status === 'OK') {
       service = 'ok'
-      out = { status: 'OK', minutes: j.totalTime, transfers: j.transfers }
-    } else if (j.status === 'EMPTY') {
-      service = 'ok'
-      out = { status: 'NONE' }
-    } else {
-      service = 'down'
-      out = { status: 'DOWN' }
+      return { status: 'OK', minutes: j.totalTime, transfers: j.transfers }
     }
-    cache.set(key, out)
-    return out
+    if (j.status === 'EMPTY') {
+      service = 'ok'
+      return { status: 'NONE' }
+    }
+    service = 'down'
+    return { status: 'DOWN' }
   } catch {
     return { status: 'DOWN' }
   }
+}
+
+function route(item: CommuteItem, hub: Hub): Promise<Exclude<RouteRead, 'loading'>> {
+  const key = `${item.id}|${hub.name}`
+  const hit = cache.get(key)
+  if (hit) return hit
+  const run =
+    service === 'unknown' && probe
+      ? probe.then(() => ask(item, hub))
+      : ask(item, hub)
+  if (service === 'unknown' && !probe) probe = run
+  cache.set(key, run)
+  return run
 }
 
 export default function CommuteExplorer({ items, heading = true }: { items: CommuteItem[]; heading?: boolean }) {
@@ -75,9 +86,9 @@ export default function CommuteExplorer({ items, heading = true }: { items: Comm
     return () => {
       alive = false
     }
-    // usable 은 items 에서 바로 나온다
+    // 공고 목록이 같으면 다시 묻지 않는다(부르는 쪽이 매번 새 배열을 넘겨도)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hub, items])
+  }, [hub, items.map(i => i.id).join(',')])
 
   if (!FEATURES.commute || items.length === 0) return null
 
