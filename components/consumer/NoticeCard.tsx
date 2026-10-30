@@ -8,6 +8,7 @@ import { formatManOr } from '@/lib/crm/services/scoring'
 import type { SpecialBrief } from '@/lib/adapters/applyhome-special'
 import SaveButton from './SaveButton'
 import CompareToggle from './battle/CompareToggle'
+import NoticeTitleMorph from './NoticeTitleMorph'
 
 export function statusBadge(urgency: Candidate['urgency']) {
   switch (urgency.level) {
@@ -205,9 +206,11 @@ export default function NoticeCard({
 
         {/* 두 줄 높이를 늘 비워 둔다 — 한 줄 이름도 아래에 붙어 지역 줄과 한 덩이로 읽힌다 */}
         <div className="cs-nc__title">
-          <h3 className="cs-nc__name" title={property.name}>
+          <NoticeTitleMorph id={property.id}>
+            <h3 className="cs-nc__name" title={property.name}>
             {nameParts(property.name)}
           </h3>
+          </NoticeTitleMorph>
         </div>
         <p className="cs-nc__where">
           {/* 광역이 없거나 지역과 같으면 한 번만 적는다 */}

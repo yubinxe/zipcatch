@@ -12,6 +12,7 @@ import SpecialSupply from './SpecialSupply'
 import SaveButton from './SaveButton'
 import CompareToggle from './battle/CompareToggle'
 import CommuteExplorer from './CommuteExplorer'
+import NoticeTitleMorph from './NoticeTitleMorph'
 import NoticeCalendar, { marksFrom } from './NoticeCalendar'
 import NearbyStores from './NearbyStores'
 import WaitStatus from './WaitStatus'
@@ -311,7 +312,11 @@ export default function NoticeDetail({ id }: { id: string }) {
     <div className="cs-wrap cs-sa cs-sa--detail">
       <PageMasthead
         eyebrow="NOTICE FILE"
-        title={<span className="cs-sa-fadein">{property.name}</span>}
+        title={
+          <NoticeTitleMorph id={property.id}>
+            <span className="cs-sa-fadein">{property.name}</span>
+          </NoticeTitleMorph>
+        }
         lead={property.address || where || undefined}
       >
         <div className="cs-sa-mrow cs-sa-mrow--facts">

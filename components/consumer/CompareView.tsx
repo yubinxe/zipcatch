@@ -13,6 +13,7 @@ import BattleChart, { type BattleItem } from './battle/BattleChart'
 import { FEATURES } from '@/lib/features'
 import CommuteExplorer from './CommuteExplorer'
 import ShareStudio from './ShareStudio'
+import NoticeTitleMorph from './NoticeTitleMorph'
 import { provinceOf } from '@/lib/consumer/classify'
 
 /**
@@ -245,7 +246,7 @@ export default function CompareView() {
 
   return (
     <div className="cs-cmp">
-      <header className="cs-sa-deck cs-sa-cmpbar" style={{ viewTransitionName: 'cs-compare' }}>
+      <header className="cs-sa-deck cs-sa-cmpbar">
         <div className="cs-sa-cmpbar__nums">
           <p className="cs-sa-cmpbar__lead">
             <b className="cs-num">{items.length}</b>건을 나란히 놓았습니다.{' '}
@@ -330,7 +331,9 @@ export default function CompareView() {
                       )}
                     </span>
                     <Link href={`/notices/${d.property.id}`} className="cs-cmp__name">
-                      {d.property.name}
+                      <NoticeTitleMorph id={d.property.id}>
+                        <span>{d.property.name}</span>
+                      </NoticeTitleMorph>
                     </Link>
                     <span className="cs-cmp__sub">{d.property.region}</span>
                   </div>

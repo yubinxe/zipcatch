@@ -14,6 +14,7 @@ import { NAV } from '@/lib/consumer/nav'
 import CompareTray from './battle/CompareTray'
 import Spotlight, { SpotlightButton } from './Spotlight'
 import PreviewFixtureBar from './PreviewFixtureBar'
+import TitleFlipCapture from './TitleFlipCapture'
 
 
 export default function ConsumerShell({ children }: { children: ReactNode }) {
@@ -95,6 +96,7 @@ export default function ConsumerShell({ children }: { children: ReactNode }) {
       <CompareTray />
       <Spotlight />
       <PreviewFixtureBar />
+      <TitleFlipCapture />
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { FEATURES } from '@/lib/features'
+import { captureTitles } from '@/lib/consumer/title-flip'
 import { compareHref, TRAY_MAX, trayClear, trayRemove, useCompareTray } from '@/lib/consumer/compare-tray'
 
 /**
@@ -16,17 +17,14 @@ export default function CompareTray() {
   if (!FEATURES.battle || tray.length === 0) return null
   if (pathname.startsWith('/saved') || pathname.startsWith('/compare')) return null
 
+  // 화면에 보이는 담은 공고의 제목 자리를 적고 옮긴다 — 비교 열 제목이 그 자리에서 이어 나온다
   const go = () => {
-    const href = compareHref(tray)
-    // 브라우저가 화면 전환을 이어 붙일 수 있으면 트레이가 비교 머리로 자라듯 넘어간다
-    const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown }
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (doc.startViewTransition && !reduce) doc.startViewTransition(() => router.push(href))
-    else router.push(href)
+    captureTitles(tray.map(i => i.id))
+    router.push(compareHref(tray))
   }
 
   return (
-    <div className="cs-tray" role="region" aria-label="비교 담은 공고" style={{ viewTransitionName: 'cs-compare' }}>
+    <div className="cs-tray" role="region" aria-label="비교 담은 공고">
       <span className="cs-tray__n">
         비교 <b className="cs-num">{tray.length}</b>/{TRAY_MAX}
       </span>

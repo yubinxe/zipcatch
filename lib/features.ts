@@ -24,4 +24,6 @@ export const FEATURES = {
   commute: !off(process.env.NEXT_PUBLIC_FEATURE_COMMUTE),
   /** H. 결과를 이미지로 (비교·주거비·타임머신) */
   share: !off(process.env.NEXT_PUBLIC_FEATURE_SHARE),
+  /** 4.1 공고 제목이 이어지는 화면 전환 */
+  transitions: !off(process.env.NEXT_PUBLIC_FEATURE_TRANSITIONS),
 } as const
