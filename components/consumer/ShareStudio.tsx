@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { lockScroll } from '@/lib/consumer/scroll-lock'
 import { createPortal } from 'react-dom'
 import { drawShareCard, RATIO_SIZE, type Ratio, type ShareCard } from '@/lib/consumer/share-card'
 import { FEATURES } from '@/lib/features'
@@ -53,12 +54,9 @@ function Studio({ make, onClose }: { make: () => ShareCard; onClose: () => void 
   }, [card, ratio])
 
   useEffect(() => {
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const unlock = lockScroll()
     box.current?.focus()
-    return () => {
-      document.body.style.overflow = prev
-    }
+    return unlock
   }, [])
 
   const name = `zipcatch-${card.slug}-${ratio.replace(':', 'x')}.png`
