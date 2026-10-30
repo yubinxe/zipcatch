@@ -13,6 +13,7 @@ import MakerFooter from './MakerFooter'
 import { NAV } from '@/lib/consumer/nav'
 import CompareTray from './battle/CompareTray'
 import Spotlight, { SpotlightButton } from './Spotlight'
+import PreviewFixtureBar from './PreviewFixtureBar'
 
 
 export default function ConsumerShell({ children }: { children: ReactNode }) {
@@ -93,6 +94,7 @@ export default function ConsumerShell({ children }: { children: ReactNode }) {
       <MakerFooter />
       <CompareTray />
       <Spotlight />
+      <PreviewFixtureBar />
     </div>
   )
 }

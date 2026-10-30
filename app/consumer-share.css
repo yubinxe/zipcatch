@@ -113,3 +113,22 @@
 @media (prefers-reduced-motion: reduce) {
   .ss-veil, .ss-preview { animation: none; transition: none; }
 }
+
+/* 미리보기 검증용 픽스처 띠 — 운영에서는 그려지지 않는다 */
+.cs-fxbar {
+  position: fixed;
+  left: 12px;
+  /* 아래쪽은 비교 트레이·대화 단추 자리다 */
+  top: calc(var(--header-h, 72px) + 8px);
+  z-index: 1200;
+  max-width: min(560px, calc(100vw - 24px));
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #7D6320;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.4);
+}
+.cs-fxbar b { margin-right: 6px; }
+.cs-fxbar a { margin-left: 8px; color: #fff; text-decoration: underline; }
