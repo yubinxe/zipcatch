@@ -1,5 +1,6 @@
 'use client'
 
+import { follow } from '@/lib/consumer/scroll-follow'
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 
 /**
@@ -39,21 +40,46 @@ export default function ScrollStage({
       return
     }
 
+    /*
+     * target 은 스크롤 위치로 잰 진행률, shown 은 화면에 적힌 값. shown 이 target 을 공용 규칙
+     * (lib/consumer/scroll-follow)으로 쫓는다 — 휙 굴려도 장면이 한 프레임에 건너뛰지 않는다.
+     */
     let raf = 0
+    let target = 0
+    let shown = -1
     let last = -1
-    const measure = () => {
-      raf = 0
-      const r = el.getBoundingClientRect()
-      const run = r.height - window.innerHeight
-      const p = run > 0 ? Math.min(1, Math.max(0, -r.top / run)) : 1
+    let prevT = 0
+    const write = () => {
       // 소수 셋째 자리에서 끊어 같은 값이면 쓰지 않는다 — 스타일 재계산을 아낀다
-      const q = Math.round(p * 1000) / 1000
+      const q = Math.round(shown * 1000) / 1000
       if (q === last) return
       last = q
       st.style.setProperty('--p', String(q))
     }
+    const read = () => {
+      const r = el.getBoundingClientRect()
+      const run = r.height - window.innerHeight
+      target = run > 0 ? Math.min(1, Math.max(0, -r.top / run)) : 1
+    }
+    const step = (t: number) => {
+      raf = 0
+      read()
+      const dt = prevT ? t - prevT : 16
+      prevT = t
+      shown = shown < 0 ? target : follow(shown, target, dt)
+      write()
+      if (shown !== target) raf = requestAnimationFrame(step)
+      else prevT = 0
+    }
+    /** 화면 밖이거나 처음 — 쫓지 않고 바로 붙인다 */
+    const measure = () => {
+      read()
+      shown = target
+      prevT = 0
+      write()
+    }
     const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(measure)
+      if (!raf) raf = requestAnimationFrame(step)
     }
 
     // 화면 근처에 있을 때만 스크롤을 듣는다
