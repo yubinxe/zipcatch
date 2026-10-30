@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useSheetDrag } from '@/lib/consumer/use-sheet-drag'
 import { lockScroll } from '@/lib/consumer/scroll-lock'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { KOREA_PROVINCES, KOREA_VISUAL_VIEWBOX } from '@/lib/korea-map-data'
@@ -112,15 +113,8 @@ export default function SpatialExplorer({ open, onClose }: { open: boolean; onCl
   const [active, setActive] = useState<string | null>(null)
   const [hover, setHover] = useState<string | null>(null)
   const [live, setLive] = useState(false)
-  /** 휴대폰 바텀시트 — 'peek' 은 손잡이와 요약만, 'full' 은 목록까지 */
-  const [sheet, setSheet] = useState<'peek' | 'full'>('peek')
-  /*
-   * 바텀시트 끌기 — 손가락을 그대로 따라오고, 놓는 순간의 속도로 어디에 설지 정한다.
-   * 빠르게 튕기면 짧게 끌어도 넘어가고, 천천히 놓으면 가까운 쪽에 선다. 남은 거리와 속도로
-   * 돌아가는 시간을 정해 손을 뗀 속도가 그대로 이어지게 한다.
-   */
-  const panelRef = useRef<HTMLElement>(null)
-  const drag = useRef<{ y0: number; base: number; peek: number; last: { y: number; t: number }[]; moved: boolean } | null>(null)
+  /** 휴대폰 바텀시트 — 'peek' 은 손잡이와 요약만, 'full' 은 목록까지 (lib/consumer/use-sheet-drag) */
+  const { panelRef, sheet, setSheet, grip } = useSheetDrag(140)
 
   useEffect(() => {
     if (!open || pins) return
@@ -189,7 +183,7 @@ export default function SpatialExplorer({ open, onClose }: { open: boolean; onCl
   const pick = useCallback((code: string) => {
     setActive(a => (a === code ? null : code))
     setSheet('full')
-  }, [])
+  }, [setSheet])
 
   const list = activeCode ? byRegion.get(activeCode) ?? [] : [...filtered].sort((a, z) => (a.daysLeft ?? 9999) - (z.daysLeft ?? 9999))
 
@@ -241,66 +235,7 @@ export default function SpatialExplorer({ open, onClose }: { open: boolean; onCl
         </div>
 
         <aside className="sx-panel" data-sheet={sheet} aria-label="조건에 맞는 공고" ref={panelRef}>
-          <div
-            className="sx-grip"
-            onPointerDown={e => {
-              const el = panelRef.current
-              if (!el || getComputedStyle(el).position !== 'fixed') return // 넓은 화면은 옆 패널이라 끌지 않는다
-              const peek = el.offsetHeight - 140
-              drag.current = { y0: e.clientY, base: sheet === 'full' ? 0 : peek, peek, last: [{ y: e.clientY, t: e.timeStamp }], moved: false }
-              el.style.transition = 'none'
-              ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
-            }}
-            onPointerMove={e => {
-              const d = drag.current
-              const el = panelRef.current
-              if (!d || !el) return
-              const dy = e.clientY - d.y0
-              if (Math.abs(dy) > 6) d.moved = true
-              // 끝을 넘으면 저항을 준다(1/3) — 고무줄처럼
-              let off = d.base + dy
-              if (off < 0) off /= 3
-              if (off > d.peek) off = d.peek + (off - d.peek) / 3
-              el.style.transform = `translateY(${off}px)`
-              d.last.push({ y: e.clientY, t: e.timeStamp })
-              if (d.last.length > 6) d.last.shift()
-            }}
-            onPointerUp={e => {
-              const d = drag.current
-              const el = panelRef.current
-              drag.current = null
-              if (!d || !el) return
-              if (!d.moved) {
-                el.style.transition = ''
-                el.style.transform = ''
-                setSheet(v => (v === 'peek' ? 'full' : 'peek'))
-                return
-              }
-              const a = d.last[0]
-              const b = d.last[d.last.length - 1]
-              const v = (b.y - a.y) / Math.max(1, b.t - a.t) // px/ms, 아래가 +
-              const cur = Math.min(d.peek, Math.max(0, d.base + (e.clientY - d.y0)))
-              // 튕겼으면(0.4px/ms 넘게) 그 방향으로, 아니면 지금 속도로 0.2초 더 간 자리에서 가까운 쪽에 세운다
-              const to: 'full' | 'peek' =
-                Math.abs(v) > 0.4 ? (v < 0 ? 'full' : 'peek') : cur + v * 200 < d.peek / 2 ? 'full' : 'peek'
-              const dist = Math.abs((to === 'full' ? 0 : d.peek) - cur)
-              const ms = Math.round(Math.min(460, Math.max(200, dist / Math.max(0.6, Math.abs(v)))))
-              el.style.transition = `transform ${ms}ms cubic-bezier(0.2, 0.9, 0.25, 1)`
-              el.style.transform = ''
-              setSheet(to)
-              // 끝나면 CSS 의 기본 전환으로 돌려 둔다
-              window.setTimeout(() => {
-                if (panelRef.current && !drag.current) panelRef.current.style.transition = ''
-              }, ms + 30)
-            }}
-            onPointerCancel={() => {
-              drag.current = null
-              if (panelRef.current) {
-                panelRef.current.style.transition = ''
-                panelRef.current.style.transform = ''
-              }
-            }}
-          >
+          <div className="sx-grip" {...grip}>
             <button
               type="button"
               className="sx-grip__b"
