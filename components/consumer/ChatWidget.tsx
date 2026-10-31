@@ -8,6 +8,7 @@ import { AssistantGlyph, BackGlyph, ChatGlyph, CloseGlyph, InfoGlyph } from './p
 import { hasFinePointer, useNarrow, useOnline, useReducedMotion } from './phone/deviceStores'
 import { useDialogFocus } from './phone/useDialogFocus'
 import type { ChatMsg } from './phone/types'
+import { lockScroll } from '@/lib/consumer/scroll-lock'
 
 /**
  * 상담 챗봇 — 삼성 갤럭시(One UI) 폰.
@@ -183,17 +184,11 @@ export default function ChatWidget() {
 
   useDialogFocus(phase === 'open', deviceRef, close)
 
-  // 좁은 화면 — 뒤 페이지가 따라 스크롤되지 않게 잠근다
+  // 좁은 화면 — 뒤 페이지가 따라 스크롤되지 않게 잠근다. overflow:hidden 만 주면 닫은 뒤 맨 위로 튀므로
+  // 본문을 그 자리에 고정했다가 되돌리는 공용 잠금을 쓴다
   useEffect(() => {
     if (!shown || !narrow) return
-    const { documentElement: html, body } = document
-    const prev = [html.style.overflow, body.style.overflow]
-    html.style.overflow = 'hidden'
-    body.style.overflow = 'hidden'
-    return () => {
-      html.style.overflow = prev[0]
-      body.style.overflow = prev[1]
-    }
+    return lockScroll()
   }, [shown, narrow])
 
   // 좁은 화면 — 자판이 올라오면 보이는 높이에 맞춰 화면을 줄인다(입력줄이 자판 뒤로 숨지 않게)
