@@ -14,6 +14,8 @@ import CompareToggle from './battle/CompareToggle'
 import CommuteExplorer from './CommuteExplorer'
 import NoticeTitleMorph from './NoticeTitleMorph'
 import ComplexLauncher from './complex/ComplexLauncher'
+import { wonFull } from './complex/ComplexParts'
+import { officialModel, verifiedFor } from '@/lib/consumer/complex-visualization'
 import NoticeCalendar, { marksFrom } from './NoticeCalendar'
 import NearbyStores from './NearbyStores'
 import WaitStatus from './WaitStatus'
@@ -223,7 +225,20 @@ export default function NoticeDetail({ id }: { id: string }) {
   }
 
   const { property, urgency, candidate, schedule } = data
-  const supplyModels = data.supplyModels ?? []
+  const rawModels = data.supplyModels ?? []
+  // 원문과 대조를 마친 공고는 공고문 값으로 — 청약홈 전용면적은 표기('059.0000B' → 59)라 실제(59.97㎡)와 다르다
+  const verified = verifiedFor(property.announcementId)
+  const supplyModels = verified ? rawModels.map(m => officialModel(verified, m)) : rawModels
+  // 토지임대부: 분양가는 건물값뿐이고, 땅은 공공이 갖고 매달 토지임대료를 받는다
+  const landLease = /토지임대부/.test(property.name)
+  const priceLabel = landLease ? '건물 분양가' : '분양가'
+  const leaseNote = landLease
+    ? verified?.landLease
+      ? `토지임대부 — 분양가는 건물값만입니다. 토지임대료를 매달 따로 냅니다: ${Object.entries(verified.landLease.monthlyByArea)
+          .map(([a, v]) => `전용 ${a}㎡ 월 ${wonFull(v)}`)
+          .join(' · ')} (공고 ${verified.landLease.page}쪽, 면적 줄 전체 같은 금액).`
+      : '토지임대부 — 분양가는 건물값만입니다. 매달 내는 토지임대료는 공고문에서 확인해 주세요.'
+    : null
   const trade = data.trade ?? null
   const rent = data.rent ?? null
   /**
@@ -383,7 +398,7 @@ export default function NoticeDetail({ id }: { id: string }) {
               <div>
                 {/* 분양 공고에 '보증금' 을 묻는 것부터 어긋난다. 분양가가 있으면
                     그것을 적고, 이름도 분양가로 바꾼다 */}
-                <dt>{property.deposit === null && span.price ? '분양가' : '보증금'}</dt>
+                <dt>{property.deposit === null && span.price ? priceLabel : '보증금'}</dt>
                 <dd className="cs-num" data-wide={property.deposit === null && span.price ? 'true' : undefined}>
                   {property.deposit !== null ? (
                     formatMan(property.deposit)
@@ -421,8 +436,15 @@ export default function NoticeDetail({ id }: { id: string }) {
                 </dd>
               </div>
               <div>
-                <dt>공급 세대</dt>
-                <dd className="cs-num">{property.supplyCount}세대</dd>
+                <dt>공급 규모</dt>
+                <dd className="cs-num">
+                  {property.supplyCount.toLocaleString()}세대
+                  {verified && (
+                    <span className="cs-table__sub">
+                      이번 청약 {verified.supply.main} · 사전청약 당첨자 {verified.supply.preWinners}
+                    </span>
+                  )}
+                </dd>
               </div>
             </dl>
 
@@ -518,9 +540,9 @@ export default function NoticeDetail({ id }: { id: string }) {
                     <tr>
                       <th>주택형</th>
                       <th>공급면적</th>
-                      <th className="cs-table__r">분양가</th>
+                      <th className="cs-table__r">{priceLabel}</th>
                       <th className="cs-table__r">평당</th>
-                      <th className="cs-table__r">세대</th>
+                      <th className="cs-table__r">이번 청약</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -550,8 +572,17 @@ export default function NoticeDetail({ id }: { id: string }) {
                 </table>
               </div>
               <p className="cs-sa-doc__note">
-                분양가는 주택형별 최고가 기준이고, 평당은 공급면적으로 나눈 값입니다. 층·동별 금액과
-                옵션은 공고문에서 확인해 주세요.
+                {priceLabel}는 주택형별 최고가 기준이고, 평당은 공급면적으로 나눈 값입니다. ‘이번 청약’은 특별공급과
+                일반공급을 더한 세대로, 사전청약 당첨자 배정분은 들지 않습니다.
+                {verified
+                  ? ` 단지 전체 ${verified.supply.total.toLocaleString()}세대 = 사전청약 당첨자 ${verified.supply.preWinners} + 특별 ${verified.supply.special} + 일반 ${verified.supply.general} (공고 ${verified.supply.page}쪽). 전용면적은 공고문의 주거전용입니다.`
+                  : ' 층·동별 금액과 옵션은 공고문에서 확인해 주세요.'}
+                {leaseNote && (
+                  <>
+                    <br />
+                    <strong>{leaseNote}</strong>
+                  </>
+                )}
               </p>
             </section>
           )}
@@ -635,7 +666,7 @@ export default function NoticeDetail({ id }: { id: string }) {
                       <thead>
                         <tr>
                           <th>주택형</th>
-                          <th className="cs-table__r">분양가</th>
+                          <th className="cs-table__r">{priceLabel}</th>
                           <th className="cs-table__r">주변 시세 환산액</th>
                           <th className="cs-table__r">차이</th>
                         </tr>
@@ -667,6 +698,13 @@ export default function NoticeDetail({ id }: { id: string }) {
                   </div>
                 )}
 
+                {landLease && supplyModels.length > 0 && (
+                  <p className="cs-sa-doc__note">
+                    <strong>토지임대부는 땅값이 빠진 값입니다.</strong> 주변 시세는 땅과 건물을 함께 산 값이라, 건물 분양가와 바로 견주면
+                    차이가 실제보다 크게 싸 보입니다. 매달 내는 토지임대료를 함께 보아 주세요.
+                  </p>
+                )}
+
                 {trade!.presale?.medianPerPyeong && (
                   <div className="cs-bench">
                     <div className="cs-bench__k">분양권 전매와 견주면</div>
@@ -680,7 +718,7 @@ export default function NoticeDetail({ id }: { id: string }) {
                         <thead>
                           <tr>
                             <th>주택형</th>
-                            <th className="cs-table__r">분양가</th>
+                            <th className="cs-table__r">{priceLabel}</th>
                             <th className="cs-table__r">전매 시세 환산액</th>
                             <th className="cs-table__r">차이</th>
                           </tr>
