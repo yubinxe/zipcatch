@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { PRESENTATION } from '@/lib/consumer/complex-visualization'
 
 /** 숫자가 바뀔 때 지난 값에서 새 값으로 짧게 흘러간다(움직임 줄이기면 바로). 화면 읽기에는 최종값을 따로 준다 */
-export function useTween(value: number | null, ms = 420): number | null {
+export function useTween(value: number | null, ms: number = PRESENTATION.numberMs): number | null {
   const [shown, setShown] = useState(value)
   const from = useRef(value)
   useEffect(() => {
