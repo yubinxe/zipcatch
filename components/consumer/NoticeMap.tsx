@@ -6,6 +6,7 @@ import { MAP_SCOPE, type MapScope } from '@/lib/consumer/geo'
 import { formatManOr } from '@/lib/crm/services/scoring'
 import { PillChoice } from './Choose'
 import { loadKakao } from './kakao-sdk'
+import { diffDays, stateOn } from '@/lib/consumer/timeline-core'
 import MapIntro, {
   createHandoff,
   introStartLevel,
@@ -43,6 +44,11 @@ interface Pin {
   lat: number
   lng: number
   coordSource: 'GEOCODED' | 'DISTRICT' | 'PROVINCE'
+  /** range=all 일 때만 온다 */
+  applicationStart?: string | null
+  seen?: string | null
+  /** 되감은 날 기준으로 아직 접수 전 */
+  soon?: boolean
 }
 
 interface MapData {
@@ -62,6 +68,17 @@ function dday(n: number | null) {
   if (n === 0) return 'D-DAY'
   if (n < 0) return '마감'
   return `D-${n}`
+}
+
+/** 마감이 가까운 순. 되감은 날의 접수 예정 공고는 열려 있는 공고 뒤로 */
+function bySoonest(a: Pin, z: Pin) {
+  return Number(!!a.soon) - Number(!!z.soon) || (a.daysLeft ?? 9999) - (z.daysLeft ?? 9999)
+}
+
+/** 2026-09-19 → 2026. 9. 19. (타임머신 표기와 같게) */
+function dotted(day: string) {
+  const [y, m, d] = day.split('-').map(Number)
+  return `${y}. ${m}. ${d}.`
 }
 
 function priceLine(p: Pin) {
@@ -125,8 +142,18 @@ export default function NoticeMap({
    * 한 화면에 두 번 나왔다.
    */
   heading = true,
+  /**
+   * 타임머신이 고른 날(YYYY-MM-DD). 비었거나 오늘이면 지금의 공고를 그대로 그린다.
+   * 다른 날이면 공고 원문 일정으로 그날 마감 전이던(또는 접수 예정이던) 공고만 얹는다.
+   */
+  day = null,
+  today = null,
+  onToday,
 }: {
   heading?: boolean
+  day?: string | null
+  today?: string | null
+  onToday?: () => void
 } = {}) {
   const host = useRef<HTMLDivElement>(null)
   const mapRef = useRef<KakaoNS>(null)
@@ -203,11 +230,45 @@ export default function NoticeMap({
     }
   }, [])
 
+  /** 되감기 중인지. 오늘이면 아니다 */
+  const rewound = !!day && !!today && day !== today
+  /** 지난 공고까지 실은 판. 처음 되감을 때 한 번만 받는다 */
+  const [wide, setWide] = useState<MapData | null>(null)
+  const [wideError, setWideError] = useState<string | null>(null)
+  useEffect(() => {
+    if (!rewound || wide) return
+    let alive = true
+    fetch('/api/notices/map?range=all', { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('지난 공고를 불러오지 못했어요.'))))
+      .then(json => alive && (json.error ? setWideError(json.error) : setWide(json)))
+      .catch((e: unknown) => alive && setWideError(e instanceof Error ? e.message : String(e)))
+    return () => {
+      alive = false
+    }
+  }, [rewound, wide])
+
+  /**
+   * 지금 지도에 얹을 공고. 되감기 중이 아니면 처음 받은 그대로다(기존 동작).
+   * 되감은 날에는 남은 날을 그날 기준으로 다시 센다. 시작일이 없고 처음 저장한 날보다
+   * 앞선 날에는 있었는지 모르므로 얹지 않는다.
+   */
+  const shown = useMemo<MapData | null>(() => {
+    if (!rewound || !data) return data
+    if (!wide) return data
+    const pins = wide.pins.flatMap(p => {
+      const st = stateOn({ start: p.applicationStart ?? null, end: p.applicationEnd, seen: p.seen }, day!)
+      if (st === 'CLOSED' || st === 'UNKNOWN') return []
+      const left = p.applicationEnd ? diffDays(day!, p.applicationEnd.slice(0, 10)) : null
+      return [{ ...p, daysLeft: left, soon: st === 'UPCOMING' }]
+    })
+    return { ...wide, pins }
+  }, [rewound, data, wide, day])
+
   /** 고른 범위의 공고 수 — 비어 있을 때 이유를 말하는 데 쓴다 */
-  const scopeCount = data
+  const scopeCount = shown
     ? (SCOPE_PROVINCES[scope]
-        ? data.pins.filter(p => SCOPE_PROVINCES[scope]!.includes(p.province))
-        : data.pins
+        ? shown.pins.filter(p => SCOPE_PROVINCES[scope]!.includes(p.province))
+        : shown.pins
       ).length
     : 0
 
@@ -315,6 +376,7 @@ export default function NoticeMap({
   // 표시를 그린다. 기본 핀 대신 지면의 글자꼴로 만든 표를 얹는다.
   useEffect(() => {
     const w = window as unknown as { kakao?: KakaoNS }
+    const data = shown
     if (!ready || !mapRef.current || !data || !w.kakao?.maps) return
     const kakao = w.kakao
     const map = mapRef.current
@@ -355,10 +417,11 @@ export default function NoticeMap({
         urgent ? 'cs-pin--urgent' : '',
         dayClass,
         approx ? 'cs-pin--approx' : '',
+        pin.soon ? 'cs-pin--soon' : '',
       ]
         .filter(Boolean)
         .join(' ')
-      const label = dday(pin.daysLeft)
+      const label = pin.soon ? '예정' : dday(pin.daysLeft)
       const title = `${pin.name} · ${pin.province}`.replace(/"/g, '&quot;')
 
       try {
@@ -406,7 +469,7 @@ export default function NoticeMap({
           p.lng >= cLng - hLng &&
           p.lng <= cLng + hLng,
       )
-      inView.sort((a, z) => (a.daysLeft ?? 9999) - (z.daysLeft ?? 9999))
+      inView.sort(bySoonest)
       setVisible(inView)
     }
     sync()
@@ -431,8 +494,8 @@ export default function NoticeMap({
       })
       overlaysRef.current = []
     }
-    // scope 가 바뀌면 다시 맞출 기회를 준다
-  }, [ready, data, scope])
+    // scope 가 바뀌면 다시 맞출 기회를 준다. 되감은 날이 바뀌면 표시를 다시 얹는다
+  }, [ready, shown, scope])
 
   /** 벡터 지도가 다가갈 곳 — 카카오 지도가 처음 담을 것과 같은 공고들 */
   const aim = useMemo<IntroAim>(() => {
@@ -448,13 +511,13 @@ export default function NoticeMap({
 
   const introPins = useMemo<IntroPin[]>(
     () =>
-      (data?.pins ?? []).map(p => ({
+      (shown?.pins ?? []).map(p => ({
         lat: p.lat,
         lng: p.lng,
         kind: p.kind,
-        hot: p.daysLeft !== null && p.daysLeft >= 0 && p.daysLeft <= 3,
+        hot: !p.soon && p.daysLeft !== null && p.daysLeft >= 0 && p.daysLeft <= 3,
       })),
-    [data],
+    [shown],
   )
 
   /**
@@ -462,11 +525,11 @@ export default function NoticeMap({
    * 공고를 마감 순으로 그대로 보여 준다 — 지도가 없다고 목록까지 비우지 않는다.
    */
   const listed = useMemo(() => {
-    if (!error || !data) return visible
+    if (!error || !shown) return visible
     const allow = SCOPE_PROVINCES[scope]
-    const pins = allow ? data.pins.filter(p => allow.includes(p.province)) : [...data.pins]
-    return pins.sort((a, z) => (a.daysLeft ?? 9999) - (z.daysLeft ?? 9999))
-  }, [error, data, scope, visible])
+    const pins = allow ? shown.pins.filter(p => allow.includes(p.province)) : [...shown.pins]
+    return pins.sort(bySoonest)
+  }, [error, shown, scope, visible])
 
   return (
     // 앵커(id)를 여기 두지 않는다. 이 조각은 /notices 와 /map 두 곳에 놓이는데,
@@ -501,10 +564,10 @@ export default function NoticeMap({
             }}
             items={(Object.keys(MAP_SCOPE) as MapScope[]).map(k => {
               const allow = SCOPE_PROVINCES[k]
-              const n = data
+              const n = shown
                 ? allow
-                  ? data.pins.filter(p => allow.includes(p.province)).length
-                  : data.pins.length
+                  ? shown.pins.filter(p => allow.includes(p.province)).length
+                  : shown.pins.length
                 : undefined
               // 건수를 함께 적어 어디에 공고가 몰려 있는지 누르기 전에 보이게 한다
               return { value: k, label: k, count: n }
@@ -541,6 +604,22 @@ export default function NoticeMap({
             </span>
           </div>
         </div>
+
+        {rewound && (
+          <div className="cs-map__rewind" role="status" aria-live="polite">
+            <span>
+              <b>{dotted(day!)}</b> 기준으로 되감은 지도
+              {wide ? ` · 마감 전 ${shown!.pins.filter(p => !p.soon).length}건 · 접수 예정 ${shown!.pins.filter(p => p.soon).length}건` : ' · 지난 공고를 불러오는 중'}
+              {wideError && ` · ${wideError}`}
+            </span>
+            <span className="cs-map__rewind-note">공고 원문 일정으로 되짚은 상태 · 시작일 미기재 공고는 처음 수집한 날부터</span>
+            {onToday && (
+              <button type="button" className="cs-map__rewind-btn" onClick={onToday}>
+                오늘로
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="cs-map">
           {/*
@@ -625,7 +704,7 @@ export default function NoticeMap({
                       <span
                         className="cs-map__dday"
                         data-d={
-                          p.daysLeft === null
+                          p.soon || p.daysLeft === null
                             ? undefined
                             : p.daysLeft === 0
                               ? '0'
@@ -636,7 +715,7 @@ export default function NoticeMap({
                                   : undefined
                         }
                       >
-                        {dday(p.daysLeft)}
+                        {p.soon ? '예정' : dday(p.daysLeft)}
                       </span>
                       <span className="cs-map__name">{p.name}</span>
                       <span className="cs-map__meta">
@@ -651,7 +730,7 @@ export default function NoticeMap({
         </div>
       </div>
 
-      {data && (
+      {data && !rewound && (
         <p className="cs-note cs-sa-map__note">
           지도에 표시된 공고 {data.pins.length}건
           {data.geocoded > 0 && ` · 주소로 정확히 찍은 공고 ${data.geocoded}건`}

@@ -118,7 +118,7 @@ export default function DecideScene() {
   )
 
   return (
-    <ScrollStage length={2.8} className="cs-scene cs-scene--decide" label="두 공고를 같은 잣대로 견주는 모습">
+    <ScrollStage length={2.0} className="cs-scene cs-scene--decide" label="두 공고를 같은 잣대로 견주는 모습">
       <div className="cs-wrap cs-decide">
         <div className="cs-decide__head">
           <span className="cs-sec-eyebrow">Compare &amp; Decide</span>

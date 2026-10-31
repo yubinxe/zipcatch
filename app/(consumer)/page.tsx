@@ -6,10 +6,14 @@ import Reveal from '@/components/consumer/Reveal'
 import HeroAtlas from '@/components/consumer/HeroAtlas'
 import Journey from '@/components/consumer/Journey'
 import CostSimulator from '@/components/consumer/CostSimulator'
+import FinancialPlayground from '@/components/consumer/FinancialPlayground'
 import BuildProgress from '@/components/consumer/BuildProgress'
 import StatementScene from '@/components/consumer/home/StatementScene'
 import OpenNoticeScene from '@/components/consumer/home/OpenNoticeScene'
 import DecideScene from '@/components/consumer/home/DecideScene'
+import DiveButton from '@/components/consumer/dive/DiveButton'
+import DiveHost from '@/components/consumer/dive/DiveHost'
+import Director from '@/components/consumer/director/Director'
 
 /**
  * 자주 묻는 것.
@@ -125,7 +129,9 @@ export default function ConsumerHome() {
             <br className="cs-mobile-break" /> 내 조건에 맞는 후보부터 마감 일정까지 이어서 챙깁니다.
           </p>
 
-          <div className="cs-hero__cta">
+          {/* 행동은 한 줄의 위계로 — 내 조건으로 찾기가 첫째, 실제 단지 탐험이 둘째,
+              목록·지도는 글자 고리로 남긴다(갈 곳은 그대로) */}
+          <div className="cs-hero__cta cs-hero__cta--ranked">
             <Link href="/analyze" className="cs-btn cs-btn--primary">
               내 조건으로 집 찾기
               <svg
@@ -142,44 +148,17 @@ export default function ConsumerHome() {
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
             </Link>
-            <Link href="/notices" className="cs-btn cs-btn--text cs-btn--map">
-              <svg
-                width="17"
-                height="17"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M4 5h16M4 12h16M4 19h10" />
-              </svg>
-              모집공고 둘러보기
-            </Link>
-            {/* 목록과 지도는 같은 공고를 다르게 보는 두 창구다. 목록으로만
-                들여보내면 지도가 있는 줄도 모른다.
-                지도를 독립 화면으로 옮긴 뒤 이 링크만 /notices#map 에 남아
-                지도를 눌렀는데 목록이 열렸다. 옮길 때 들어오는 길을 같이 옮겨야 한다. */}
-            <Link href="/map" className="cs-btn cs-btn--text cs-btn--map">
-              <svg
-                width="17"
-                height="17"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M9 3 3 5.5v15L9 18l6 3 6-2.5v-15L15 6 9 3Z" />
-                <path d="M9 3v15M15 6v15" />
-              </svg>
-              지도로 보기
-            </Link>
+            <DiveButton announcementId="2026000373-2026000373" region="서울" className="cs-btn cs-hero__dive">
+              <span className="cs-hero__dive-t">3D 단지 탐험</span>
+              <span className="cs-hero__dive-s">고덕강일 3단지 · 공고 원문 대조</span>
+            </DiveButton>
           </div>
+          {/* 목록과 지도는 같은 공고를 다르게 보는 두 창구다. 지도를 독립 화면(/map)으로 옮길 때
+              들어오는 길도 같이 옮겼다 — 이 고리들의 목적지는 바꾸지 않는다 */}
+          <nav className="cs-hero__more" aria-label="공고 둘러보기">
+            <Link href="/notices">전체 모집공고</Link>
+            <Link href="/map">지도 보기</Link>
+          </nav>
 
           <p className="cs-note" style={{ marginTop: 20 }}>
             가입 없이 먼저 확인하세요 · 청약홈·LH 실제 모집공고
@@ -250,6 +229,7 @@ export default function ConsumerHome() {
           sub="보증금과 월 임대료를 한 달 단위로 옮겨, 서로 다른 공고를 같은 잣대로 봅니다."
         />
         <CostSimulator />
+        <FinancialPlayground />
       </Reveal>
 
       {/* ── 지금 짓고 있는 집 ───────────────────────────── */}
@@ -389,6 +369,11 @@ export default function ConsumerHome() {
           </Link>
         </div>
       </Reveal>
+
+      {/* 지도·첫 화면·시연 모드가 부르는 단지 탐험 — 화면을 덮는 한 겹 */}
+      <DiveHost />
+      {/* 시연 모드 — 주소에 ?director=1 이 있을 때만 */}
+      <Director />
 
       {/* ── 마감 티커 ───────────────────────────────────── */}
       {/* 지면의 맨 끝이자 화면의 맨 아래. 스크롤 위치와 무관하게

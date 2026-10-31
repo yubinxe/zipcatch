@@ -11,6 +11,7 @@ import SampleOnlyNotice from './SampleOnlyNotice'
 import { useConsumer } from './ConsumerProvider'
 import { useSignupGate } from './SignupGate'
 import PageMasthead from './PageMasthead'
+import HousingUniverse from './HousingUniverse'
 
 interface Row {
   property: Property
@@ -265,6 +266,8 @@ export default function ResultsView() {
               </div>
             </dl>
           </section>
+
+          <HousingUniverse profile={profile} base={data} />
 
           <section className="cs-sa-sec">
             <header className="cs-sa-head">

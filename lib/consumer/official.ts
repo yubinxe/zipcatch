@@ -1,4 +1,5 @@
 import type { Property, PropertyStatus } from '@/lib/crm/types'
+import { fixtureActive, fixtureProperties } from '@/lib/runtime/preview-fixture'
 import type { OpportunityRow } from '@/lib/db/types'
 import * as repo from '@/lib/db/repo'
 
@@ -78,6 +79,7 @@ function toProperty(row: OpportunityRow, today = new Date()): Property {
     lng: row.lng,
     geoSource: row.geo_source,
     collectedAt: row.updated_at ?? row.created_at ?? null,
+    firstSeenAt: row.created_at ?? null,
     dataOrigin: 'OFFICIAL',
   }
 }
@@ -102,6 +104,16 @@ export interface OfficialQuery {
  * 실패를 예시 데이터로 덮지 않는다 — 호출부가 개수로 구분한다.
  */
 export async function listOfficialProperties(q: OfficialQuery = {}): Promise<Property[]> {
+  // 미리보기 검증용 가상 공고 — 운영 배포에서는 켜지지 않는다(lib/runtime/preview-fixture)
+  if (await fixtureActive()) {
+    const today = new Date()
+    const t = new Date(today.getTime() + 9 * 3_600_000).toISOString().slice(0, 10)
+    return fixtureProperties(today)
+      .filter(p => !q.openOnly || (p.applicationEnd ?? '') >= t)
+      .filter(p => !q.region || p.region === q.region)
+      .filter(p => !q.housingType || p.housingType.includes(q.housingType) || q.housingType.includes(p.housingType))
+      .slice(0, q.limit ?? 100)
+  }
   try {
     const today = new Date()
     const ymd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
@@ -121,6 +133,7 @@ export async function listOfficialProperties(q: OfficialQuery = {}): Promise<Pro
 
 /** 실제 공고 1건. 없으면 null (예시 공고 조회는 호출부가 따로 한다) */
 export async function findOfficialProperty(id: string): Promise<Property | null> {
+  if (id.startsWith('fx-') && (await fixtureActive())) return fixtureProperties().find(p => p.id === id) ?? null
   try {
     const row = await repo.getOpportunity(id)
     if (!row || row.is_demo) return null

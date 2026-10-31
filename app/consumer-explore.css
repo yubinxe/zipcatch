@@ -1,0 +1,308 @@
+/* ── 탐험 모드 (B) — 화면 가득 펼친 입체 지도 ────────────────────
+   첫 화면 지도의 밤 재질을 그대로 잇는다. 모든 선택자는 .sx 아래. */
+
+.sx {
+  --sx-ink: #D5D9E0;
+  --sx-dim: #8A93A3;
+  --sx-line: rgba(255, 255, 255, 0.08);
+  --sx-hot: #FF8A3D;
+  --sx-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  position: fixed;
+  inset: 0;
+  height: 100dvh; /* iPhone Safari 주소창이 접히고 펴져도 바닥이 맞게 */
+  /* 머리·대화 단추보다 위 */
+  z-index: 1000;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  background:
+    radial-gradient(60% 50% at 70% 0%, rgba(255, 138, 61, 0.1), transparent 70%),
+    linear-gradient(180deg, var(--night-2, #121823), var(--night, #0B0E14));
+  color: var(--sx-ink);
+  outline: none;
+  animation: sx-in 420ms var(--sx-ease);
+}
+@keyframes sx-in {
+  from { opacity: 0; transform: scale(1.015); }
+}
+
+.sx-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: clamp(16px, 2.4vw, 28px) clamp(16px, 3vw, 40px) 12px;
+}
+.sx-kicker {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--sx-hot);
+}
+.sx .sx-title {
+  margin: 6px 0 0;
+  font-size: clamp(22px, 2.6vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+.sx-close {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sx-close:hover { background: rgba(255, 255, 255, 0.06); }
+
+.sx-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 0 clamp(16px, 3vw, 40px) 14px;
+  border-bottom: 1px solid var(--sx-line);
+}
+.sx-seg {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.sx-seg__b {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sx-dim);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 200ms var(--sx-ease), color 200ms var(--sx-ease);
+}
+.sx-seg__b:hover { color: #fff; }
+.sx-seg__b[aria-checked='true'] { background: #fff; color: #0B0E14; }
+
+.sx-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+  min-height: 0;
+}
+.sx-stage {
+  position: relative;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.sx-flat {
+  width: auto;
+  height: 100%;
+  max-height: 100%;
+  max-width: 100%;
+  transition: opacity 600ms var(--sx-ease);
+}
+.sx-flat path {
+  fill: rgba(255, 255, 255, 0.05);
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 0.8;
+  cursor: pointer;
+  transition: fill 300ms var(--sx-ease);
+}
+.sx-flat path[data-level='1'] { fill: color-mix(in oklch, var(--sx-hot) 22%, #0B0E14); }
+.sx-flat path[data-level='2'] { fill: color-mix(in oklch, var(--sx-hot) 40%, #0B0E14); }
+.sx-flat path[data-level='3'] { fill: color-mix(in oklch, var(--sx-hot) 62%, #0B0E14); }
+.sx-flat path[data-level='4'] { fill: color-mix(in oklch, var(--sx-hot) 84%, #0B0E14); }
+.sx-flat path[data-on] { stroke: #fff; stroke-width: 1.8; }
+.sx-stage[data-3d='on'] > .sx-flat { opacity: 0; pointer-events: none; }
+.sx-stage[data-3d='on'] > .cs3d-host { pointer-events: auto; }
+.sx-stage[data-3d='on'] .cs3d-canvas,
+.sx-stage[data-3d='on'] .cs3d-tags { opacity: 1; }
+.sx-back {
+  position: absolute;
+  left: 20px;
+  top: 16px;
+  z-index: 3;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(11, 14, 20, 0.7);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.sx-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--sx-line);
+  background: rgba(11, 14, 20, 0.55);
+}
+.sx-grip { display: none; }
+.sx-sum {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 18px 20px 10px;
+}
+.sx-sum strong { font-size: 24px; color: #fff; font-variant-numeric: tabular-nums; }
+.sx-sum span { font-size: 13px; color: var(--sx-dim); }
+
+.sx-regions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 4px 20px 14px;
+  border-bottom: 1px solid var(--sx-line);
+}
+.sx-regions button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sx-ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.sx-regions button b { margin-left: 4px; color: var(--sx-hot); font-variant-numeric: tabular-nums; }
+.sx-regions button[aria-pressed='true'] { background: var(--sx-hot); border-color: var(--sx-hot); color: #1A0E06; }
+.sx-regions button[aria-pressed='true'] b { color: #1A0E06; }
+
+.sx-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  flex: 1;
+}
+.sx-list a {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 2px 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--sx-line);
+  color: inherit;
+  text-decoration: none;
+  transition: background 200ms var(--sx-ease);
+}
+.sx-list a:hover { background: rgba(255, 255, 255, 0.04); }
+.sx-list__d {
+  grid-row: span 2;
+  align-self: start;
+  padding: 3px 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.sx-list__d[data-hot] { background: rgba(255, 138, 61, 0.18); color: var(--sx-hot); }
+.sx-list__n { font-size: 14px; font-weight: 600; color: #fff; line-height: 1.45; }
+.sx-list__m { font-size: 12px; color: var(--sx-dim); }
+.sx-list li[data-kind='rent'] .sx-list__n::before {
+  content: '임대';
+  margin-right: 6px;
+  font-size: 11px;
+  color: #9DB8E2;
+}
+.sx-list li[data-kind='sale'] .sx-list__n::before {
+  content: '분양';
+  margin-right: 6px;
+  font-size: 11px;
+  color: var(--sx-hot);
+}
+.sx .sx-empty, .sx .sx-more { margin: 0; padding: 18px 20px; font-size: 13px; color: var(--sx-dim); }
+
+.sx button:focus-visible,
+.sx a:focus-visible { outline: 2px solid var(--sx-hot); outline-offset: 2px; }
+
+/* 휴대폰 — 지도가 화면을 차지하고 목록은 아래에서 끌어올린다 */
+@media (max-width: 860px) {
+  .sx-body { grid-template-columns: minmax(0, 1fr); }
+  .sx-stage { padding: 8px 8px 148px; }
+  .sx-filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .sx-filters::-webkit-scrollbar { display: none; }
+  .sx-seg { flex: none; }
+  .sx-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 4;
+    height: 76svh;
+    border-left: 0;
+    border-radius: 18px 18px 0 0;
+    background: #10151F;
+    box-shadow: 0 -24px 48px -24px rgba(0, 0, 0, 0.8);
+    transform: translateY(calc(76svh - 140px));
+    transition: transform 420ms var(--sx-ease);
+    padding-bottom: env(safe-area-inset-bottom);
+    will-change: transform;
+    overscroll-behavior: contain;
+  }
+  .sx-panel[data-sheet='full'] { transform: translateY(0); }
+  .sx-grip {
+    display: grid;
+    place-items: center;
+    height: 36px;
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .sx-grip__b {
+    width: 64px;
+    height: 24px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+  }
+  .sx-grip__b::before {
+    content: '';
+    position: absolute;
+    inset: 9px 12px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.28);
+  }
+  .sx-sum { padding-top: 2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sx, .sx-panel, .sx-flat, .sx-seg__b { animation: none; transition: none; }
+}
+
+/* 진입 단추 — 놓인 자리의 글자 흐름을 따른다 */
+.cs-atlas__explore {
+  margin-left: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.cs-sa-mlink--btn {
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}

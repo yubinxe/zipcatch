@@ -210,6 +210,9 @@ export function regionRelated(
   if (wanted.some(r => where.includes(r))) return true
   if (wanted.some(r => (NEARBY_PROVINCE[r] ?? []).some(n => where.includes(n)))) return true
 
+  // 광역이 공고에 적혀 있으면 위에서 이미 판정했다. 자치구 이름만으로 다시 맞추면
+  // 부산 강서구·대구 북구 공고가 서울 강서구·북구로 읽혀 서울 조건에 섞인다.
+  if ((property.district ?? '').trim()) return false
   return prefs.some(r => sameProvince(r, region) !== null)
 }
 
