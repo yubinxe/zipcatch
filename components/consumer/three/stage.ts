@@ -39,6 +39,11 @@ export interface StageOptions {
    * 유리와 윗면에 실내 조명(스튜디오) 대신 밤하늘이 비친다. 기본 'room'.
    */
   envKind?: 'room' | 'night'
+  /**
+   * 전면 장면(단지 탐험처럼 화면을 덮는 것) — 살아 있는 동안 다른 무대는 모두 쉰다.
+   * 덮인 지도들이 보이지 않는 채로 GPU 를 나눠 쓰지 않게.
+   */
+  exclusive?: boolean
   onResize?: (w: number, h: number) => void
   onFrame: (dt: number, t: number) => void
   onLost?: () => void
@@ -157,6 +162,10 @@ const LADDER = [
   { dpr: 1, bloom: false, shadows: false },
   { dpr: 0.75, bloom: false, shadows: false },
 ]
+
+/* 살아 있는 무대들 — 전면 무대가 서면 나머지를 쉬게 한다 */
+const live = new Set<{ exclusive: boolean; sync: () => void }>()
+let exclusiveCount = 0
 
 export function createStage(opts: StageOptions): Stage {
   const { host } = opts
@@ -357,7 +366,8 @@ export function createStage(opts: StageOptions): Stage {
   }
 
   function sync() {
-    const should = visible && !document.hidden && !lost && !disposed && w > 0
+    const covered = exclusiveCount > 0 && !opts.exclusive
+    const should = visible && !covered && !document.hidden && !lost && !disposed && w > 0
     if (should && !compiled) {
       warmUp()
       return
@@ -400,6 +410,12 @@ export function createStage(opts: StageOptions): Stage {
 
   const onVis = () => sync()
   document.addEventListener('visibilitychange', onVis)
+  const me = { exclusive: !!opts.exclusive, sync: () => sync() }
+  live.add(me)
+  if (me.exclusive) {
+    exclusiveCount++
+    live.forEach(o => o !== me && o.sync())
+  }
 
   const onLost = (e: Event) => {
     e.preventDefault()
@@ -421,6 +437,11 @@ export function createStage(opts: StageOptions): Stage {
     dispose() {
       if (disposed) return
       disposed = true
+      live.delete(me)
+      if (me.exclusive) {
+        exclusiveCount--
+        live.forEach(o => o.sync())
+      }
       if (raf) cancelAnimationFrame(raf)
       raf = 0
       ro.disconnect()

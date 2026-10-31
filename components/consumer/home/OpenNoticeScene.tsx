@@ -143,7 +143,7 @@ export default function OpenNoticeScene() {
   const at = (v: number) => ({ '--at': v }) as CSSProperties
 
   return (
-    <ScrollStage length={3.2} className="cs-scene cs-scene--open" label="공고 한 장이 열리는 모습">
+    <ScrollStage length={2.2} className="cs-scene cs-scene--open" label="공고 한 장이 열리는 모습">
       <div className="cs-wrap cs-open__head">
         <span className="cs-sec-eyebrow">Open a Notice</span>
         <h2 className="cs-section-title">카드 한 장이, 공고 한 장으로.</h2>

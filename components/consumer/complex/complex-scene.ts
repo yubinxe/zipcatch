@@ -133,6 +133,7 @@ export function mountComplex(
   const stage = createStage({
     host,
     background: '#0A1322',
+    exclusive: true,
     fov: 32,
     exposure: 1.05,
     shadows: true,
@@ -455,6 +456,7 @@ export function mountComplex(
   let siteMix = state.mode === 'data' ? 0 : 1
   let dataRise = 0
   let siteRise = reduced ? 1 : 0
+  let arriveStart = 0
   const tmp = new THREE.Vector3()
   const ease = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2)
   const project = (v: THREE.Vector3, el: HTMLElement, w: number, h: number) => {
@@ -469,7 +471,10 @@ export function mountComplex(
     const onSite = state.mode !== 'data' && !!site
     // 모드 사이 — 0.6초 남짓 겹쳐 사라지고 떠오른다
     siteMix += ((onSite ? 1 : 0) - siteMix) * k(5)
-    siteRise = Math.min(1, siteRise + dt / (PRESENTATION.arriveMs / 1000))
+    // 도착은 벽시계로 — 프레임이 밀리는 기기에서도 1.4초 안에 선다(dt 는 프레임마다 0.1초로 잘린다)
+    if (!arriveStart) arriveStart = performance.now()
+    const wall = Math.min(1, (performance.now() - arriveStart) / PRESENTATION.arriveMs)
+    siteRise = reduced ? 1 : wall
     dataRise += ((onSite ? 0 : 1) - dataRise) * k(4.5)
     siteG.visible = siteMix > 0.01
     dataG.visible = siteMix < 0.99
@@ -530,7 +535,7 @@ export function mountComplex(
     if (!userTook) {
       aim()
       if (!arrived) {
-        arriveT = reduced ? 1 : Math.min(1, arriveT + dt / (PRESENTATION.arriveMs / 1000))
+        arriveT = reduced ? 1 : wall
         const a = ease(arriveT)
         cur.radius = START.radius + (want.sph.radius - START.radius) * a
         cur.phi = START.phi + (want.sph.phi - START.phi) * a

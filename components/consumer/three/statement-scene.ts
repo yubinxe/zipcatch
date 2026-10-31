@@ -6,12 +6,12 @@ import { buildOutlines, poleOf } from './province-shapes'
 /**
  * 장면 1(ONE MAP)의 입체 — 내릴수록 평면 지도가 눕고, 공고가 있는 지역이 솟는다.
  *
- * 시간으로 움직이는 것은 없다. 모든 것이 스크롤 진행(`--p`, 0→1) 하나로 정해진다.
- * - p≈0     바로 위에서 내려다본 평평한 지도. 평면 SVG 와 같은 구도
- * - p 0.06→0.8  시선이 뒤로 눕는다(정수리에서 약 56°), 몇 도 돌아간다
- * - p 0.14→0.8  공고가 많은 지역부터 차례로 솟는다. 높이는 공고 수에 정비례 —
- *               가장 많은 곳이 가장 높고, 공고가 없는 곳은 얇은 석판으로 남는다
- * - p 0.8→1  다 선 지도를 조금 당겨 본다(멈춘 장면)
+ * 시간으로 움직이는 것은 없다. 모든 것이 스크롤 진행(`--p`, 0→1) 하나로 정해진다. 네 박자:
+ * - A 0→0.2    윤곽과 제목. 카메라는 거의 움직이지 않는다(위에서 내려다본 평면 지도)
+ * - B 0.2→0.45 공고가 많은 지역부터 차례로 솟는다. 높이는 공고 수에 정비례 — 공고가 없는 곳은
+ *              얇은 석판으로 남는다(지어서 켜지 않는다). 빛도 같은 차례로 든다
+ * - C 0.45→0.75 지역명과 건수가 많은 순서로 선다. 겹치면 끌어올린 선으로 비켜 세운다
+ * - D 0.75→1   카메라가 멈춘 구도에 서고, 지도를 직접 눌러 지역을 고를 수 있다
  *
  * 화면에 보일 때만 그린다(무대 stage.ts 가 맡는다). 진행 값은 매 장면 무대의
  * 인라인 스타일에서 읽는다 — React 는 스크롤마다 다시 그리지 않는다.
@@ -32,8 +32,13 @@ export interface StatementDatum {
 
 export interface StatementHandle {
   update: (data: StatementDatum[]) => void
+  /** 고른 지역(지도 코드) — 첫 화면·목록과 같은 선택을 나눠 쓴다 */
+  setActive: (code: string | null) => void
   dispose: () => void
 }
+
+/** 이 진행 값부터 지도를 직접 고를 수 있다(박자 D) */
+export const STATEMENT_PICK_FROM = 0.74
 
 const UNIT = 0.01
 /* 본토와 제주를 감싼 틀(KOREA_VISUAL_VIEWBOX)의 가운데 */
@@ -44,6 +49,8 @@ const CY = 316
 const BASE_H = 0.05
 /** 가장 많은 지역이 더 솟는 높이 */
 const DATA_H = 0.82
+/** 고른 지역이 조금 떠오르는 높이 */
+const LIFT_PICK = 0.05
 /** 끝 장면의 기울기(정수리에서, 라디안) — 약 56° */
 const POLAR_END = 0.98
 const POLAR_START = 0.015
@@ -70,11 +77,13 @@ const smoother = (a: number, b: number, x: number) => {
   return t * t * t * (t * (t * 6 - 15) + 10)
 }
 
-const tilt = (p: number) => smooth(0.06, 0.8, p)
+const tilt = (p: number) => smooth(0.12, 0.62, p)
 const polarAt = (p: number) => POLAR_START + (POLAR_END - POLAR_START) * tilt(p)
-const yawAt = (p: number) => YAW_END * smooth(0.1, 0.92, p)
+const yawAt = (p: number) => YAW_END * smooth(0.16, 0.74, p)
 /** 석판이 두께를 얻는 정도 */
-const slabAt = (p: number) => smooth(0.04, 0.36, p)
+const slabAt = (p: number) => smooth(0.08, 0.26, p)
+/** 고른 지역의 빛 — 단지 탐험·첫 화면과 같은 금빛 */
+const C_PICK = new THREE.Color('#C9A55A')
 
 /**
  * 벽의 결 — 아래는 어둠에 묻히고 위끝만 달아오른다. 밝기는 실제 높이로 잰다(낮은
@@ -145,17 +154,21 @@ interface Prov {
 interface Tag {
   el: HTMLDivElement
   prov: Prov
+  /** 이 집계에 드는 지도 코드 — 고른 지역과 견준다 */
+  codes: string[]
+  /** 표가 서기 시작하는 진행 값(많은 순서) */
   end: number
   w: number
   h: number
   shown: string
   pos: string
+  off: string
 }
 
 export function mountStatement(
   host: HTMLElement,
   input: StatementInput[],
-  cb: { onReady: () => void; onLost: () => void },
+  cb: { onReady: () => void; onLost: () => void; onPick?: (code: string) => void; onHover?: (code: string | null) => void },
   getP: () => number,
 ): StatementHandle {
   let readySent = false
@@ -322,12 +335,15 @@ export function mountStatement(
   host.appendChild(tagLayer)
   let tags: Tag[] = []
   let warmCenter = new THREE.Vector2(0, 0)
+  let activeCodes: string[] = []
+  /** 고른 지역이 바뀌면 그 빛이 짧게 옮겨 간다 */
+  let pickAmt = 0
 
   /* ── 높이 — 진행 값 하나로 정해진다 ─────────────────────── */
   function heightAt(pv: Prov, p: number) {
     const base = 0.001 + BASE_H * slabAt(p)
     if (!pv.share) return base
-    return base + DATA_H * pv.share * smoother(pv.start, pv.start + 0.26, p)
+    return base + DATA_H * pv.share * smoother(pv.start, pv.start + 0.12, p) + LIFT_PICK * (activeCodes.includes(pv.code) ? pickAmt : 0) * smooth(0.7, 0.8, p)
   }
 
   /* ── 카메라 — 진행 값마다 지도 전체(솟은 꼭대기까지)가 칸에 드는 거리 ── */
@@ -407,7 +423,7 @@ export function mountStatement(
       pv.edge.position.y = hgt + 0.003
       const s = pv.share
       // 불은 솟기 조금 전에 들어오기 시작해 다 솟을 때 가장 밝다
-      const glow = s ? smooth(pv.start - 0.08, pv.start + 0.24, p) : 0
+      const glow = s ? smooth(pv.start - 0.04, pv.start + 0.12, p) : 0
       const w = s * glow
       // 석판 → 숯 → 달아오른 주황. 적은 곳은 숯빛에 머물러 많은 곳이 도드라진다
       const ws = Math.sqrt(w)
@@ -419,6 +435,17 @@ export function mountStatement(
       pv.side.emissiveIntensity = s ? glow * (0.07 + 0.55 * s) : 0.02
       pv.edgeMat.color.copy(EDGE_COLD).lerp(EDGE_WARM, glow)
       pv.edgeMat.opacity = s ? 0.18 + 0.5 * glow : 0.18 - 0.06 * tilt(p)
+      // 고른 지역 — 테두리가 금빛으로, 고르지 않은 곳은 조금 물러난다(박자 D 에서만)
+      const on = activeCodes.includes(pv.code)
+      const d = smooth(0.7, 0.8, p) * pickAmt
+      if (on) {
+        pv.edgeMat.color.lerp(C_PICK, d)
+        pv.edgeMat.opacity = Math.max(pv.edgeMat.opacity, 0.95 * d)
+        pv.cap.color.lerp(C_PICK, 0.35 * d)
+      } else if (activeCodes.length) {
+        pv.cap.emissiveIntensity *= 1 - 0.35 * d
+        pv.edgeMat.opacity *= 1 - 0.3 * d
+      }
     }
     const tl = tilt(p)
     floorMat.uniforms.uAmt.value = tl
@@ -437,33 +464,63 @@ export function mountStatement(
     placeTags(p)
   }
 
+  /** 겹치면 비켜 세운다 — 선을 늘려 위로, 그래도 안 되면 옆으로. 끝내 자리가 없으면 목록에 맡긴다 */
+  const LIFTS = [0, 30, 60, 90]
+  /** 꼭대기와 글자 사이(선 길이의 기본) — CSS .cs-sm-tag 의 padding-bottom 과 같다 */
+  const TAG_GAP = 28
+  const NUDGE = [0, -1, 1]
   function placeTags(p: number) {
     const { w, h } = stage.size()
     if (!w) return
     const placed: { x: number; y: number; w: number; h: number }[] = []
     const room = w >= 300
-    for (const t of tags) {
-      const a = room ? smooth(t.end - 0.02, t.end + 0.1, p) * smooth(0.6, 0.8, p) : 0
+    // 고른 지역이 먼저 자리를 잡는다
+    const order = activeCodes.length ? [...tags].sort((a, b) => Number(b.codes.some(c => activeCodes.includes(c))) - Number(a.codes.some(c => activeCodes.includes(c)))) : tags
+    for (const t of order) {
+      const isOn = t.codes.some(c => activeCodes.includes(c))
+      const a = room ? Math.max(smooth(t.end, t.end + 0.06, p), isOn ? smooth(0.7, 0.78, p) : 0) : 0
       let show = a > 0.01
       if (show) {
         if (!t.w) {
+          // 글자 덩어리만 — 아래 여백(선이 지나는 자리)은 빼고 잰다
           t.w = t.el.offsetWidth
-          t.h = t.el.offsetHeight
+          t.h = t.el.offsetHeight - parseFloat(getComputedStyle(t.el).paddingBottom || '0')
         }
         tmp.set(t.prov.anchor.x, heightAt(t.prov, p) + 0.01, t.prov.anchor.z).project(camera)
-        const sx = (tmp.x * 0.5 + 0.5) * w
-        const sy = (-tmp.y * 0.5 + 0.5) * h
-        const box = { x: sx - t.w / 2, y: sy - t.h, w: t.w, h: t.h }
-        if (box.x < 0 || box.x + box.w > w || box.y < 0) show = false
-        else if (placed.some(o => box.x < o.x + o.w && box.x + box.w > o.x && box.y < o.y + o.h && box.y + box.h > o.y)) show = false
-        else {
-          placed.push(box)
-          const pos = `translate3d(${sx.toFixed(1)}px, ${sy.toFixed(1)}px, 0)`
-          if (pos !== t.pos) {
-            t.pos = pos
-            t.el.style.transform = pos
+        const ax = (tmp.x * 0.5 + 0.5) * w
+        const ay = (-tmp.y * 0.5 + 0.5) * h
+        let spot: { x: number; y: number; lift: number } | null = null
+        search: for (const lift of LIFTS) {
+          for (const n of NUDGE) {
+            const sx = ax + n * (t.w * 0.6) * (lift ? 1 : 0)
+            const sy = ay - lift
+            const box = { x: sx - t.w / 2 - 4, y: sy - TAG_GAP - t.h - 4, w: t.w + 8, h: t.h + 8 }
+            if (box.x < 0 || box.x + box.w > w || box.y < 0) continue
+            if (placed.some(o => box.x < o.x + o.w && box.x + box.w > o.x && box.y < o.y + o.h && box.y + box.h > o.y)) continue
+            placed.push(box)
+            spot = { x: sx, y: sy, lift }
+            break search
           }
         }
+        if (!spot) show = false
+        else {
+          // 표는 지역의 꼭대기에 매고, 비켜 선 만큼 글자만 올리고(--lift) 옆으로(--dx) — 선이 그 사이를 잇는다
+          const pos = `translate3d(${ax.toFixed(1)}px, ${ay.toFixed(1)}px, 0)`
+          const off = `${spot.lift}|${(spot.x - ax).toFixed(0)}`
+          if (pos !== t.pos || off !== t.off) {
+            t.pos = pos
+            t.off = off
+            t.el.style.transform = pos
+            t.el.style.setProperty('--lift', `${spot.lift}px`)
+            t.el.style.setProperty('--dx', `${(spot.x - ax).toFixed(0)}px`)
+          }
+        }
+      }
+      const on = isOn ? '1' : ''
+      if ((t.el.dataset.on ?? '') !== on) {
+        if (on) t.el.dataset.on = on
+        else delete t.el.dataset.on
+        t.w = 0
       }
       const op = show ? a.toFixed(3) : '0'
       if (op !== t.shown) {
@@ -473,6 +530,50 @@ export function mountStatement(
     }
   }
 
+  /* ── 고르기 — 박자 D 에서만. 끌다 놓은 것은 고른 것이 아니다 ── */
+  const ray = new THREE.Raycaster()
+  const ndc = new THREE.Vector2()
+  const canvas = stage.canvas
+  const hit = (e: PointerEvent): string | null => {
+    const r = canvas.getBoundingClientRect()
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
+    ray.setFromCamera(ndc, camera)
+    const o = ray.intersectObjects(provs.map(pv => pv.mesh), false)[0]
+    return o ? provs.find(pv => pv.mesh === o.object)?.code ?? null : null
+  }
+  let downAt: { x: number; y: number } | null = null
+  let hovered: string | null = null
+  const canPick = () => cur >= STATEMENT_PICK_FROM
+  const onDown = (e: PointerEvent) => {
+    downAt = canPick() ? { x: e.clientX, y: e.clientY } : null
+  }
+  const onUp = (e: PointerEvent) => {
+    const d = downAt
+    downAt = null
+    if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6 || !canPick()) return
+    const code = hit(e)
+    if (code) cb.onPick?.(code)
+  }
+  const onMove = (e: PointerEvent) => {
+    if (e.pointerType !== 'mouse' || !canPick()) return
+    const code = hit(e)
+    canvas.style.cursor = code ? 'pointer' : ''
+    if (code !== hovered) {
+      hovered = code
+      cb.onHover?.(code)
+    }
+  }
+  const onLeave = () => {
+    if (hovered !== null) {
+      hovered = null
+      cb.onHover?.(null)
+    }
+  }
+  canvas.addEventListener('pointerdown', onDown)
+  canvas.addEventListener('pointerup', onUp)
+  canvas.addEventListener('pointermove', onMove)
+  canvas.addEventListener('pointerleave', onLeave)
+
   function frame(dt: number) {
     frames++
     const target = clamp01(getP())
@@ -480,7 +581,14 @@ export function mountStatement(
     if (cur < 0 || dt === 0) cur = target
     else cur += (target - cur) * (1 - Math.exp(-dt * 9))
     if (Math.abs(target - cur) < 0.0005) cur = target
+    pickAmt += ((activeCodes.length ? 1 : 0) - pickAmt) * (1 - Math.exp(-dt * 10))
     draw(cur)
+    // 박자 D — 지도에 손이 닿게 한다(그 전에는 스크롤을 가로채지 않게 손이 닿지 않는다)
+    const interactive = cur >= STATEMENT_PICK_FROM ? '1' : ''
+    if ((host.dataset.interactive ?? '') !== interactive) {
+      if (interactive) host.dataset.interactive = interactive
+      else delete host.dataset.interactive
+    }
     if (frames === 2 && !readySent) {
       readySent = true
       cb.onReady()
@@ -499,8 +607,8 @@ export function mountStatement(
       }
       const n = lit.length
       lit.forEach((d, i) => {
-        // 많은 곳부터 차례로 — 마지막 지역도 p 0.8 에 다 선다
-        const start = 0.14 + (n > 1 ? (0.38 * i) / (n - 1) : 0)
+        // 많은 곳부터 차례로 — 박자 B(0.2→0.45) 안에 다 선다
+        const start = 0.2 + (n > 1 ? (0.13 * i) / (n - 1) : 0)
         for (const code of d.codes) {
           const pv = byCode.get(code)
           if (!pv) continue
@@ -522,13 +630,14 @@ export function mountStatement(
 
       for (const t of tags) t.el.remove()
       tags = []
-      for (const d of lit.slice(0, 3)) {
+      // 공고가 있는 모든 집계에 표 — 많은 순서로 박자 C(0.45→0.75)에 차례로 선다
+      lit.forEach((d, rank) => {
         // 묶인 집계는 가장 넓은 지역 위에 표를 세운다
         const pv = d.codes
           .map(c => byCode.get(c))
           .filter((x): x is Prov => !!x)
           .sort((a, b) => b.area - a.area)[0]
-        if (!pv) continue
+        if (!pv) return
         const el = document.createElement('div')
         el.className = 'cs-sm-tag'
         const nm = document.createElement('b')
@@ -538,11 +647,21 @@ export function mountStatement(
         el.append(nm, num)
         el.style.opacity = '0'
         tagLayer.appendChild(el)
-        tags.push({ el, prov: pv, end: pv.start + 0.26, w: 0, h: 0, shown: '0', pos: '' })
-      }
+        tags.push({ el, prov: pv, codes: d.codes, end: 0.45 + (lit.length > 1 ? (0.22 * rank) / (lit.length - 1) : 0), w: 0, h: 0, shown: '0', pos: '', off: '' })
+      })
       fit()
     },
+    setActive(code) {
+      // 묶인 집계(전남·광주)는 함께 밝힌다 — 지역별로 나눈 숫자가 없으므로
+      const group = tags.find(t => code && t.codes.includes(code))
+      activeCodes = code ? (group ? group.codes : [code]) : []
+      for (const t of tags) t.w = 0
+    },
     dispose() {
+      canvas.removeEventListener('pointerdown', onDown)
+      canvas.removeEventListener('pointerup', onUp)
+      canvas.removeEventListener('pointermove', onMove)
+      canvas.removeEventListener('pointerleave', onLeave)
       stage.dispose()
       tagLayer.remove()
     },

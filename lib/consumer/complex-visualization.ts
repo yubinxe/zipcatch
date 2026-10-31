@@ -143,6 +143,15 @@ export interface ScheduleItem {
 }
 
 export interface VerifiedSource {
+  /** 청약홈 공고명 그대로 */
+  name: string
+  address: string
+  /** 광역 지역 이름(KOREA_REGIONS.name) */
+  region: string
+  /** 청약홈 공고 상세 */
+  sourceUrl: string
+  /** 운영 DB 의 공고 id — 상세 화면으로 이어 줄 때만 쓴다(없는 환경이면 청약홈으로) */
+  propertyIds: string[]
   documentTitle: string
   developer: string
   developerUrl: string | null
@@ -264,6 +273,11 @@ const row = ([type, subs, total, preWinners, main, youth, newlywed, firstHome, n
  */
 export const VERIFIED: Record<string, VerifiedSource> = {
   '2026000373-2026000373': {
+    name: '고덕강일지구 3단지 토지임대부(본청약)',
+    address: '서울특별시 강동구 강일동 174 일원(고덕강일공공주택지구 3단지)',
+    region: '서울',
+    sourceUrl: 'https://www.applyhome.co.kr/ai/aia/selectAPTLttotPblancDetail.do?houseManageNo=2026000373&pblancNo=2026000373',
+    propertyIds: ['27a3affe-adf8-4289-9225-123c89d152e9'],
     documentTitle: '고덕강일지구 3단지 토지임대부 분양주택 입주자모집공고(정정)',
     developer: '서울주택도시개발공사(SH)',
     developerUrl: 'https://www.i-sh.co.kr/main/index.do',
@@ -445,6 +459,42 @@ export const VERIFIED: Record<string, VerifiedSource> = {
 
 export function verifiedFor(announcementId: string | null | undefined): VerifiedSource | null {
   return (announcementId && VERIFIED[announcementId]) || null
+}
+
+/**
+ * 공고 목록의 한 줄이 확인된 공고인가 — 청약홈 id 가 있으면 그것으로, 없으면 운영 id 나 공고명 그대로.
+ * 이름이 조금이라도 다르면 아니라고 본다(비슷한 이름의 다른 공고에 탐험을 붙이지 않게).
+ */
+export function verifiedForNotice(n: { id?: string | null; name?: string | null; announcementId?: string | null }): { id: string; src: VerifiedSource } | null {
+  for (const [id, src] of Object.entries(VERIFIED)) {
+    if (n.announcementId === id || (n.id && src.propertyIds.includes(n.id)) || (n.name && n.name.trim() === src.name)) return { id, src }
+  }
+  return null
+}
+
+/**
+ * 확인된 공고의 주택형 줄을 원문 값만으로 세운다 — DB 나 청약홈 API 가 없는 환경(Preview)에서도
+ * 같은 숫자를 보이기 위해서다. 청약홈 API 의 값과 같아야 한다(테스트로 묶었다).
+ *  - 공급면적  대표 세부타입의 주거전용 + 주거공용 (청약홈과 같은 셈)
+ *  - 세대수    본청약(특별 + 일반) — 청약홈 '공급세대수 계'
+ *  - 최고금액  가격표 최고가(천원)를 만원으로 내림
+ */
+export function verifiedModels(src: VerifiedSource, site: SiteData): OfficialModel[] {
+  return src.types
+    .map(t => {
+      const rep = t.subs[0]
+      const supplyArea = Math.round((rep.exclusive + rep.residentialCommon) * 100) / 100
+      const top = priceRange(site, t.type)?.max ?? null
+      return {
+        name: t.type,
+        supplyArea,
+        exclusiveArea: rep.exclusive,
+        households: t.main,
+        topAmount: top,
+        perPyeong: top === null ? null : Math.round(top / (supplyArea / 3.3058)),
+      }
+    })
+    .sort((a, b) => (a.supplyArea ?? 0) - (b.supplyArea ?? 0))
 }
 
 /* ── 계산 — 화면에 쓰는 수는 공식 값에서만 ──────────────── */

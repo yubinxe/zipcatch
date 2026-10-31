@@ -7,6 +7,9 @@ import { KOREA_PROVINCES, KOREA_VISUAL_VIEWBOX } from '@/lib/korea-map-data'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import Statement3D from '@/components/consumer/three/Statement3D'
 import type { StatementDatum } from '@/components/consumer/three/statement-scene'
+import { verifiedForNotice } from '@/lib/consumer/complex-visualization'
+import { setJourney, useJourney } from '@/lib/consumer/journey-store'
+import { centerOf, startDive } from '../dive/dive'
 import ScrollStage from './ScrollStage'
 
 /**
@@ -36,6 +39,25 @@ interface Province {
   count: number
 }
 
+interface Pin {
+  id: string
+  name: string
+  province: string
+  kind: 'RENT' | 'SALE'
+  daysLeft: number | null
+}
+
+/** 한 집계(광역 하나, 또는 '전남·광주'처럼 묶여 온 둘) */
+interface Group {
+  name: string
+  codes: string[]
+  count: number
+  sale: number
+  rent: number
+  nearest: Pin | null
+  dive: { id: string; name: string } | null
+}
+
 /**
  * 키보드로 '지도에서 직접 보기'에 오면 장면의 끝(다 선 지도)으로 데려간다.
  * 무대는 화면에 붙어 있어(sticky) 브라우저가 초점 자리로 스크롤해 주지 않는다 —
@@ -56,7 +78,11 @@ const CODE_BY_NAME = new Map(KOREA_REGIONS.map(r => [r.name, r.code]))
 
 export default function StatementScene() {
   const [provinces, setProvinces] = useState<Province[] | null>(null)
+  const [pins, setPins] = useState<Pin[]>([])
   const [total, setTotal] = useState<number | null>(null)
+  const [stamp, setStamp] = useState<string | null>(null)
+  const [hover, setHover] = useState<string | null>(null)
+  const journey = useJourney()
   const [live, setLive] = useState(false)
   const mapRef = useRef<HTMLDivElement>(null)
   const copyRef = useRef<HTMLDivElement>(null)
@@ -65,9 +91,13 @@ export default function StatementScene() {
     const ctl = new AbortController()
     fetch('/api/notices/map', { signal: ctl.signal })
       .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then((d: { total: number; provinces: Province[] }) => {
+      .then((d: { total: number; provinces: Province[]; pins?: Pin[] }) => {
         setProvinces(d.provinces ?? [])
+        setPins(d.pins ?? [])
         setTotal(d.total ?? 0)
+        const n = new Date()
+        const z = (v: number) => String(v).padStart(2, '0')
+        setStamp(`${n.getFullYear()}.${z(n.getMonth() + 1)}.${z(n.getDate())} ${z(n.getHours())}:${z(n.getMinutes())}`)
       })
       .catch(() => setProvinces([]))
     return () => ctl.abort()
@@ -127,12 +157,46 @@ export default function StatementScene() {
         : null,
     [provinces, lit],
   )
-  const top = lit.slice(0, 4)
   const litCodes = KOREA_PROVINCES.filter(p => byCode.has(p.code))
+
+  // 집계 한 줄마다 분양·임대·가장 가까운 마감 — 지도 집계와 같은 공고 목록에서 센다
+  const groups = useMemo(() => {
+    const out = new Map<string, Group>()
+    for (const p of provinces ?? []) {
+      out.set(p.name, {
+        name: p.name,
+        codes: p.name
+          .split('·')
+          .map(n => CODE_BY_NAME.get(n.trim()))
+          .filter((c): c is string => !!c),
+        count: p.count,
+        sale: 0,
+        rent: 0,
+        nearest: null,
+        dive: null,
+      })
+    }
+    for (const pin of pins) {
+      const g = out.get(pin.province)
+      if (!g) continue
+      if (pin.kind === 'SALE') g.sale++
+      else g.rent++
+      if (pin.daysLeft !== null && pin.daysLeft >= 0 && (g.nearest?.daysLeft == null || pin.daysLeft < g.nearest.daysLeft)) g.nearest = pin
+      const v = verifiedForNotice(pin)
+      if (v && !g.dive) g.dive = { id: v.id, name: pin.name }
+    }
+    return out
+  }, [provinces, pins])
+  const groupOf = (code: string | null) => (code ? [...groups.values()].find(g => g.codes.includes(code)) ?? null : null)
+  const activeCode = hover ?? journey.region
+  const picked = groupOf(activeCode)
+  const pickedName = activeCode ? KOREA_REGIONS.find(r => r.code === activeCode)?.name ?? null : null
+  const zero = KOREA_REGIONS.filter(r => !groupOf(r.code))
+  const pick = (code: string) => setJourney({ region: code }, 'onemap')
 
   let w = 0
   return (
-    <ScrollStage length={3.2} className="cs-scene cs-scene--statement" label="흩어진 공고를 한 장의 지도로">
+    <ScrollStage length={2.4} className="cs-scene cs-scene--statement" label="흩어진 공고를 한 장의 지도로">
       <div
         ref={mapRef}
         className="cs-scene__map"
@@ -186,7 +250,7 @@ export default function StatementScene() {
           })}
         </div>
 
-        <Statement3D data={data} onLive={setLive} />
+        <Statement3D data={data} onLive={setLive} active={activeCode} onPick={pick} onHover={setHover} />
       </div>
 
       <div ref={copyRef} className="cs-wrap cs-scene__copy">
@@ -219,12 +283,33 @@ export default function StatementScene() {
             <b className="cs-num">{total ?? '—'}</b>
             <span>지금 접수 중·예정인 공고</span>
           </div>
-          {top.map(p => (
-            <div key={p.name} className="cs-scene__fact">
-              <b className="cs-num">{p.count}</b>
-              <span>{p.name}</span>
-            </div>
-          ))}
+        </div>
+
+        {/* 열일곱 광역 모두에 닿는 목록 — 지도 위 표가 다 서지 못해도 여기서 고른다 */}
+        <div className="cs-om-list" role="group" aria-label="지역 고르기 — 지도와 같은 선택">
+          {lit.map(p => {
+            const g = groups.get(p.name)
+            const code = g?.codes[0]
+            if (!code) return null
+            return (
+              <button
+                key={p.name}
+                type="button"
+                aria-pressed={!!activeCode && !!g?.codes.includes(activeCode)}
+                onClick={() => pick(code)}
+                onFocus={revealEnd}
+              >
+                {p.name}
+                <b className="cs-num">{p.count}</b>
+              </button>
+            )
+          })}
+          {provinces && zero.length > 0 && (
+            <details className="cs-om-zero">
+              <summary onFocus={revealEnd}>공고 0건 {zero.length}곳</summary>
+              <p>{zero.map(r => r.name).join(' · ')} — 지금 집계된 접수 중·예정 공고가 없습니다.</p>
+            </details>
+          )}
         </div>
 
         {/* 장면의 끝 — 같은 지도를 손으로 움직여 보는 곳으로. 지도 화면은 이 그림에서 이어 들어간다 */}
@@ -235,6 +320,57 @@ export default function StatementScene() {
           </svg>
         </Link>
       </div>
+
+      {/* 고른 지역 — 숫자는 지도 집계 그대로. 묶여 온 집계는 나누지 않는다 */}
+      {provinces && !activeCode && (provinces.length > 0) && (
+        <aside className="cs-om-panel cs-om-panel--hint" aria-label="지역 고르기 안내">
+          <span className="cs-om-panel__k">지역을 고르세요</span>
+          <p className="cs-om-panel__fine">지도를 누르거나 왼쪽 목록에서 고르면 그 지역의 공고 수·분양·임대·가장 가까운 마감이 여기에 섭니다.</p>
+        </aside>
+      )}
+      {provinces && activeCode && (
+        <aside className="cs-om-panel" aria-live="polite" aria-label="고른 지역">
+          <span className="cs-om-panel__k">{picked ? picked.name : pickedName}</span>
+          <div className="cs-om-panel__n">
+            <b className="cs-num">{picked?.count ?? 0}</b>
+            <span>건</span>
+          </div>
+          {picked ? (
+            <>
+              <p className="cs-om-panel__split">
+                분양 <b className="cs-num">{picked.sale}</b> · 임대 <b className="cs-num">{picked.rent}</b>
+              </p>
+              <p className="cs-om-panel__due">
+                {picked.nearest ? (
+                  <>
+                    <span>가장 가까운 마감 {picked.nearest.daysLeft === 0 ? '오늘' : `D-${picked.nearest.daysLeft}`}</span>
+                    <Link href={`/notices/${picked.nearest.id}`}>{picked.nearest.name}</Link>
+                  </>
+                ) : (
+                  <span>공고에 마감일이 적혀 있지 않아요</span>
+                )}
+              </p>
+              {picked.codes.length > 1 && <p className="cs-om-panel__fine">{picked.name}는 공고 집계가 합쳐져 와 지역별로 나누지 않습니다.</p>}
+              {picked.dive && (
+                <button
+                  type="button"
+                  className="cs-atlas__dive"
+                  onClick={e => startDive({ announcementId: picked.dive!.id, from: centerOf(e.currentTarget), region: picked.name })}
+                >
+                  <span className="cs-atlas__dive-k">3D 단지 탐험 가능</span>
+                  <span className="cs-atlas__dive-t">{picked.dive.name}</span>
+                </button>
+              )}
+              <Link href={`/notices?region=${encodeURIComponent(picked.codes.length > 1 ? picked.name.split('·')[0] : picked.name)}`} className="cs-om-panel__go">
+                {picked.name} 공고 보기 →
+              </Link>
+            </>
+          ) : (
+            <p className="cs-om-panel__fine">지금 집계된 접수 중·예정 공고가 없습니다.</p>
+          )}
+          <p className="cs-om-panel__stamp">청약홈·LH 접수 중·예정 공고 · {stamp} 집계</p>
+        </aside>
+      )}
     </ScrollStage>
   )
 }

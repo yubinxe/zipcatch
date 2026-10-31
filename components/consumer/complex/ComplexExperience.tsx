@@ -50,11 +50,20 @@ export default function ComplexExperience({
   notice,
   initial,
   onClose,
+  closeLabel = '공고로 돌아가기',
+  detailHref = null,
+  onSelect,
 }: {
   notice: OfficialNotice
   initial: string | null
   /** 닫을 때 마지막으로 고른 주택형을 돌려준다 — 공고 화면이 그 줄을 짚는다 */
   onClose: (selected: string | null) => void
+  /** 지도에서 들어왔으면 '지도로 돌아가기' */
+  closeLabel?: string
+  /** 공고 상세(또는 청약홈 원문) — 지도에서 들어온 경우에만 따로 건다 */
+  detailHref?: string | null
+  /** 주택형을 고를 때마다 — 홈의 공통 선택(FOUR STEPS)으로 잇는다 */
+  onSelect?: (selected: string | null, compare: string | null) => void
 }) {
   const box = useRef<HTMLDivElement>(null)
   const foot = useRef<HTMLElement>(null)
@@ -75,6 +84,13 @@ export default function ComplexExperience({
   const { panelRef, sheet, setSheet, grip } = useSheetDrag(150)
 
   const close = useCallback(() => onClose(selected), [onClose, selected])
+  const selectRef = useRef(onSelect)
+  useEffect(() => {
+    selectRef.current = onSelect
+  }, [onSelect])
+  useEffect(() => {
+    selectRef.current?.(selected, comparing ? compare : null)
+  }, [selected, compare, comparing])
   // 위에 공유 이미지 창이 겹치면 Esc·초점은 그 창 몫이다 (useDialogFocus 가 맨 위 창만 가둔다)
   useDialogFocus(true, box, close)
   useEffect(() => {
@@ -137,6 +153,16 @@ export default function ComplexExperience({
     },
     [comparing, selected],
   )
+  // 시연 모드가 주택형을 고른다 — 사람이 누른 것과 같은 길로
+  useEffect(() => {
+    const on = (e: Event) => {
+      const name = (e as CustomEvent<string>).detail
+      if (byName.has(name)) pickType(name)
+    }
+    window.addEventListener('zc:experience-select', on)
+    return () => window.removeEventListener('zc:experience-select', on)
+  }, [byName, pickType])
+
   const pickDong = useCallback((id: number) => {
     setDong(d => (d === id ? null : id))
     setMode(m => (m === 'data' ? 'unit' : m))
@@ -272,9 +298,17 @@ export default function ComplexExperience({
             )}
           </p>
         </div>
-        <button type="button" className="cx-close" onClick={close}>
-          공고로 돌아가기
-        </button>
+        <div className="cx-head__acts">
+          {detailHref && (
+            <a className="cx-detail" href={detailHref} {...(detailHref.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
+              {detailHref.startsWith('http') ? '청약홈 공고 원문' : '공고 상세'}
+              {detailHref.startsWith('http') && <span className="cs-sr"> (새 창)</span>}
+            </a>
+          )}
+          <button type="button" className="cx-close" onClick={close}>
+            {closeLabel}
+          </button>
+        </div>
       </header>
 
       <div className="cx-body">
