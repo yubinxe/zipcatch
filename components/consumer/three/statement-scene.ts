@@ -473,6 +473,15 @@ export function mountStatement(
     const { w, h } = stage.size()
     if (!w) return
     const placed: { x: number; y: number; w: number; h: number }[] = []
+    // 지도 위에 떠 있는 패널(고른 지역)은 표가 설 수 없는 자리다
+    const cr = canvas.getBoundingClientRect()
+    host
+      .closest('.cs-stage__pin')
+      ?.querySelectorAll<HTMLElement>('.cs-om-panel')
+      .forEach(el => {
+        const r = el.getBoundingClientRect()
+        if (r.width && getComputedStyle(el).opacity !== '0') placed.push({ x: r.left - cr.left - 6, y: r.top - cr.top - 6, w: r.width + 12, h: r.height + 12 })
+      })
     const room = w >= 300
     // 고른 지역이 먼저 자리를 잡는다
     const order = activeCodes.length ? [...tags].sort((a, b) => Number(b.codes.some(c => activeCodes.includes(c))) - Number(a.codes.some(c => activeCodes.includes(c)))) : tags
