@@ -37,6 +37,7 @@ export default function ScrollStage({
     if (still.matches) {
       el.dataset.still = 'true'
       st.style.setProperty('--p', '1')
+      st.setAttribute('data-late', '')
       return
     }
 
@@ -55,6 +56,8 @@ export default function ScrollStage({
       if (q === last) return
       last = q
       st.style.setProperty('--p', String(q))
+      // 장면의 끝 무렵(박자 D) — 손으로 고르는 것들이 이때부터 손에 닿는다
+      st.toggleAttribute('data-late', q >= 0.74)
     }
     const read = () => {
       const r = el.getBoundingClientRect()
