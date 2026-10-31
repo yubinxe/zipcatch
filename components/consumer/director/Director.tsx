@@ -103,10 +103,15 @@ export default function Director() {
     return () => cancelAnimationFrame(id)
   }, [])
 
+  // 다음 장면까지의 마감 시각 — 상태 갱신 함수 안에서 장면을 넘기지 않는다(묵은 틱이 두 번 넘기는 일이 없게)
+  const deadline = useRef(0)
+  const remain = useRef(0)
   const goto = useCallback((n: number) => {
     const k = (n + SCENES.length) % SCENES.length
     setI(k)
     setLeft(SCENES[k].secs)
+    remain.current = SCENES[k].secs * 1000
+    deadline.current = performance.now() + remain.current
     SCENES[k].run()
   }, [])
 
@@ -120,14 +125,20 @@ export default function Director() {
 
   // 남은 시간 — 기다리는 장면(secs 0)과 멈춤에서는 줄지 않는다
   useEffect(() => {
-    if (!on || !playing || !SCENES[i].secs) return
+    if (!on || !SCENES[i].secs) return
+    if (!playing) {
+      remain.current = Math.max(0, deadline.current - performance.now())
+      return
+    }
+    deadline.current = performance.now() + remain.current
     const id = window.setInterval(() => {
-      setLeft(l => {
-        if (l > 1) return l - 1
-        window.setTimeout(() => goto(i + 1), 0)
-        return 0
-      })
-    }, 1000)
+      const ms = deadline.current - performance.now()
+      remain.current = Math.max(0, ms)
+      if (ms <= 0) {
+        window.clearInterval(id)
+        goto(i + 1)
+      } else setLeft(Math.ceil(ms / 1000))
+    }, 250)
     return () => window.clearInterval(id)
   }, [on, playing, i, goto])
 

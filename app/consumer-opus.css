@@ -37,7 +37,7 @@
     align-items: center;
   }
   .cs-home .cs-night .cs-atlas__body { grid-template-columns: minmax(0, 1.75fr) minmax(220px, 1fr); }
-  .cs-home .cs-night .cs-atlas__stage { min-height: clamp(300px, 38vh, 480px); }
+  .cs-home .cs-night .cs-atlas__stage { min-height: clamp(280px, 33vh, 420px); }
 }
 
 /* 행동의 위계 — 첫째(주황) · 둘째(테두리) · 나머지(글자 고리) */
@@ -330,6 +330,11 @@
 }
 .cs-om-panel__go { font-size: 15px; font-weight: 700; color: #fff; text-decoration: underline; text-underline-offset: 4px; }
 @media (max-width: 760px) {
+  /* 휴대폰 — 안내는 목록이 대신하고, 고른 지역은 아래 한 덩어리로. 그동안 '지도에서 직접 보기'는 비킨다 */
+  .cs-om-panel--hint { display: none; }
+  .cs-stage__pin:has(.cs-om-panel:not(.cs-om-panel--hint)) .cs-scene__go { visibility: hidden; }
+  .cs .cs-om-panel .cs-om-panel__due,
+  .cs .cs-om-panel .cs-om-panel__fine { display: none; }
   .cs-om-list { margin-top: 16px; }
   .cs-om-list button { min-height: 36px; padding: 0 12px; font-size: 14px; }
   .cs-om-panel { left: 16px; right: 16px; width: auto; bottom: calc(var(--ticker-h, 48px) + 12px); padding: 14px 16px; gap: 4px; }
@@ -544,3 +549,9 @@
 /* 시연 막대가 단지 탐험의 아래 띠를 가리지 않게 */
 :root[data-director] .pxe { height: calc(100dvh - 112px); bottom: auto; }
 @media (max-width: 760px) { :root[data-director] .pxe { height: calc(100dvh - 120px); } }
+/* 좁은 화면 — 장면이 쌓이므로 기둥 대신 '지금 보는 공고' 한 줄만 위에 둔다 */
+@media (max-width: 900px) {
+  .cs-jr .cs-jr__pin { display: block; position: static; padding: 0 0 4px; }
+  .cs-jr .cs-jr__pin > :not(.op-jr__chosen) { display: none; }
+  .cs .cs-jr .op-jr__chosen { margin: 0; max-width: none; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+}
