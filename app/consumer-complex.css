@@ -69,6 +69,9 @@
 .cx-canvas, .cx-canvas__host { position: absolute; inset: 0; }
 .cx-canvas__host .cs3d-canvas { opacity: 1; }
 .cx-canvas__loading { position: absolute; inset: 0; display: grid; place-items: center; font-size: 14px; color: var(--cx-dim); }
+/* 빨리 실리면 보이지 않게 — 1.2초가 넘을 때만 '준비 중' */
+.cx-canvas .cx-canvas__loading { animation: cx-late 1ms 1200ms both; }
+@keyframes cx-late { from { opacity: 0; } to { opacity: 1; } }
 
 /* 건축 모드의 큰 글자 */
 .cx-hero {
