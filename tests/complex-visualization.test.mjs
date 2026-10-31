@@ -16,6 +16,8 @@ import {
   dongsForType,
   priceRange,
   stackOf,
+  verifiedModels,
+  verifiedForNotice,
 } from '../lib/consumer/complex-visualization.ts'
 import { SITE } from '../lib/consumer/sites/godeok-gangil-3.ts'
 
@@ -138,4 +140,25 @@ test('동·층: 59B 는 어느 동에 몇 세대, 동 하나의 층×호', () =>
   assert.deepEqual(st.lines, [1, 2, 3, 4])
   assert.equal(st.cells.get('2-1').type, '059.0000B')
   assert.equal(st.cells.get('2-1').price, 371544)
+})
+
+test('원문만으로 세운 주택형 = 청약홈 API 값 (DB 없는 환경의 탐험)', () => {
+  const src = verifiedFor('2026000373-2026000373')
+  const ms = verifiedModels(src, SITE)
+  assert.equal(ms.length, 20)
+  for (const [type, supplyArea, , , main, top] of APPLYHOME) {
+    const m = ms.find(x => x.name === type)
+    assert.equal(m.supplyArea, supplyArea, type)
+    assert.equal(m.households, main, type)
+    assert.equal(m.topAmount, top, type)
+  }
+  assert.equal(ms.find(x => x.name === '059.0000B').perPyeong, 1488)
+  assert.equal(ms.reduce((s, m) => s + m.households, 0), 713)
+})
+
+test('목록 줄 → 확인된 공고: 운영 id·이름이 정확히 같을 때만', () => {
+  assert.equal(verifiedForNotice({ id: '27a3affe-adf8-4289-9225-123c89d152e9' }).id, '2026000373-2026000373')
+  assert.equal(verifiedForNotice({ name: '고덕강일지구 3단지 토지임대부(본청약)' }).id, '2026000373-2026000373')
+  assert.equal(verifiedForNotice({ name: '고덕강일지구 3단지' }), null)
+  assert.equal(verifiedForNotice({ id: 'fx-01', name: '아무 공고' }), null)
 })
