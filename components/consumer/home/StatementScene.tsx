@@ -11,6 +11,7 @@ import { verifiedForNotice } from '@/lib/consumer/complex-visualization'
 import { setJourney, useJourney } from '@/lib/consumer/journey-store'
 import { centerOf, prefetchDive, startDive } from '../dive/dive'
 import ScrollStage from './ScrollStage'
+import DataBadge from '../DataBadge'
 
 /**
  * 장면 1 — 흩어진 공고가 한 장의 지도로 모인다.
@@ -377,7 +378,9 @@ export default function StatementScene() {
           ) : (
             <p className="cs-om-panel__fine">지금 집계된 접수 중·예정 공고가 없습니다.</p>
           )}
-          <p className="cs-om-panel__stamp">청약홈·LH 접수 중·예정 공고 · {stamp} 집계</p>
+          <p className="cs-om-panel__stamp">
+            <DataBadge live={{ source: '청약홈·LH 접수 중·예정 공고', collectedAt: stamp }} />
+          </p>
         </aside>
       )}
     </ScrollStage>

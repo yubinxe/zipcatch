@@ -7,6 +7,7 @@ import { verifiedFor, verifiedModels, type OfficialNotice } from '@/lib/consumer
 import { setJourney } from '@/lib/consumer/journey-store'
 import { loadSite } from '@/lib/consumer/sites'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
+import DataBadge from '../DataBadge'
 import { DIVE_EVENT, DIVE_PHASE_EVENT, diveHash, parseDiveHash, prefetchDive, type DivePhase, type DiveRequest } from './dive'
 
 const ComplexExperience = dynamic(() => import('../complex/ComplexExperience'), { ssr: false })
@@ -204,6 +205,7 @@ export default function DiveHost() {
               <span className="dv-chip__m">
                 단지 {src.supply.total.toLocaleString('ko-KR')}세대 · 이번 청약 {src.supply.main}세대
               </span>
+              <DataBadge src={src} compact />
             </div>
             <button type="button" className="dv-cancel" onClick={leave}>
               취소 <kbd>Esc</kbd>
@@ -214,6 +216,7 @@ export default function DiveHost() {
       {(phase === 'cover' || phase === 'reveal' || phase === 'inside') && open.notice && (
         <ComplexExperience
           quick={open.quick}
+          caseMode
           notice={open.notice}
           initial={open.req.type ?? null}
           closeLabel="지도로 돌아가기"
