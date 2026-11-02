@@ -250,7 +250,7 @@ export default function StatementScene() {
           })}
         </div>
 
-        <Statement3D data={data} onLive={setLive} active={activeCode} onPick={pick} onHover={setHover} />
+        <Statement3D data={data} onLive={setLive} active={journey.region} onPick={pick} onHover={setHover} />
       </div>
 
       <div ref={copyRef} className="cs-wrap cs-scene__copy">

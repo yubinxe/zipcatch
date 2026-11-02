@@ -336,6 +336,10 @@ export function mountStatement(
   let tags: Tag[] = []
   let warmCenter = new THREE.Vector2(0, 0)
   let activeCodes: string[] = []
+  /** 카메라가 다가가는 정도와 그 자리(고른 지역들의 가운데) */
+  let focusAmt = 0
+  const focusAt = new THREE.Vector3()
+  const focusWant = new THREE.Vector3()
   /** 고른 지역이 바뀌면 그 빛이 짧게 옮겨 간다 */
   let pickAmt = 0
 
@@ -349,9 +353,14 @@ export function mountStatement(
   /* ── 카메라 — 진행 값마다 지도 전체(솟은 꼭대기까지)가 칸에 드는 거리 ── */
   const target = new THREE.Vector3(0, 0.1, 0)
   const tmp = new THREE.Vector3()
-  function place(d: number, polar: number, az: number) {
-    camera.position.setFromSphericalCoords(d, polar, az).add(target)
-    camera.lookAt(target)
+  /** 고른 지역 쪽으로 겨냥점이 옮겨 간 만큼(박자 D) — 틀 맞추기(fit)에는 쓰지 않는다 */
+  const focusOff = new THREE.Vector3()
+  const aim = new THREE.Vector3()
+  function place(d: number, polar: number, az: number, focus = false) {
+    aim.copy(target)
+    if (focus) aim.add(focusOff)
+    camera.position.setFromSphericalCoords(d, polar, az).add(aim)
+    camera.lookAt(aim)
     camera.updateMatrixWorld()
   }
   /** 진행 값 0, 0.05, … 1 에서 맞춘 거리와 화면 속 가운데 */
@@ -456,10 +465,13 @@ export function mountStatement(
     if (fits.length) {
       const v = viewAt(p)
       // 다 선 뒤에는 조금 당겨 본다
-      const d = v.d * (1 - 0.02 * smooth(0.78, 1, p))
+      // 고르면 그 지역 쪽으로 겨냥점이 옮겨 가고 조금 다가간다(용수철로 — frame 이 focusAmt 를 쫓는다)
+      const f = focusAmt * smooth(0.74, 0.84, p)
+      focusOff.set(focusAt.x * 0.4 * f, 0, focusAt.z * 0.4 * f)
+      const d = v.d * (1 - 0.02 * smooth(0.78, 1, p)) * (1 - 0.1 * f)
       const { w, h } = stage.size()
       camera.setViewOffset(w, h, (v.x * w) / 2, (-v.y * h) / 2, w, h)
-      place(d, polarAt(p), yawAt(p))
+      place(d, polarAt(p), yawAt(p), true)
     }
     placeTags(p)
   }
@@ -591,6 +603,22 @@ export function mountStatement(
     else cur += (target - cur) * (1 - Math.exp(-dt * 9))
     if (Math.abs(target - cur) < 0.0005) cur = target
     pickAmt += ((activeCodes.length ? 1 : 0) - pickAmt) * (1 - Math.exp(-dt * 10))
+    // 카메라 초점 — 고른 지역의 가운데로 약 1초에 걸쳐(공통 카메라 이동 규칙 0.8~1.3s)
+    if (activeCodes.length) {
+      focusWant.set(0, 0, 0)
+      let n = 0
+      for (const c of activeCodes) {
+        const pv = byCode.get(c)
+        if (pv) {
+          focusWant.add(pv.anchor)
+          n++
+        }
+      }
+      if (n) focusWant.divideScalar(n)
+    }
+    const kf = 1 - Math.exp(-dt * 4)
+    focusAt.lerp(focusWant, kf)
+    focusAmt += ((activeCodes.length ? 1 : 0) - focusAmt) * kf
     draw(cur)
     // 박자 D — 지도에 손이 닿게 한다(그 전에는 스크롤을 가로채지 않게 손이 닿지 않는다)
     const interactive = cur >= STATEMENT_PICK_FROM ? '1' : ''

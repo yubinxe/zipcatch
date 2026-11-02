@@ -319,7 +319,8 @@
   pointer-events: none;
 }
 .cs-stage__pin[data-late] .cs-om-panel { pointer-events: auto; }
-.cs-om-panel__k { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.cs-om-panel__k { font-size: 36px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+@media (max-width: 760px) { .cs-om-panel__k { font-size: 24px; } }
 .cs-om-panel__n { display: flex; align-items: baseline; gap: 6px; }
 .cs-om-panel__n b { font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; color: var(--op-pick); }
 .cs-om-panel__n span { font-size: 16px; color: #b8c9d7; }
@@ -586,3 +587,25 @@
   cursor: pointer;
 }
 .cs-atlas__3d:focus-visible { outline: 2px solid var(--op-pick); outline-offset: 2px; }
+
+/* ── HERO → ONE MAP 매치 컷 — 첫 화면 평면 지도의 복제본 ───────────────── */
+.op-bridge {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform-origin: 0 0;
+  will-change: transform, opacity;
+  /* 지나가는 동안 지도에 빛이 든다 — ONE MAP 첫 장면의 결로 */
+  /* 끝으로 갈수록 ONE MAP 첫 장면(어두운 석판)의 결로 가라앉는다 — 데이터는 거기서 다시 솟는다 */
+  --sink: clamp(0, calc((var(--t, 0) - 0.55) / 0.45), 1);
+  filter: saturate(calc(1 - var(--sink) * 0.85)) brightness(calc(1 - var(--sink) * 0.55))
+    drop-shadow(0 calc(var(--t, 0) * 24px) calc(var(--t, 0) * 40px) rgba(255, 122, 48, calc(var(--t, 0) * 0.16)));
+}
+.op-bridge > svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.op-bridge .cs-atlas__dot { display: none; }

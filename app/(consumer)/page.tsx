@@ -9,6 +9,7 @@ import CostSimulator from '@/components/consumer/CostSimulator'
 import FinancialPlayground from '@/components/consumer/FinancialPlayground'
 import BuildProgress from '@/components/consumer/BuildProgress'
 import StatementScene from '@/components/consumer/home/StatementScene'
+import MapBridge from '@/components/consumer/home/MapBridge'
 import OpenNoticeScene from '@/components/consumer/home/OpenNoticeScene'
 import DecideScene from '@/components/consumer/home/DecideScene'
 import DiveButton from '@/components/consumer/dive/DiveButton'
@@ -190,13 +191,16 @@ export default function ConsumerHome() {
       </section>
 
 
-      {/* ── 지금 살펴볼 공고 ────────────────────────────── */}
-      <Reveal scrub className="cs-ap cs-ap--strip">
-        <HomeNoticeStrip />
-      </Reveal>
+      {/* ── 첫 화면의 지도가 ONE MAP 으로 — 같은 지도를 화면 위로 옮겨 잇는다 ── */}
+      <MapBridge />
 
       {/* ── 장면 — 흩어진 공고가 한 장의 지도로 ────────── */}
       <StatementScene />
+
+      {/* ── 지금 살펴볼 공고 — 지도 다음에, 그 지도의 공고를 한 장씩 ──── */}
+      <Reveal scrub className="cs-ap cs-ap--strip">
+        <HomeNoticeStrip />
+      </Reveal>
 
       {/* ── 장면 — 카드 한 장이 공고 한 장으로 열린다 ──── */}
       <OpenNoticeScene />
