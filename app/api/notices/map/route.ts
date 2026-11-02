@@ -3,6 +3,7 @@ import { isRental, provinceOf } from '@/lib/consumer/classify'
 import { resolveCoord } from '@/lib/consumer/geo'
 import { checkUrgency } from '@/lib/crm/services/scoring'
 import { dayKey } from '@/lib/consumer/timeline-core'
+import { ingestMeta } from '@/lib/consumer/freshness'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +33,10 @@ export async function GET(req: Request) {
      */
     const wide = new URL(req.url).searchParams.get('range') === 'all'
     const now = new Date()
-    const all = await listOfficialProperties({ openOnly: !wide, limit: wide ? 1000 : 400 })
+    const [all, meta] = await Promise.all([
+      listOfficialProperties({ openOnly: !wide, limit: wide ? 1000 : 400 }),
+      ingestMeta(now),
+    ])
 
     const pins = []
     let noCoord = 0
@@ -94,6 +98,8 @@ export async function GET(req: Request) {
       provinces: [...byProvince.entries()]
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count),
+      /** 수집 신선도 — 요청 시각·실제 수집 시각을 가른다(lib/consumer/freshness) */
+      meta,
     })
   } catch (err) {
     return Response.json(

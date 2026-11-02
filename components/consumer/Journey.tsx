@@ -20,6 +20,7 @@ import { KOREA_REGIONS } from '@/lib/korea-regions'
 import { won, wonFull } from './complex/ComplexParts'
 import { centerOf, prefetchDive, startDive } from './dive/dive'
 import DataBadge from './DataBadge'
+import type { IngestMeta } from '@/lib/consumer/data-mode'
 import { useTween } from './complex/useTween'
 
 /**
@@ -473,6 +474,7 @@ export default function Journey() {
   const refs = useRef<(HTMLElement | null)[]>([])
   const journey = useJourney()
   const [items, setItems] = useState<Item[] | null>(null)
+  const [meta, setMeta] = useState<IngestMeta | null>(null)
   const [failed, setFailed] = useState(false)
   const [site, setSite] = useState<SiteData | null>(null)
   const [auto, setAuto] = useState(false)
@@ -494,7 +496,10 @@ export default function Journey() {
     const ctl = new AbortController()
     fetch('/api/notices?limit=60', { signal: ctl.signal })
       .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then((d: { notices?: Item[] }) => setItems(d.notices ?? []))
+      .then((d: { notices?: Item[]; meta?: IngestMeta }) => {
+        setItems(d.notices ?? [])
+        setMeta(d.meta ?? null)
+      })
       .catch(() => {
         if (!ctl.signal.aborted) {
           setFailed(true)
@@ -656,7 +661,7 @@ export default function Journey() {
             <>
               <span>지금 보는 공고</span>
               <b>{chosenName}</b>
-              <DataBadge src={src} live={picked ? { source: picked.property.source ?? null, collectedAt: picked.property.collectedAt ?? null } : null} compact />
+              <DataBadge src={src} live={picked ? { source: picked.property.source ?? null, meta } : null} compact />
             </>
           ) : (
             <span>아직 고른 공고가 없습니다</span>
@@ -687,7 +692,7 @@ export default function Journey() {
             {i > 0 && chosenName && (
               <p className="op-jr__ctx">
                 <b>{chosenName}</b>
-                <DataBadge src={src} live={picked ? { source: picked.property.source ?? null, collectedAt: picked.property.collectedAt ?? null } : null} />
+                <DataBadge src={src} live={picked ? { source: picked.property.source ?? null, meta } : null} />
               </p>
             )}
             {body(i)}

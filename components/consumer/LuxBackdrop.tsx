@@ -15,7 +15,7 @@ import { useEffect, useRef } from 'react'
  *   · 금박 호(弧) 두 개를 돌린다
  *
  * 움직이는 값은 CSS 변수 둘뿐이다(손끝 좌표·읽은 깊이). 나머지는
- * 스타일시트가 그린다 — 합성만 다시 하면 되는 일이다.
+ * 스타일시트가 그린다. 변수는 이 겹에만 적어 다시 계산할 범위를 이 겹으로 묶는다.
  */
 export default function LuxBackdrop() {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -23,7 +23,12 @@ export default function LuxBackdrop() {
   useEffect(() => {
     const host = hostRef.current
     if (!host) return
-    const root = host.parentElement ?? document.body
+    /*
+     * 변수는 이 겹(.cs-backdrop)에만 적는다. 예전에는 지면 뿌리(.cs)에 적었는데, 상속되는 사용자 변수가
+     * 바뀌면 그 아래 요소 전부(홈 약 2,000개)의 스타일을 다시 계산한다 — 스크롤·포인터 이동마다.
+     * 이 변수를 읽는 것은 .cs-backdrop 의 자식뿐이다(consumer-lux.css).
+     */
+    const root = host
 
     let pFrame = 0
     let px = 50

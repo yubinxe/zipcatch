@@ -669,3 +669,13 @@
   content-visibility: auto;
   contain-intrinsic-size: auto 900px;
 }
+
+/* ── 수집 신선도 — 숨 쉬는 점·초록 표는 수집 기록으로 확인될 때만 ── */
+.cs-atlas__kicker[data-fresh]:not([data-fresh='FRESH']) i,
+.cs-night .cs-atlas__kicker[data-fresh]:not([data-fresh='FRESH']) i { animation: none; background: #8c99ae; box-shadow: none; }
+.op-badge[data-kind='STALE'] i { background: #c9a35a; }
+.op-badge[data-kind='STALE'] b { background: transparent; color: #e0c48a; box-shadow: 0 0 0 1px #c9a35a inset; }
+.op-badge[data-kind='UNKNOWN'] i,
+.op-badge[data-kind='FIXTURE'] i { background: #8c99ae; }
+.op-badge[data-kind='UNKNOWN'] b,
+.op-badge[data-kind='FIXTURE'] b { background: transparent; color: #c9d2de; box-shadow: 0 0 0 1px #8c99ae inset; }

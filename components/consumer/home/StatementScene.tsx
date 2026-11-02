@@ -12,6 +12,7 @@ import { setJourney, useJourneyRegion } from '@/lib/consumer/journey-store'
 import { centerOf, prefetchDive, startDive } from '../dive/dive'
 import ScrollStage from './ScrollStage'
 import DataBadge from '../DataBadge'
+import type { IngestMeta } from '@/lib/consumer/data-mode'
 
 /**
  * 장면 1 — 흩어진 공고가 한 장의 지도로 모인다.
@@ -81,7 +82,7 @@ export default function StatementScene() {
   const [provinces, setProvinces] = useState<Province[] | null>(null)
   const [pins, setPins] = useState<Pin[]>([])
   const [total, setTotal] = useState<number | null>(null)
-  const [stamp, setStamp] = useState<string | null>(null)
+  const [meta, setMeta] = useState<IngestMeta | null>(null)
   const [hover, setHover] = useState<string | null>(null)
   const journey = useJourneyRegion()
   const [live, setLive] = useState(false)
@@ -92,13 +93,12 @@ export default function StatementScene() {
     const ctl = new AbortController()
     fetch('/api/notices/map', { signal: ctl.signal })
       .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then((d: { total: number; provinces: Province[]; pins?: Pin[] }) => {
+      .then((d: { total: number; provinces: Province[]; pins?: Pin[]; meta?: IngestMeta }) => {
         setProvinces(d.provinces ?? [])
         setPins(d.pins ?? [])
         setTotal(d.total ?? 0)
-        const n = new Date()
-        const z = (v: number) => String(v).padStart(2, '0')
-        setStamp(`${n.getFullYear()}.${z(n.getMonth() + 1)}.${z(n.getDate())} ${z(n.getHours())}:${z(n.getMinutes())}`)
+        // 받은 시각이 아니라 서버가 읽은 실제 수집 기록 — 없으면 배지가 '수집 시각 미확인'
+        setMeta(d.meta ?? null)
       })
       .catch(() => setProvinces([]))
     return () => ctl.abort()
@@ -389,7 +389,7 @@ export default function StatementScene() {
             <p className="cs-om-panel__fine">지금 집계된 접수 중·예정 공고가 없습니다.</p>
           )}
           <p className="cs-om-panel__stamp">
-            <DataBadge live={{ source: '청약홈·LH 접수 중·예정 공고', collectedAt: stamp }} />
+            <DataBadge live={{ source: '청약홈·LH 접수 중·예정 공고', meta }} />
           </p>
         </aside>
       )}
