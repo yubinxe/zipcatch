@@ -7,7 +7,7 @@ import { mapProvince } from '@/lib/consumer/classify'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import { verifiedForNotice } from '@/lib/consumer/complex-visualization'
 import { setJourney, useJourney } from '@/lib/consumer/journey-store'
-import { centerOf, DIVE_PHASE_EVENT, startDive, type DivePhase } from './dive/dive'
+import { centerOf, DIVE_PHASE_EVENT, prefetchDive, startDive, type DivePhase } from './dive/dive'
 import Atlas3D from './three/Atlas3D'
 import { canUse3D } from './three/support'
 import ExploreLauncher from './explore/ExploreLauncher'
@@ -447,6 +447,8 @@ export default function HeroAtlas() {
                 <button
                   type="button"
                   className="cs-atlas__dive"
+                  onPointerEnter={() => prefetchDive()}
+                  onFocus={() => prefetchDive()}
                   onClick={e => startDive({ announcementId: active.dive!.id, from: centerOf(e.currentTarget), region: active.name })}
                 >
                   <span className="cs-atlas__dive-k">3D 단지 탐험 가능</span>

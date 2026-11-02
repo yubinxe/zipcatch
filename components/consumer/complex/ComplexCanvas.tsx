@@ -34,6 +34,10 @@ export default function ComplexCanvas({
   const cbs = useRef({ onPick, onPickDong, onHover, onArrived })
   const stateRef = useRef(state)
   const [mode, setMode] = useState<'loading' | '3d' | '2d'>('loading')
+  // 첫 그림(입체 첫 장 또는 평면)이 서면 알린다 — 단지로 들어가는 전환이 그때 가림막을 걷는다
+  useEffect(() => {
+    if (mode !== 'loading') window.dispatchEvent(new CustomEvent('zc:complex-ready', { detail: mode }))
+  }, [mode])
 
   useEffect(() => {
     cbs.current = { onPick, onPickDong, onHover, onArrived }

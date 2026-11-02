@@ -9,8 +9,9 @@ import Statement3D from '@/components/consumer/three/Statement3D'
 import type { StatementDatum } from '@/components/consumer/three/statement-scene'
 import { verifiedForNotice } from '@/lib/consumer/complex-visualization'
 import { setJourney, useJourney } from '@/lib/consumer/journey-store'
-import { centerOf, startDive } from '../dive/dive'
+import { centerOf, prefetchDive, startDive } from '../dive/dive'
 import ScrollStage from './ScrollStage'
+import DataBadge from '../DataBadge'
 
 /**
  * 장면 1 — 흩어진 공고가 한 장의 지도로 모인다.
@@ -193,6 +194,13 @@ export default function StatementScene() {
   const pickedName = activeCode ? KOREA_REGIONS.find(r => r.code === activeCode)?.name ?? null : null
   const zero = KOREA_REGIONS.filter(r => !groupOf(r.code))
   const pick = (code: string) => setJourney({ region: code }, 'onemap')
+  // 탐험할 수 있는 지역을 고른 상태면 들어갈 곳을 한가할 때 미리 받아 둔다
+  const canDive = !!picked?.dive
+  useEffect(() => {
+    if (!canDive) return
+    const id = window.setTimeout(() => prefetchDive(), 1200)
+    return () => window.clearTimeout(id)
+  }, [canDive])
 
   let w = 0
   return (
@@ -250,7 +258,7 @@ export default function StatementScene() {
           })}
         </div>
 
-        <Statement3D data={data} onLive={setLive} active={activeCode} onPick={pick} onHover={setHover} />
+        <Statement3D data={data} onLive={setLive} active={journey.region} onPick={pick} onHover={setHover} />
       </div>
 
       <div ref={copyRef} className="cs-wrap cs-scene__copy">
@@ -355,6 +363,8 @@ export default function StatementScene() {
                 <button
                   type="button"
                   className="cs-atlas__dive"
+                  onPointerEnter={() => prefetchDive()}
+                  onFocus={() => prefetchDive()}
                   onClick={e => startDive({ announcementId: picked.dive!.id, from: centerOf(e.currentTarget), region: picked.name })}
                 >
                   <span className="cs-atlas__dive-k">3D 단지 탐험 가능</span>
@@ -368,7 +378,9 @@ export default function StatementScene() {
           ) : (
             <p className="cs-om-panel__fine">지금 집계된 접수 중·예정 공고가 없습니다.</p>
           )}
-          <p className="cs-om-panel__stamp">청약홈·LH 접수 중·예정 공고 · {stamp} 집계</p>
+          <p className="cs-om-panel__stamp">
+            <DataBadge live={{ source: '청약홈·LH 접수 중·예정 공고', collectedAt: stamp }} />
+          </p>
         </aside>
       )}
     </ScrollStage>

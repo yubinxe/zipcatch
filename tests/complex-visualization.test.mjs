@@ -162,3 +162,17 @@ test('목록 줄 → 확인된 공고: 운영 id·이름이 정확히 같을 때
   assert.equal(verifiedForNotice({ name: '고덕강일지구 3단지' }), null)
   assert.equal(verifiedForNotice({ id: 'fx-01', name: '아무 공고' }), null)
 })
+
+test('자료 상태: 확인된 사례는 날짜로 접수 전·중·지난 사례를 가른다', async () => {
+  const { verifiedCaseStatus, caseLabel, liveLabel } = await import('../lib/consumer/data-mode.ts')
+  const src = verifiedFor('2026000373-2026000373')
+  assert.equal(verifiedCaseStatus(src, new Date('2026-10-31T09:00:00Z')).state, 'BEFORE')
+  assert.equal(verifiedCaseStatus(src, new Date('2026-11-02T09:00:00Z')).state, 'OPEN')
+  assert.equal(verifiedCaseStatus(src, new Date('2026-11-06T09:00:00Z')).state, 'OPEN')
+  const closed = verifiedCaseStatus(src, new Date('2026-11-07T09:00:00Z'))
+  assert.equal(closed.state, 'CLOSED')
+  assert.match(closed.text, /지금 신청할 수 없습니다/)
+  assert.equal(caseLabel(src, new Date('2026-11-07T09:00:00Z')).title, '지난 사례 · 원문 검증')
+  assert.match(caseLabel(src, new Date('2026-11-02T09:00:00Z')).detail, /실시간 목록과 별개/)
+  assert.equal(liveLabel('청약홈 (공공데이터포털)', '2026-10-21T03:17:55').detail, '청약홈 (공공데이터포털) · 2026-10-21 03:17 수집')
+})

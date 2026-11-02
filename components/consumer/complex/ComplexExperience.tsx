@@ -19,6 +19,7 @@ import { useSheetDrag } from '@/lib/consumer/use-sheet-drag'
 import { FEATURES } from '@/lib/features'
 import { useDialogFocus } from '../phone/useDialogFocus'
 import ShareStudio from '../ShareStudio'
+import DataBadge from '../DataBadge'
 import ComplexCanvas from './ComplexCanvas'
 import {
   ComplexInfoPanel,
@@ -53,7 +54,13 @@ export default function ComplexExperience({
   closeLabel = '공고로 돌아가기',
   detailHref = null,
   onSelect,
+  quick = false,
+  caseMode = false,
 }: {
+  /** 공고 목록(DB)이 아니라 원문 검증 자료로 세운 탐험 — 머리에 자료 상태를 적는다 */
+  caseMode?: boolean
+  /** 지도에서 들어올 때 — 전환이 이미 어둠을 지나왔으므로 도입의 어둠 단계 없이, 패널·띠가 곧바로 선다 */
+  quick?: boolean
   notice: OfficialNotice
   initial: string | null
   /** 닫을 때 마지막으로 고른 주택형을 돌려준다 — 공고 화면이 그 줄을 짚는다 */
@@ -80,7 +87,7 @@ export default function ComplexExperience({
   const [dong, setDong] = useState<number | null>(null)
   const [hover, setHover] = useState<string | null>(null)
   const [overview, setOverview] = useState(0)
-  const [phase, setPhase] = useState<Phase>('dark')
+  const [phase, setPhase] = useState<Phase>(quick ? 'approach' : 'dark')
   const { panelRef, sheet, setSheet, grip } = useSheetDrag(150)
 
   const close = useCallback(() => onClose(selected), [onClose, selected])
@@ -273,6 +280,7 @@ export default function ComplexExperience({
       ref={box}
       tabIndex={-1}
       data-phase={phase}
+      data-quick={quick || undefined}
       data-mode={mode}
     >
       <header className="cx-head">
@@ -281,6 +289,11 @@ export default function ComplexExperience({
           <h2 id="cx-title" className="cx-title">
             {notice.name}
           </h2>
+          {caseMode && src && (
+            <p className="cx-head__mode">
+              <DataBadge src={src} />
+            </p>
+          )}
           <p className="cx-head__facts">
             {/* 숫자 한가운데서 줄이 꺾이지 않게 덩어리마다 묶는다 */}
             {src ? (
