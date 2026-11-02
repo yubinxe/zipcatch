@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { getState } from '@/lib/crm/store'
 import { checkUrgency, type UrgencyInfo } from '@/lib/crm/services/scoring'
 import { listOfficialProperties } from '@/lib/consumer/official'
+import { ingestMeta } from '@/lib/consumer/freshness'
 import { kindRank, provinceOf } from '@/lib/consumer/classify'
 import type { Property } from '@/lib/crm/types'
 import {
@@ -145,6 +146,8 @@ export async function GET(req: NextRequest) {
       sampleCount: notices.length - officialCount,
       // 실제 공고와 예시가 함께 있을 수 있다. 하나로 뭉뚱그리지 않는다.
       dataOrigin: officialCount > 0 ? ('MIXED' as const) : ('SYNTHETIC' as const),
+      /** 수집 신선도 — 요청 시각·실제 수집 시각을 가른다(lib/consumer/freshness) */
+      meta: await ingestMeta(now),
     })
   } catch (err) {
     return Response.json(

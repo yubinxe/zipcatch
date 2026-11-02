@@ -163,16 +163,106 @@ test('목록 줄 → 확인된 공고: 운영 id·이름이 정확히 같을 때
   assert.equal(verifiedForNotice({ id: 'fx-01', name: '아무 공고' }), null)
 })
 
-test('자료 상태: 확인된 사례는 날짜로 접수 전·중·지난 사례를 가른다', async () => {
-  const { verifiedCaseStatus, caseLabel, liveLabel } = await import('../lib/consumer/data-mode.ts')
+test('자료 상태: 고덕강일 3단지 — 한국시간 유형별 접수 창 경계', async () => {
+  const { verifiedCaseStatus, caseLabel } = await import('../lib/consumer/data-mode.ts')
   const src = verifiedFor('2026000373-2026000373')
-  assert.equal(verifiedCaseStatus(src, new Date('2026-10-31T09:00:00Z')).state, 'BEFORE')
-  assert.equal(verifiedCaseStatus(src, new Date('2026-11-02T09:00:00Z')).state, 'OPEN')
-  assert.equal(verifiedCaseStatus(src, new Date('2026-11-06T09:00:00Z')).state, 'OPEN')
-  const closed = verifiedCaseStatus(src, new Date('2026-11-07T09:00:00Z'))
-  assert.equal(closed.state, 'CLOSED')
-  assert.match(closed.text, /지금 신청할 수 없습니다/)
-  assert.equal(caseLabel(src, new Date('2026-11-07T09:00:00Z')).title, '지난 사례 · 원문 검증')
-  assert.match(caseLabel(src, new Date('2026-11-02T09:00:00Z')).detail, /실시간 목록과 별개/)
-  assert.equal(liveLabel('청약홈 (공공데이터포털)', '2026-10-21T03:17:55').detail, '청약홈 (공공데이터포털) · 2026-10-21 03:17 수집')
+  const at = kst => verifiedCaseStatus(src, new Date(`${kst}+09:00`))
+  const S = (kst, state, category = null) => {
+    const r = at(kst)
+    assert.equal(r.state, state, `${kst} → ${r.state}`)
+    assert.equal(r.category, category, `${kst} 유형`)
+    return r
+  }
+  // 첫날 전
+  S('2026-10-31T12:00:00', 'NOT_YET_OPEN')
+  S('2026-11-02T09:59:59', 'NOT_YET_OPEN')
+  // 특별공급 11-02 10:00 ~ 11-03 17:00 (날마다 10~17시)
+  const sp = S('2026-11-02T10:00:00', 'OPEN_FOR_SPECIFIC_CATEGORY', '특별공급')
+  assert.match(sp.text, /특별공급만 접수/)
+  assert.match(sp.text, /해당 자격자만/)
+  assert.doesNotMatch(sp.text, /누구나|모두 신청/)
+  S('2026-11-02T16:59:59', 'OPEN_FOR_SPECIFIC_CATEGORY', '특별공급')
+  const t1 = S('2026-11-02T17:00:00', 'CLOSED_FOR_TODAY')
+  assert.deepEqual(t1.next, { label: '특별공급', at: '11-03 10:00' })
+  // 자정 전환 — 오늘 마감 → 다음 날 접수 전
+  S('2026-11-02T23:59:59', 'CLOSED_FOR_TODAY')
+  const m = S('2026-11-03T00:00:00', 'NOT_YET_OPEN')
+  assert.deepEqual(m.next, { label: '특별공급', at: '11-03 10:00' })
+  S('2026-11-03T10:00:00', 'OPEN_FOR_SPECIFIC_CATEGORY', '특별공급')
+  assert.match(at('2026-11-03T12:00:00').text, /이 유형 마지막 날/)
+  S('2026-11-03T16:59:59', 'OPEN_FOR_SPECIFIC_CATEGORY', '특별공급')
+  assert.equal(S('2026-11-03T17:00:00', 'CLOSED_FOR_TODAY').next.label, '일반공급 1순위(서울 2년 이상 거주)')
+  // 일반 1순위 서울 2년 이상 11-04
+  S('2026-11-04T09:59:59', 'NOT_YET_OPEN')
+  S('2026-11-04T10:00:00', 'OPEN_FOR_SPECIFIC_CATEGORY', '일반공급 1순위(서울 2년 이상 거주)')
+  S('2026-11-04T16:59:59', 'OPEN_FOR_SPECIFIC_CATEGORY', '일반공급 1순위(서울 2년 이상 거주)')
+  S('2026-11-04T17:00:00', 'CLOSED_FOR_TODAY')
+  // 일반 1순위 그 밖 11-05
+  S('2026-11-05T10:00:00', 'OPEN_FOR_SPECIFIC_CATEGORY', '일반공급 1순위(그 밖 지역)')
+  S('2026-11-05T16:59:59', 'OPEN_FOR_SPECIFIC_CATEGORY', '일반공급 1순위(그 밖 지역)')
+  S('2026-11-05T17:00:00', 'CLOSED_FOR_TODAY')
+  // 2순위 11-06 — 17:00 정각부터 전부 끝
+  S('2026-11-06T00:00:00', 'NOT_YET_OPEN')
+  S('2026-11-06T10:00:00', 'OPEN_FOR_SPECIFIC_CATEGORY', '일반공급 2순위')
+  S('2026-11-06T16:59:59', 'OPEN_FOR_SPECIFIC_CATEGORY', '일반공급 2순위')
+  const end = S('2026-11-06T17:00:00', 'FULLY_CLOSED')
+  assert.match(end.text, /지금 신청할 수 없습니다/)
+  S('2026-11-06T17:00:01', 'FULLY_CLOSED')
+  S('2026-11-06T23:59:59', 'FULLY_CLOSED')
+  S('2026-11-07T00:00:00', 'FULLY_CLOSED')
+  // UTC 날짜로 잘못 읽던 자리: 11-06 18:00 KST = 11-06 09:00Z → 예전엔 'OPEN'
+  assert.equal(verifiedCaseStatus(src, new Date('2026-11-06T09:00:00Z')).state, 'FULLY_CLOSED')
+  // 11-02 08:00 KST = 11-01 23:00Z — 접수 전
+  assert.equal(verifiedCaseStatus(src, new Date('2026-11-01T23:00:00Z')).state, 'NOT_YET_OPEN')
+  assert.equal(caseLabel(src, new Date('2026-11-06T17:00:00+09:00')).title, '지난 사례 · 원문 검증')
+  assert.equal(caseLabel(src, new Date('2026-11-06T16:59:00+09:00')).title, '검증 사례 · 원문 대조')
+  assert.match(caseLabel(src, new Date('2026-11-02T12:00:00+09:00')).detail, /실시간 목록과 별개/)
+  assert.equal(at('2026-11-02T12:00:00').window, '접수 2026-11-02 ~ 11-06')
+})
+
+test('자료 상태: 접수 창이 없는 사례는 날짜를 지어내지 않는다', async () => {
+  const { verifiedCaseStatus } = await import('../lib/consumer/data-mode.ts')
+  const src = { ...verifiedFor('2026000373-2026000373'), windows: [] }
+  const r = verifiedCaseStatus(src, new Date('2026-11-02T03:00:00Z'))
+  assert.equal(r.state, 'NOT_YET_OPEN')
+  assert.equal(r.next, null)
+  assert.match(r.text, /원문에서 확인/)
+})
+
+test('수집 신선도: 실행 기록으로만 신선, 오래되면 갱신 지연, 가를 수 없으면 미확인', async () => {
+  const { judgeFreshness, liveLabel, freshLine, kstStamp } = await import('../lib/consumer/data-mode.ts')
+  const now = new Date('2026-11-02T03:00:00Z') // 11-02 12:00 KST
+  const meta = j => ({ requestedAt: now.toISOString(), sourcePublishedAt: null, staleAfterHours: 30, latestRowAt: null, ...j })
+  // 오늘 09:04 수집 성공
+  const f = judgeFreshness({ now, lastRunOkAt: '2026-11-02T00:04:00Z', latestRowAt: '2026-11-02T00:04:00Z' })
+  assert.deepEqual(f, { state: 'FRESH', basis: 'RUN_LOG', lastIngestedAt: '2026-11-02T00:04:00Z' })
+  assert.equal(liveLabel(null, meta(f)).kind, 'LIVE')
+  assert.equal(freshLine(meta(f)), '11.02 09:04 수집')
+  // 수집 실행이 12일 전에 멈춤 · 행도 그 뒤 안 바뀜
+  const s = judgeFreshness({ now, lastRunOkAt: '2026-10-21T03:17:55Z', latestRowAt: '2026-10-21T03:17:55Z' })
+  assert.equal(s.state, 'STALE')
+  const sl = liveLabel('청약홈', meta({ ...s, latestRowAt: '2026-10-21T03:17:55Z' }))
+  assert.equal(sl.title, '갱신 지연')
+  assert.match(sl.detail, /마지막 확인 수집 2026\.10\.21 12:17/)
+  assert.equal(freshLine(meta(s)), '갱신 지연 · 마지막 수집 10.21 12:17')
+  // 실행 기록 없음 · 행 변경도 오래됨 → 그보다 늦지 않다는 것만 확실 → 갱신 지연
+  const r = judgeFreshness({ now, lastRunOkAt: null, latestRowAt: '2026-10-21T03:17:55Z' })
+  assert.deepEqual(r, { state: 'STALE', basis: 'ROW', lastIngestedAt: null })
+  assert.equal(freshLine(meta({ ...r, latestRowAt: '2026-10-21T03:17:55Z' })), '갱신 지연 · 10.21 12:17 이후 기록 없음')
+  // 실행 기록 없음 · 행이 최근 변경(좌표 보강일 수도) → 미확인
+  assert.equal(judgeFreshness({ now, lastRunOkAt: null, latestRowAt: '2026-11-02T02:00:00Z' }).state, 'UNKNOWN')
+  // 실행 기록은 오래됐는데 행은 최근 → 가를 수 없음 → 미확인
+  assert.equal(judgeFreshness({ now, lastRunOkAt: '2026-10-21T03:17:55Z', latestRowAt: '2026-11-02T02:00:00Z' }).state, 'UNKNOWN')
+  // 아무것도 못 읽음
+  assert.equal(judgeFreshness({ now, lastRunOkAt: null, latestRowAt: null }).state, 'UNKNOWN')
+  // 경계 — 정확히 30시간은 신선, 넘으면 지연
+  assert.equal(judgeFreshness({ now, lastRunOkAt: '2026-10-31T21:00:00Z', latestRowAt: null }).state, 'FRESH')
+  assert.equal(judgeFreshness({ now, lastRunOkAt: '2026-10-31T20:59:00Z', latestRowAt: null }).state, 'STALE')
+  // 메타가 없으면 초록 표가 아니다
+  assert.equal(liveLabel(null, null).title, '수집 시각 미확인')
+  assert.equal(freshLine(null), '수집 시각 미확인')
+  assert.equal(liveLabel(null, meta({ state: 'UNKNOWN', basis: 'NONE', lastIngestedAt: null })).kind, 'UNKNOWN')
+  assert.equal(liveLabel(null, meta({ state: 'FIXTURE', basis: 'FIXTURE', lastIngestedAt: null })).title, '검증용 가상 공고')
+  assert.equal(kstStamp('2026-11-01T15:00:00Z'), '2026.11.02 00:00')
+  assert.equal(kstStamp('bad'), null)
 })

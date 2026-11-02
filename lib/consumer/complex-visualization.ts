@@ -165,12 +165,27 @@ export interface VerifiedSource {
   types: TypeRow[]
   landLease: LandLease | null
   schedule: ScheduleItem[]
+  /**
+   * 신규 청약 접수 창 — 날짜마다 따로 여닫는 접수 시간(한국시간). 원문에서 확인한 것만 적는다.
+   * 없으면 비워 둔다 — 상태 판정이 '원문 일정 확인'으로 물러선다.
+   */
+  windows?: ApplicationWindow[]
   assets: VerifiedAsset[]
   /** 현장 장면 데이터의 열쇠 — lib/consumer/sites/<key>.ts. 없으면 null */
   siteKey: string | null
   /** SH 가 확인한 동 형상(외관·배치). 없으면 null — 그때 실제 외관을 그리지 않는다 */
   verifiedGeometry: null
   geometryNote: string
+}
+
+export interface ApplicationWindow {
+  /** '특별공급' · '일반공급 1순위(서울 2년 이상)' 처럼 원문 유형 이름 */
+  label: string
+  /** 접수일(한국시간) — 'YYYY-MM-DD' */
+  days: string[]
+  /** 'HH:MM' 한국시간. 닫는 시각 정각부터는 접수 끝 */
+  opens: string
+  closes: string
 }
 
 /* ── 현장(site) — 지도 기여자의 동 윤곽 + 공고 가격표의 동·호 ── */
@@ -400,6 +415,13 @@ export const VERIFIED: Record<string, VerifiedSource> = {
       { label: '당첨자 발표', date: '2026-11-26 16:00 이후' },
       { label: '계약', date: '2027-03-22 ~ 04-02' },
       { label: '입주(예정)', date: '2027-05-28 ~ 07-26' },
+    ],
+    // SH 인터넷 청약 접수 시간(10:00~17:00, 한국시간). 특별공급은 11-02 10:00 ~ 11-03 17:00
+    windows: [
+      { label: '특별공급', days: ['2026-11-02', '2026-11-03'], opens: '10:00', closes: '17:00' },
+      { label: '일반공급 1순위(서울 2년 이상 거주)', days: ['2026-11-04'], opens: '10:00', closes: '17:00' },
+      { label: '일반공급 1순위(그 밖 지역)', days: ['2026-11-05'], opens: '10:00', closes: '17:00' },
+      { label: '일반공급 2순위', days: ['2026-11-06'], opens: '10:00', closes: '17:00' },
     ],
     assets: [
       { kind: '단지조감도', pages: [8], use: 'LINK_ONLY', useNote: SH_NOTE },

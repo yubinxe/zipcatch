@@ -13,6 +13,7 @@ import { canUse3D } from './three/support'
 import ExploreLauncher from './explore/ExploreLauncher'
 import { KOREA_SILHOUETTE } from './three/korea-silhouette'
 import type { AtlasState } from './three/atlas-scene'
+import { freshLine, type IngestMeta } from '@/lib/consumer/data-mode'
 
 /**
  * 첫 화면의 지도 — 지금 열려 있는 공고가 어디에 있는가.
@@ -47,6 +48,8 @@ interface MapResponse {
   pins: Pin[]
   total: number
   provinces: { name: string; count: number }[]
+  /** 서버가 읽은 실제 수집 기록 — 받은 시각을 수집 시각처럼 쓰지 않는다 */
+  meta?: IngestMeta
 }
 
 interface ProvinceRead {
@@ -157,8 +160,7 @@ export default function HeroAtlas() {
         if (!alive) return
         setData(json)
         setError(false)
-        const now = new Date()
-        setStamp(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`)
+        setStamp(freshLine(json.meta ?? null))
       })
       .catch(() => alive && setError(true))
     return () => {
@@ -288,12 +290,13 @@ export default function HeroAtlas() {
       }}
     >
       <div className="cs-atlas__head">
-        <span className="cs-atlas__kicker">
+        <span className="cs-atlas__kicker" data-fresh={data ? (data.meta?.state ?? 'UNKNOWN') : undefined}>
           <i aria-hidden="true" />
-          지금 열려 있는 공고
+          {/* 수집이 확인될 때만 '지금' — 그 전·지연·미확인이면 '지금'을 붙이지 않는다 */}
+          {data?.meta?.state === 'FRESH' ? '지금 열려 있는 공고' : '접수 중·예정 공고'}
         </span>
         <span className="cs-atlas__stamp cs-num">
-          {stamp ? `${stamp} 집계 · 전국 ${shownTotal.toLocaleString('ko-KR')}건` : error ? '집계 없음' : '집계 중'}
+          {stamp ? `${stamp} · 전국 ${shownTotal.toLocaleString('ko-KR')}건` : error ? '집계 없음' : '집계 중'}
         </span>
         {/* 열일곱 광역 모두 — 공고가 없는 곳도 '0건'으로 적는다 */}
         <details className="cs-atlas__all">
