@@ -195,7 +195,7 @@ function Choose({
                 <button type="button" role="radio" aria-checked={noticeId === it.property.id} onClick={e => onPick(it, e.currentTarget.querySelector('b'))}>
                   <b>{it.property.name}</b>
                   <span>
-                    {mapProvince(it.property.district ?? '', it.property.region)} · {it.property.housingType}
+                    {mapProvince(it.property.district ?? '', it.property.region) || it.property.district || it.property.region} · {it.property.housingType}
                     {it.property.applicationEnd && ` · 마감 ${ymd(it.property.applicationEnd)}`}
                   </span>
                   {v && <em>3D 단지 탐험 · 원문 대조</em>}
@@ -296,7 +296,7 @@ function CompareNotices({ items, picked }: { items: Item[]; picked: Item }) {
   const [other, setOther] = useState<string>(others[0]?.property.id ?? '')
   const b = others.find(it => it.property.id === other) ?? null
   const rows: { k: string; f: (p: Item['property']) => string }[] = [
-    { k: '지역', f: p => mapProvince(p.district ?? '', p.region) },
+    { k: '지역', f: p => mapProvince(p.district ?? '', p.region) || p.district || p.region || '—' },
     { k: '유형', f: p => p.housingType },
     { k: '보증금', f: p => (p.deposit === null ? '공고문 확인' : `${p.deposit.toLocaleString('ko-KR')}만원`) },
     { k: '월 임대료', f: p => (p.monthlyRent === null ? '공고문 확인' : `${p.monthlyRent.toLocaleString('ko-KR')}만원`) },

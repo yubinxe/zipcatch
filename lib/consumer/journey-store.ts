@@ -76,3 +76,12 @@ function subscribe(f: () => void) {
 export function useJourney(): JourneyState {
   return useSyncExternalStore(subscribe, getJourney, () => EMPTY)
 }
+
+/**
+ * 필요한 조각만 — 지역만 쓰는 장면(첫 화면·ONE MAP)은 공고·주택형이 바뀌어도 다시 그리지 않는다.
+ * 고르는 순간의 응답(INP)을 지키기 위해서다(측정: 4배 감속 휴대폰에서 한 번 고를 때 홈 전체가 다시 그려져 0.3~0.5초).
+ */
+export function useJourneyRegion(): { region: string | null } {
+  const region = useSyncExternalStore(subscribe, () => getJourney().region, () => null)
+  return { region }
+}
