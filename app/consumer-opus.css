@@ -650,3 +650,8 @@
 .dir-qr figcaption span { font-size: 15px; color: #b8c9d7; word-break: break-all; }
 .dir-end .op-badge { color: #b8c9d7; }
 @media (max-width: 760px) { .dir-qr svg, .dir-qr__wait { width: 120px; height: 120px; } .dir-end { top: 38%; padding: 18px; } }
+/* 글꼴이 늦게 올 때 줄 수가 바뀌는 칸 — 좁은 화면의 첫 화면 단서는 대체 글꼴에서 두 줄, Pretendard 에서 한 줄이었다
+   (측정: 느린 4G 에서 5.7초에 글꼴이 바뀌며 아래 지도 카드가 24px 밀림, CLS 0.068). 두 줄 자리를 먼저 잡는다 */
+@media (max-width: 640px) {
+  .cs-home .cs-hero .cs-note { min-height: 48px; }
+}
