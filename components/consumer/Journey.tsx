@@ -19,6 +19,8 @@ import { loadSite } from '@/lib/consumer/sites'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import { won, wonFull } from './complex/ComplexParts'
 import { centerOf, prefetchDive, startDive } from './dive/dive'
+import DataBadge from './DataBadge'
+import { useTween } from './complex/useTween'
 
 /**
  * 집 하나를 고르기까지 — 네 장면, 하나의 결정.
@@ -77,6 +79,8 @@ interface Item {
     resultDate: string | null
     contractStart: string | null
     sourceUrl: string | null
+    source?: string | null
+    collectedAt?: string | null
   }
 }
 
@@ -116,7 +120,7 @@ function Choose({
   region: string | null
   onRegion: (code: string | null) => void
   noticeId: string | null
-  onPick: (it: Item | 'verified') => void
+  onPick: (it: Item | 'verified', from: HTMLElement | null) => void
 }) {
   const [kind, setKind] = useState<'all' | 'sale' | 'rent'>('all')
   const [budget, setBudget] = useState(0)
@@ -136,6 +140,7 @@ function Choose({
     [items, regionName, kind, budget],
   )
   const hasVerified = hits.some(it => verifiedForNotice(it.property))
+  const shownCount = useTween(items === null ? null : hits.length)
   return (
     <div className="op-jr op-jr--choose">
       <div className="op-jr__ctl">
@@ -176,7 +181,8 @@ function Choose({
           '공고를 불러오는 중'
         ) : (
           <>
-            조건에 맞는 접수 중·예정 공고 <b className="cs-num">{hits.length}</b>건
+            조건에 맞는 접수 중·예정 공고 <b className="cs-num" aria-hidden="true">{Math.round(shownCount ?? 0)}</b>
+            <span className="cs-sr">{hits.length}</span>건
           </>
         )}
       </p>
@@ -186,7 +192,7 @@ function Choose({
             const v = verifiedForNotice(it.property)
             return (
               <li key={it.property.id}>
-                <button type="button" role="radio" aria-checked={noticeId === it.property.id} onClick={() => onPick(it)}>
+                <button type="button" role="radio" aria-checked={noticeId === it.property.id} onClick={e => onPick(it, e.currentTarget.querySelector('b'))}>
                   <b>{it.property.name}</b>
                   <span>
                     {mapProvince(it.property.district ?? '', it.property.region)} · {it.property.housingType}
@@ -200,7 +206,7 @@ function Choose({
         </ul>
       )}
       {!hasVerified && (
-        <button type="button" className="op-jr__sample" aria-pressed={verifiedPicked} onClick={() => onPick('verified')}>
+        <button type="button" className="op-jr__sample" aria-pressed={verifiedPicked} onClick={e => onPick('verified', e.currentTarget)}>
           <em>검증용 사례</em> 고덕강일지구 3단지 토지임대부(본청약) — 공고 원문·정정본과 대조한 값으로 이어 보기
         </button>
       )}
@@ -511,7 +517,38 @@ export default function Journey() {
   }, [src, site])
   const models = useMemo(() => (src && site ? verifiedModels(src, site) : null), [src, site])
 
-  const pick = (it: Item | 'verified') => {
+  // 고른 공고의 이름이 '지금 보는 공고' 자리로 옮겨 간다(같은 공고가 네 장면을 지나간다는 표시)
+  const fly = (from: HTMLElement | null, text: string) => {
+    if (!from || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const a = from.getBoundingClientRect()
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const to = document.querySelector<HTMLElement>('.op-jr__chosen b')
+        if (!to || to.getClientRects().length === 0) return
+        const b = to.getBoundingClientRect()
+        const ghost = document.createElement('div')
+        ghost.className = 'op-fly'
+        ghost.textContent = text
+        Object.assign(ghost.style, { left: `${a.left}px`, top: `${a.top}px`, width: `${a.width}px` })
+        document.body.appendChild(ghost)
+        const dx = b.left - a.left
+        const dy = b.top - a.top
+        ghost
+          .animate(
+            [
+              { transform: 'translate(0, 0)', opacity: 1 },
+              { transform: `translate(${dx}px, ${dy}px)`, opacity: 0.9, offset: 0.85 },
+              { transform: `translate(${dx}px, ${dy}px)`, opacity: 0 },
+            ],
+            { duration: 560, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' },
+          )
+          .finished.finally(() => ghost.remove())
+      }),
+    )
+  }
+
+  const pick = (it: Item | 'verified', from: HTMLElement | null = null) => {
+    fly(from, it === 'verified' ? verifiedFor(VERIFIED_ID)!.name : it.property.name)
     if (it === 'verified') {
       const v = verifiedFor(VERIFIED_ID)!
       setJourney({ noticeId: v.propertyIds[0] ?? VERIFIED_ID, noticeName: v.name, announcementId: VERIFIED_ID }, 'journey')
@@ -564,7 +601,7 @@ export default function Journey() {
           onRegion={code => setJourney({ region: code }, 'journey')}
           noticeId={journey.noticeId}
           verifiedPicked={!!src}
-          onPick={pick}
+          onPick={(it, from) => pick(it, from)}
         />
       )
     if (i === 1) {
@@ -587,7 +624,18 @@ export default function Journey() {
           {SCENES[active].verb}
         </span>
         {/* 장면 이름은 단추 — 스크롤 대신 눌러서도 간다 */}
-        <ol className="cs-jr__rail" aria-label="네 장면">
+        <ol
+          className="cs-jr__rail"
+          aria-label="네 장면 — 위·아래 화살표로 옮겨 갑니다"
+          onKeyDown={e => {
+            if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+            e.preventDefault()
+            setAuto(false)
+            const n = Math.min(SCENES.length - 1, Math.max(0, active + (e.key === 'ArrowDown' ? 1 : -1)))
+            go(n)
+            ;(e.currentTarget.querySelectorAll('button')[n] as HTMLButtonElement | undefined)?.focus({ preventScroll: true })
+          }}
+        >
           {SCENES.map((s, i) => (
             <li key={s.verb} data-on={i <= active || undefined}>
               <button
@@ -608,7 +656,7 @@ export default function Journey() {
             <>
               <span>지금 보는 공고</span>
               <b>{chosenName}</b>
-              {src && <em>검증용 사례 · 공고 원문 대조</em>}
+              <DataBadge src={src} live={picked ? { source: picked.property.source ?? null, collectedAt: picked.property.collectedAt ?? null } : null} compact />
             </>
           ) : (
             <span>아직 고른 공고가 없습니다</span>
@@ -635,6 +683,13 @@ export default function Journey() {
             </span>
             <h3 className="cs-jr__title">{s.title}</h3>
             <p className="cs-jr__desc">{s.desc}</p>
+            {/* 장면이 바뀌어도 같은 공고 — 장면마다 머리에 같은 이름과 자료 상태 */}
+            {i > 0 && chosenName && (
+              <p className="op-jr__ctx">
+                <b>{chosenName}</b>
+                <DataBadge src={src} live={picked ? { source: picked.property.source ?? null, collectedAt: picked.property.collectedAt ?? null } : null} />
+              </p>
+            )}
             {body(i)}
             <Link href={s.href} className="cs-btn cs-btn--text cs-jr__go">
               {s.cta}
