@@ -621,3 +621,32 @@
 .pxe[data-quick] .cx-head__facts,
 .pxe[data-quick] .cx-concept { opacity: 1; }
 .pxe[data-quick] { animation: none; }
+
+/* ── 자료 상태 표 — 실시간(초록 점) · 원문 검증 사례(금빛 테두리) · 지난 사례(회색) ─────── */
+.op-badge { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: 12px; line-height: 1.5; color: var(--muted, #b8c9d7); }
+.op-badge i { align-self: center; width: 7px; height: 7px; border-radius: 50%; background: #6fbf8e; flex: none; }
+.op-badge b { padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; color: #0a1322; background: #9fd3b0; white-space: nowrap; }
+.op-badge[data-kind='VERIFIED_CASE'] i { background: var(--op-pick); }
+.op-badge[data-kind='VERIFIED_CASE'] b { background: transparent; color: var(--op-pick); box-shadow: 0 0 0 1px var(--op-pick) inset; }
+.op-badge[data-closed] i { background: #8c99ae; }
+.op-badge[data-closed] b { color: #c9d2de; box-shadow: 0 0 0 1px #8c99ae inset; }
+/* FOUR STEPS — 같은 공고가 장면마다 머리에 선다 · 고른 이름이 기둥으로 옮겨 가는 복제본 */
+.cs .op-jr__ctx { display: grid; gap: 4px; margin: 18px 0 0; padding: 10px 14px; border-left: 2px solid var(--op-pick); background: rgba(201, 165, 90, 0.06); }
+.op-jr__ctx b { font-size: 15px; color: var(--title); }
+.op-fly { position: fixed; z-index: 60; padding: 2px 0; font-size: 15px; font-weight: 700; color: var(--op-pick); pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.op-jr__count { min-height: 40px; }
+.op-jr__list { min-height: calc(5 * 70px); align-content: start; }
+@media (max-width: 900px) { .op-jr__list { min-height: 0; } }
+.pxe .cx-head__mode { margin: 6px 0 0; }
+.pxe .cx-head__mode .op-badge { color: #b8c9d7; }
+@media (max-width: 860px) { .pxe .cx-head__mode .op-badge > span { display: none; } }
+.dv-chip .op-badge { justify-content: center; margin-top: 4px; }
+.dir-end { grid-template-columns: minmax(0, 1fr); }
+.dir-qr { display: flex; align-items: center; gap: 18px; margin: 6px 0 0; }
+.dir-qr svg, .dir-qr__wait { width: 168px; height: 168px; flex: none; border-radius: 8px; }
+.dir-qr__wait { background: rgba(255, 255, 255, 0.08); }
+.dir-qr figcaption { display: grid; gap: 4px; }
+.dir-qr figcaption b { font-size: 18px; color: #fff; }
+.dir-qr figcaption span { font-size: 15px; color: #b8c9d7; word-break: break-all; }
+.dir-end .op-badge { color: #b8c9d7; }
+@media (max-width: 760px) { .dir-qr svg, .dir-qr__wait { width: 120px; height: 120px; } .dir-end { top: 38%; padding: 18px; } }
