@@ -9,6 +9,7 @@ import { verifiedForNotice } from '@/lib/consumer/complex-visualization'
 import { setJourney, useJourney } from '@/lib/consumer/journey-store'
 import { centerOf, DIVE_PHASE_EVENT, startDive, type DivePhase } from './dive/dive'
 import Atlas3D from './three/Atlas3D'
+import { canUse3D } from './three/support'
 import ExploreLauncher from './explore/ExploreLauncher'
 import { KOREA_SILHOUETTE } from './three/korea-silhouette'
 import type { AtlasState } from './three/atlas-scene'
@@ -126,6 +127,25 @@ export default function HeroAtlas() {
   const [drawn, setDrawn] = useState(false)
   useEffect(() => {
     const id = requestAnimationFrame(() => setDrawn(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  /*
+   * 입체 지도는 쓸모 있을 때만 싣는다. 좁은 화면·코어 넷 이하·데이터 절약에서는 평면 지도가
+   * 그대로 완성된 그림이고, '입체로 보기'를 누를 때 싣는다 — 느린 휴대폰에서 three 를 엮는 1초 남짓의
+   * 주 스레드 막힘이 첫 조작을 붙잡지 않게(측정: 4배 감속 휴대폰에서 1.1초 긴 작업).
+   */
+  const [want3d, setWant3d] = useState(false)
+  const [can3d, setCan3d] = useState(false)
+  useEffect(() => {
+    const nav = navigator as Navigator & { connection?: { saveData?: boolean }; deviceMemory?: number }
+    const narrow = window.matchMedia('(max-width: 760px)').matches
+    const lite = (nav.hardwareConcurrency ?? 8) <= 4 || (nav.deviceMemory ?? 8) <= 4 || !!nav.connection?.saveData
+    const ok = canUse3D()
+    const id = requestAnimationFrame(() => {
+      setCan3d(ok)
+      if (ok && !narrow && !lite) setWant3d(true)
+    })
     return () => cancelAnimationFrame(id)
   }, [])
 
@@ -341,7 +361,12 @@ export default function HeroAtlas() {
             })}
           </svg>
           {/* 같은 칸 위에 겹친다 — 칸의 크기는 평면 지도가(좁은 카드에서는 CSS 가) 정한다 */}
-          <Atlas3D state={scene} onHover={setHover} onPick={choose} onLive={setLive} />
+          {want3d && <Atlas3D state={scene} onHover={setHover} onPick={choose} onLive={setLive} />}
+          {can3d && !want3d && (
+            <button type="button" className="cs-atlas__3d" onClick={() => setWant3d(true)}>
+              입체로 보기
+            </button>
+          )}
         </div>
 
         <div className="cs-atlas__read" aria-live="polite">

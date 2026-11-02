@@ -10,7 +10,7 @@ import BrandMark from '@/components/consumer/BrandMark'
  * 상호는 진짜로 적는다. 로고까지 회색 덩어리로 두면 어느 사이트에 들어왔는지
  * 모른 채 기다리게 된다.
  */
-export default function Loading() {
+export default function BootScreen() {
   return (
     <div className="cs-boot" role="status" aria-live="polite">
       <div className="cs-wrap">
