@@ -8,7 +8,7 @@ import { KOREA_REGIONS } from '@/lib/korea-regions'
 import Statement3D from '@/components/consumer/three/Statement3D'
 import type { StatementDatum } from '@/components/consumer/three/statement-scene'
 import { verifiedForNotice } from '@/lib/consumer/complex-visualization'
-import { setJourney, useJourney } from '@/lib/consumer/journey-store'
+import { setJourney, useJourneyRegion } from '@/lib/consumer/journey-store'
 import { centerOf, prefetchDive, startDive } from '../dive/dive'
 import ScrollStage from './ScrollStage'
 import DataBadge from '../DataBadge'
@@ -83,7 +83,7 @@ export default function StatementScene() {
   const [total, setTotal] = useState<number | null>(null)
   const [stamp, setStamp] = useState<string | null>(null)
   const [hover, setHover] = useState<string | null>(null)
-  const journey = useJourney()
+  const journey = useJourneyRegion()
   const [live, setLive] = useState(false)
   const mapRef = useRef<HTMLDivElement>(null)
   const copyRef = useRef<HTMLDivElement>(null)
@@ -158,7 +158,7 @@ export default function StatementScene() {
         : null,
     [provinces, lit],
   )
-  const litCodes = KOREA_PROVINCES.filter(p => byCode.has(p.code))
+  const litCodes = useMemo(() => KOREA_PROVINCES.filter(p => byCode.has(p.code)), [byCode])
 
   // 집계 한 줄마다 분양·임대·가장 가까운 마감 — 지도 집계와 같은 공고 목록에서 센다
   const groups = useMemo(() => {
@@ -202,6 +202,60 @@ export default function StatementScene() {
     return () => window.clearTimeout(id)
   }, [canDive])
 
+  // 지도 층(평면·쌓은 장)은 집계가 바뀔 때만 다시 그린다 — 고르기·마우스 올리기마다 수백 개의 <use> 를 다시 견주지 않게
+  const relief = useMemo(
+    () => (
+      <>
+          {/* 지역 경로는 한 번만 싣고, 바닥판과 쌓는 장마다 <use> 로 다시 쓴다 */}
+          <svg className="cs-sm-defs" width="0" height="0" focusable="false">
+            <defs>
+              {KOREA_PROVINCES.map(p => (
+                <path key={p.id} id={`cs-sm-${p.code}`} d={p.path} />
+              ))}
+            </defs>
+          </svg>
+
+          <div className="cs-sm-relief">
+            <div className="cs-sm-shadow" />
+            <svg className="cs-sm-layer cs-sm-layer--base" viewBox={KOREA_VISUAL_VIEWBOX}>
+              {KOREA_PROVINCES.map(p => {
+                const o = byCode.get(p.code)
+                return (
+                  <use
+                    key={p.id}
+                    href={`#cs-sm-${p.code}`}
+                    className="cs-scene__land"
+                    data-lit={o ? true : undefined}
+                    style={o ? ({ '--i': o.i } as CSSProperties) : undefined}
+                  />
+                )
+              })}
+            </svg>
+            {Array.from({ length: LAYERS }, (_, k) => k + 1).map(j => {
+              const here = litCodes.filter(p => (byCode.get(p.code)?.level ?? 0) >= j)
+              if (!here.length) return null
+              return (
+                <svg key={j} className="cs-sm-layer" viewBox={KOREA_VISUAL_VIEWBOX} style={{ '--j': j } as CSSProperties}>
+                  {here.map(p => {
+                    const o = byCode.get(p.code)!
+                    return (
+                      <use
+                        key={p.id}
+                        href={`#cs-sm-${p.code}`}
+                        className={j === o.level ? 'cs-sm-cap' : 'cs-sm-wall'}
+                        style={{ '--i': o.i, '--l': o.level } as CSSProperties}
+                      />
+                    )
+                  })}
+                </svg>
+              )
+            })}
+          </div>
+      </>
+    ),
+    [byCode, litCodes],
+  )
+
   let w = 0
   return (
     <ScrollStage length={2.4} className="cs-scene cs-scene--statement" label="흩어진 공고를 한 장의 지도로">
@@ -212,51 +266,7 @@ export default function StatementScene() {
         data-3d={live ? 'on' : undefined}
         style={{ '--lit': Math.max(1, lit.length), '--layers': LAYERS } as CSSProperties}
       >
-        {/* 지역 경로는 한 번만 싣고, 바닥판과 쌓는 장마다 <use> 로 다시 쓴다 */}
-        <svg className="cs-sm-defs" width="0" height="0" focusable="false">
-          <defs>
-            {KOREA_PROVINCES.map(p => (
-              <path key={p.id} id={`cs-sm-${p.code}`} d={p.path} />
-            ))}
-          </defs>
-        </svg>
-
-        <div className="cs-sm-relief">
-          <div className="cs-sm-shadow" />
-          <svg className="cs-sm-layer cs-sm-layer--base" viewBox={KOREA_VISUAL_VIEWBOX}>
-            {KOREA_PROVINCES.map(p => {
-              const o = byCode.get(p.code)
-              return (
-                <use
-                  key={p.id}
-                  href={`#cs-sm-${p.code}`}
-                  className="cs-scene__land"
-                  data-lit={o ? true : undefined}
-                  style={o ? ({ '--i': o.i } as CSSProperties) : undefined}
-                />
-              )
-            })}
-          </svg>
-          {Array.from({ length: LAYERS }, (_, k) => k + 1).map(j => {
-            const here = litCodes.filter(p => (byCode.get(p.code)?.level ?? 0) >= j)
-            if (!here.length) return null
-            return (
-              <svg key={j} className="cs-sm-layer" viewBox={KOREA_VISUAL_VIEWBOX} style={{ '--j': j } as CSSProperties}>
-                {here.map(p => {
-                  const o = byCode.get(p.code)!
-                  return (
-                    <use
-                      key={p.id}
-                      href={`#cs-sm-${p.code}`}
-                      className={j === o.level ? 'cs-sm-cap' : 'cs-sm-wall'}
-                      style={{ '--i': o.i, '--l': o.level } as CSSProperties}
-                    />
-                  )
-                })}
-              </svg>
-            )
-          })}
-        </div>
+        {relief}
 
         <Statement3D data={data} onLive={setLive} active={journey.region} onPick={pick} onHover={setHover} />
       </div>

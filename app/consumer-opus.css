@@ -655,3 +655,17 @@
 @media (max-width: 640px) {
   .cs-home .cs-hero .cs-note { min-height: 48px; }
 }
+
+/* 화면 밖 지면은 배치를 건너뛴다 — 고를 때마다 홈 전체(수천 개 요소)를 다시 배치하던 비용을 덜어 낸다
+   (측정: 4배 감속 휴대폰에서 고르기 한 번의 강제 배치 137ms). 붙어 있는 무대(sticky)를 가진 장면은 빼고,
+   아래쪽 정보 지면에만. 자리는 마지막으로 잰 크기로 잡아 두어 스크롤 막대가 튀지 않는다 */
+.cs-home > .cs-ap--cal,
+.cs-home > #cost,
+.cs-home > .cs-ap--build,
+.cs-home > .cs-ap--saved,
+.cs-home > .cs-ap--trust,
+.cs-home > .cs-ap--faq,
+.cs-home > .cs-ap--cta {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}

@@ -6,7 +6,7 @@ import { KOREA_PROVINCES, KOREA_VISUAL_VIEWBOX } from '@/lib/korea-map-data'
 import { mapProvince } from '@/lib/consumer/classify'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import { verifiedForNotice } from '@/lib/consumer/complex-visualization'
-import { setJourney, useJourney } from '@/lib/consumer/journey-store'
+import { getJourney, setJourney, useJourneyRegion } from '@/lib/consumer/journey-store'
 import { centerOf, DIVE_PHASE_EVENT, prefetchDive, startDive, type DivePhase } from './dive/dive'
 import Atlas3D from './three/Atlas3D'
 import { canUse3D } from './three/support'
@@ -235,15 +235,16 @@ export default function HeroAtlas() {
   }, [])
 
   // 다른 장면(ONE MAP·단지 탐험)에서 고른 지역을 그대로 받는다 — 장면마다 따로 고르지 않게
-  const journey = useJourney()
+  const journey = useJourneyRegion()
   useEffect(() => {
-    if (journey.by === 'hero' || !journey.region) return
+    // 누가 바꿨는지는 그때 읽는다(구독하지 않는다 — 다른 장면의 선택마다 다시 그리지 않게)
+    if (getJourney().by === 'hero' || !journey.region) return
     const id = requestAnimationFrame(() => {
       setTouched(true)
       setSelected(journey.region)
     })
     return () => cancelAnimationFrame(id)
-  }, [journey.region, journey.by])
+  }, [journey.region])
 
   // 단지로 들어가는 동안 — 고른 지역으로 카메라가 다가간다
   const [diving, setDiving] = useState(false)
