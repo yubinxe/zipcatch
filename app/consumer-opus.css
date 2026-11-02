@@ -17,15 +17,21 @@
   --op-pick-soft: rgba(201, 165, 90, 0.16);
 }
 
-/* ── HERO — 제목이 먼저(0~250ms), 지도는 같은 칸에서 평면 → 입체 ─────────── */
-.cs-home .cs-lux-line > span { animation-duration: 0.5s; }
-.cs-home .cs-lux-line:nth-child(1) > span { animation-delay: 0s; }
-.cs-home .cs-lux-line:nth-child(2) > span { animation-delay: 0.05s; }
-.cs-home .cs-lux-line:nth-child(3) > span { animation-delay: 0.1s; }
-.cs-home .cs-hero .cs-lead { animation-duration: 0.45s; animation-delay: 0.15s; }
-.cs-home .cs-hero .cs-hero__cta { animation-duration: 0.45s; animation-delay: 0.2s; }
+/* ── HERO — 첫 그림부터 제목·설명·첫째 단추가 보인다 ─────────────────────
+   들어서는 움직임은 자리만 10px 옮긴다(투명도 0 에서 시작하지 않는다). 투명하게 시작하면
+   느린 휴대폰에서 바쁜 주 스레드 뒤로 첫 표시가 밀려 LCP 가 5초대로 늦었다(측정). */
+@keyframes opRise { from { transform: translate3d(0, 10px, 0); } to { transform: none; } }
+.cs-home .cs-lux-line > span,
+.cs-home .cs-hero .cs-lead,
+.cs-home .cs-hero .cs-hero__cta,
 .cs-home .cs-hero .cs-hero__more,
-.cs-home .cs-hero .cs-note { animation: luxFadeUp 0.45s var(--ease-lux) 0.25s both; }
+.cs-home .cs-hero .cs-note { animation: opRise 0.45s var(--ease-lux) both; }
+.cs-home .cs-lux-line:nth-child(2) > span { animation-delay: 0.04s; }
+.cs-home .cs-lux-line:nth-child(3) > span { animation-delay: 0.08s; }
+.cs-home .cs-hero .cs-lead { animation-delay: 0.12s; }
+.cs-home .cs-hero .cs-hero__cta { animation-delay: 0.16s; }
+.cs-home .cs-hero .cs-hero__more,
+.cs-home .cs-hero .cs-note { animation-delay: 0.2s; }
 
 /* 넓은 화면 — 글 44 : 지도 56. 지도가 장식이 아니라 고를 수 있는 크기로 선다 */
 @media (min-width: 1280px) {
@@ -555,3 +561,28 @@
   .cs-jr .cs-jr__pin > :not(.op-jr__chosen) { display: none; }
   .cs .cs-jr .op-jr__chosen { margin: 0; max-width: none; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
 }
+@media (prefers-reduced-motion: reduce) {
+  .cs-home .cs-lux-line > span,
+  .cs-home .cs-hero .cs-lead,
+  .cs-home .cs-hero .cs-hero__cta,
+  .cs-home .cs-hero .cs-hero__more,
+  .cs-home .cs-hero .cs-note { animation: none; }
+}
+/* 입체를 싣지 않은 지도 — 누르면 같은 칸에서 입체로 */
+.cs-atlas__3d {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(11, 25, 41, 0.8);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cs-atlas__3d:focus-visible { outline: 2px solid var(--op-pick); outline-offset: 2px; }
