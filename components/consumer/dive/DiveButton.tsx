@@ -1,7 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { centerOf, diveHash, startDive } from './dive'
+import { centerOf, diveHash, prefetchDive, startDive } from './dive'
 
 /**
  * 단지 탐험으로 들어가는 단추. 원문 대조를 마친 공고(announcementId)만 받는다.
@@ -22,6 +22,8 @@ export default function DiveButton({
     <a
       href={`/${diveHash(announcementId)}`}
       className={className}
+      onPointerEnter={() => prefetchDive()}
+      onFocus={() => prefetchDive()}
       onClick={e => {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
         e.preventDefault()

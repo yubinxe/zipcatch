@@ -53,7 +53,10 @@ export default function ComplexExperience({
   closeLabel = '공고로 돌아가기',
   detailHref = null,
   onSelect,
+  quick = false,
 }: {
+  /** 지도에서 들어올 때 — 전환이 이미 어둠을 지나왔으므로 도입의 어둠 단계 없이, 패널·띠가 곧바로 선다 */
+  quick?: boolean
   notice: OfficialNotice
   initial: string | null
   /** 닫을 때 마지막으로 고른 주택형을 돌려준다 — 공고 화면이 그 줄을 짚는다 */
@@ -80,7 +83,7 @@ export default function ComplexExperience({
   const [dong, setDong] = useState<number | null>(null)
   const [hover, setHover] = useState<string | null>(null)
   const [overview, setOverview] = useState(0)
-  const [phase, setPhase] = useState<Phase>('dark')
+  const [phase, setPhase] = useState<Phase>(quick ? 'approach' : 'dark')
   const { panelRef, sheet, setSheet, grip } = useSheetDrag(150)
 
   const close = useCallback(() => onClose(selected), [onClose, selected])
@@ -273,6 +276,7 @@ export default function ComplexExperience({
       ref={box}
       tabIndex={-1}
       data-phase={phase}
+      data-quick={quick || undefined}
       data-mode={mode}
     >
       <header className="cx-head">

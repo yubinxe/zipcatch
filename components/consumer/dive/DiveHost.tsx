@@ -7,14 +7,16 @@ import { verifiedFor, verifiedModels, type OfficialNotice } from '@/lib/consumer
 import { setJourney } from '@/lib/consumer/journey-store'
 import { loadSite } from '@/lib/consumer/sites'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
-import { DIVE_EVENT, DIVE_PHASE_EVENT, diveHash, parseDiveHash, type DivePhase, type DiveRequest } from './dive'
+import { DIVE_EVENT, DIVE_PHASE_EVENT, diveHash, parseDiveHash, prefetchDive, type DivePhase, type DiveRequest } from './dive'
 
 const ComplexExperience = dynamic(() => import('../complex/ComplexExperience'), { ssr: false })
 
 /** 단계 길이(ms) — 공통 움직임 규칙: 즉각 반응 ≤150, 카메라 800~1,300, 큰 장면 전환 1,200~2,000 */
-const T = { focus: 220, approach: 850, cover: 650 }
+const T = { focus: 220, approach: 850, cover: 650, reveal: 420, waitMax: 4000 }
 
 interface Open {
+  /** 지도에서 전환을 거쳐 들어왔는가(주소로 바로 열면 아니다) */
+  quick: boolean
   req: DiveRequest
   notice: OfficialNotice | null
   detailHref: string
@@ -31,6 +33,9 @@ export default function DiveHost() {
   const timers = useRef<number[]>([])
   const pushed = useRef(false)
   const reduced = useRef(false)
+  /** 도착 장면이 첫 그림을 그렸는가 — 그 전에는 가림막을 걷지 않는다(빈 캔버스·검은 화면을 보이지 않게) */
+  const ready = useRef(false)
+
 
   const broadcast = (p: DivePhase) => window.dispatchEvent(new CustomEvent(DIVE_PHASE_EVENT, { detail: p }))
   const clear = () => {
@@ -55,7 +60,7 @@ export default function DiveHost() {
     setJourney({ region: code, noticeId: src.propertyIds[0] ?? req.announcementId, noticeName: src.name, announcementId: req.announcementId }, 'dive')
     // 공고 상세가 있는 환경이면 상세로, 아니면 청약홈 원문으로
     const detailHref = src.sourceUrl
-    setOpen({ req, notice: null, detailHref })
+    setOpen({ req, notice: null, detailHref, quick: !fromHash && !reduced.current })
     loadSite(src.siteKey).then(site => {
       if (!site) return
       setOpen(o =>
@@ -84,27 +89,46 @@ export default function DiveHost() {
       history.pushState({ zcDive: req.announcementId }, '', diveHash(req.announcementId))
       pushed.current = true
     }
+    ready.current = false
+    prefetchDive(src.siteKey)
     if (reduced.current || fromHash) {
       setPhase('inside')
       broadcast('inside')
       return
     }
-    setPhase('focus')
-    broadcast('focus')
+    const go = (p: DivePhase) => {
+      setPhase(p)
+      broadcast(p)
+    }
+    // 가림막이 다 덮은 뒤, 도착 장면이 첫 그림을 그렸으면 걷는다 — 아직이면 그릴 때까지(최대 4초) 덮어 둔다
+    const reveal = () => {
+      go('reveal')
+      timers.current.push(window.setTimeout(() => go('inside'), T.reveal))
+    }
+    go('focus')
     timers.current.push(
+      window.setTimeout(() => go('approach'), T.focus),
+      window.setTimeout(() => go('cover'), T.focus + T.approach),
       window.setTimeout(() => {
-        setPhase('approach')
-        broadcast('approach')
-      }, T.focus),
-      window.setTimeout(() => {
-        setPhase('cover')
-        broadcast('cover')
-      }, T.focus + T.approach),
-      window.setTimeout(() => {
-        setPhase('inside')
-        broadcast('inside')
+        if (ready.current) return reveal()
+        const onReady = () => {
+          window.removeEventListener('zc:complex-ready', onReady)
+          window.clearTimeout(cap)
+          reveal()
+        }
+        const cap = window.setTimeout(onReady, T.waitMax)
+        timers.current.push(cap)
+        window.addEventListener('zc:complex-ready', onReady)
       }, T.focus + T.approach + T.cover),
     )
+  }, [])
+
+  useEffect(() => {
+    const on = () => {
+      ready.current = true
+    }
+    window.addEventListener('zc:complex-ready', on)
+    return () => window.removeEventListener('zc:complex-ready', on)
   }, [])
 
   // 닫기·취소 — 우리가 주소를 올렸으면 뒤로 가기로(브라우저 뒤로 가기와 같은 길)
@@ -187,8 +211,9 @@ export default function DiveHost() {
           </div>,
           document.body,
         )}
-      {(phase === 'cover' || phase === 'inside') && open.notice && (
+      {(phase === 'cover' || phase === 'reveal' || phase === 'inside') && open.notice && (
         <ComplexExperience
+          quick={open.quick}
           notice={open.notice}
           initial={open.req.type ?? null}
           closeLabel="지도로 돌아가기"

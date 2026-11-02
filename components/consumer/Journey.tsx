@@ -18,7 +18,7 @@ import { setJourney, useJourney } from '@/lib/consumer/journey-store'
 import { loadSite } from '@/lib/consumer/sites'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import { won, wonFull } from './complex/ComplexParts'
-import { centerOf, startDive } from './dive/dive'
+import { centerOf, prefetchDive, startDive } from './dive/dive'
 
 /**
  * 집 하나를 고르기까지 — 네 장면, 하나의 결정.
@@ -275,6 +275,8 @@ function CompareTypes({ src, models, types, onTypes }: { src: VerifiedSource; mo
       <button
         type="button"
         className="op-jr__3d"
+        onPointerEnter={() => prefetchDive()}
+        onFocus={() => prefetchDive()}
         onClick={e => startDive({ announcementId: VERIFIED_ID, from: centerOf(e.currentTarget), region: src.region, type: a.name })}
       >
         이 두 주택형을 단지 안에서 보기 (3D)
