@@ -40,6 +40,8 @@ import './consumer-complex.css'
 /* 홈 — 장면 바깥 지면의 스크롤 결(머리 가림막·차례 등장·다가오는 마지막 띠). 맨 뒤 */
 import './consumer-apple.css'
 import './consumer-opus.css'
+/* 4.x — 여섯 장면의 손길 다듬기. 마지막에 온다 */
+import './consumer-4x.css'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zipcatch.vercel.app').replace(/\/$/, '')
 

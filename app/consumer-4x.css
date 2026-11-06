@@ -1,0 +1,117 @@
+/* ============================================================
+   4.x — 여섯 장면의 손길 다듬기
+   ------------------------------------------------------------
+   앞 층(consumer-*.css)의 구조·색·배치는 그대로 두고, 눈에 먼저 닿는
+   자리의 눈길과 손길만 한 단 올린다. 새 색을 만들지 않는다.
+
+   layout.tsx 의 마지막에서 불러온다 — 뒤에 오는 층이 없어야 여기 값이 선다.
+   ============================================================ */
+
+/* ─────────────────────────────────────────────────────────
+   HERO — 어깨 문구와 두 단추의 위계
+   ───────────────────────────────────────────────────────── */
+
+/* 밤 지면 위의 어깨 문구. 글자만 두면 배경에서 떠 보인다 — 인장처럼 둘러 앉힌다 */
+.cs-night .cs-eyebrow {
+  padding: 8px 14px;
+  border: 1px solid color-mix(in srgb, #fff 24%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, #000 24%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* 둘째 행동은 유리 단추로 — 첫째(채운 단추)와 무게가 갈린다 */
+.cs-hero__dive {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid color-mix(in srgb, #fff 26%, transparent);
+  background: color-mix(in srgb, #000 26%, transparent);
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  transition:
+    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.3s ease,
+    background-color 0.3s ease;
+}
+.cs-hero__dive:hover,
+.cs-hero__dive:focus-visible {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, #fff 46%, transparent);
+  background: color-mix(in srgb, #000 16%, transparent);
+}
+/* 손끝이 지나갈 때 한 번 도는 빛 — 들어가는 문이라는 신호 */
+.cs-hero__dive::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -55%;
+  width: 42%;
+  z-index: -1;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cs-hero__dive:hover::after,
+.cs-hero__dive:focus-visible::after {
+  left: 125%;
+}
+
+/* 내려가는 고리의 화살표가 숨 쉰다 — 아래에 더 있다는 가장 조용한 신호 */
+.cs-lux-scroll__arrow {
+  animation: fourxNudge 2.6s cubic-bezier(0.45, 0, 0.3, 1) infinite;
+}
+@keyframes fourxNudge {
+  0%,
+  62%,
+  100% {
+    transform: translateY(0);
+  }
+  78% {
+    transform: translateY(4px);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   ONE MAP · 단지 탐험 — 누를 수 있는 것은 손이 먼저 안다
+   ───────────────────────────────────────────────────────── */
+.cs-atlas__stage [data-dive],
+.cs-scene__map [data-dive] {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cs-atlas__stage [data-dive]:hover,
+.cs-atlas__stage [data-dive]:focus-visible,
+.cs-scene__map [data-dive]:hover,
+.cs-scene__map [data-dive]:focus-visible {
+  transform: translateY(-3px) scale(1.04);
+}
+
+/* ─────────────────────────────────────────────────────────
+   네 걸음(Journey) — 아직 고르지 않았을 때의 안내
+   한 줄짜리 흐린 글로 두면 '빈 화면'으로 읽힌다. 자리를 가진 판으로 세운다.
+   ───────────────────────────────────────────────────────── */
+.op-jr__fine {
+  padding: 16px 18px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-inner);
+  background: color-mix(in srgb, var(--paper-2) 42%, transparent);
+  color: var(--body);
+  font-size: 15.5px;
+  line-height: 1.7;
+  word-break: keep-all;
+  text-wrap: pretty;
+}
+
+/* ─────────────────────────────────────────────────────────
+   움직임을 원치 않는 사용자 — 장식은 선택이다
+   ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cs-lux-scroll__arrow,
+  .cs-hero__dive,
+  .cs-hero__dive::after,
+  .cs-atlas__stage [data-dive],
+  .cs-scene__map [data-dive] {
+    animation: none !important;
+    transition: none !important;
+  }
+}

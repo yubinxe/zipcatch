@@ -13,6 +13,7 @@ import MapBridge from '@/components/consumer/home/MapBridge'
 import OpenNoticeScene from '@/components/consumer/home/OpenNoticeScene'
 import DecideScene from '@/components/consumer/home/DecideScene'
 import DiveButton from '@/components/consumer/dive/DiveButton'
+import { VERIFIED } from '@/lib/consumer/complex-visualization'
 import DiveHost from '@/components/consumer/dive/DiveHost'
 import Director from '@/components/consumer/director/Director'
 
@@ -96,6 +97,12 @@ function SectionHead({
 }
 
 export default function ConsumerHome() {
+  /* 첫 화면의 탐험 단추가 가리킬 사례 — 등록부에서 읽어 글과 실제를 한 곳에서 맞춘다 */
+  const entry = Object.entries(VERIFIED)[0]
+  const dive = entry
+    ? { id: entry[0], src: entry[1], label: entry[1].name.replace(/\s*\(.*$/, '').replace('지구', '').replace(/\s+/g, ' ').trim() }
+    : null
+
   return (
     <div className="cs-home">
       {/* ── 첫 화면 ─────────────────────────────────────── */}
@@ -149,10 +156,17 @@ export default function ConsumerHome() {
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
             </Link>
-            <DiveButton announcementId="2026000373-2026000373" region="서울" className="cs-btn cs-hero__dive">
-              <span className="cs-hero__dive-t">3D 단지 탐험</span>
-              <span className="cs-hero__dive-s">고덕강일 3단지 · 공고 원문 대조</span>
-            </DiveButton>
+            {/* 탐험은 원문 대조를 마친 공고에만 붙인다. 공고 id·이름·확인일을 등록부에서 그대로
+                읽는다 — 전에는 셋 다 이 자리에 박혀 있어, 사례가 바뀌면 글과 실제가 어긋났다.
+                등록된 사례가 없으면 단추를 세우지 않는다(열리지 않는 문을 보이지 않는다). */}
+            {dive && (
+              <DiveButton announcementId={dive.id} region={dive.src.region} className="cs-btn cs-hero__dive">
+                <span className="cs-hero__dive-t">3D 단지 탐험</span>
+                <span className="cs-hero__dive-s">
+                  {dive.label} · 공고 원문 대조 {dive.src.checkedAt}
+                </span>
+              </DiveButton>
+            )}
           </div>
           {/* 목록과 지도는 같은 공고를 다르게 보는 두 창구다. 지도를 독립 화면(/map)으로 옮길 때
               들어오는 길도 같이 옮겼다 — 이 고리들의 목적지는 바꾸지 않는다 */}
