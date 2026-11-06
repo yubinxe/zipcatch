@@ -1,5 +1,6 @@
 import type { Customer, Match, Property } from '@/lib/crm/types'
 import { daysUntil } from '@/lib/crm/services/scoring'
+import { GUARD_NOTE, isGuardedDeploy } from '@/lib/runtime/deploy-guard'
 
 export interface NotificationPayload {
   customerId: string
@@ -103,6 +104,7 @@ export const kakaoMemoAdapter: NotificationAdapter = {
     if (!token) {
       return { status: 'FAILED', adapter: this.id, detail: 'KAKAO_ACCESS_TOKEN 미설정' }
     }
+    if (isGuardedDeploy()) return { status: 'DRAFT', adapter: this.id, detail: GUARD_NOTE }
     try {
       const template = {
         object_type: 'text',

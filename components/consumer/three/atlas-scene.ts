@@ -27,6 +27,11 @@ export interface AtlasState {
   active: string | null
   /** 숫자 표를 붙일 지역 — 앞에 올수록 먼저 자리를 잡는다 */
   labels: string[]
+  /**
+   * 탐험 모드 — 고른 지역(active)으로 카메라가 다가간다. 없거나 false 면 예전처럼
+   * 전국을 담는 자리에 머문다(첫 화면은 이 값을 넘기지 않는다).
+   */
+  zoom?: boolean
 }
 
 export interface AtlasCallbacks {
@@ -88,6 +93,8 @@ interface Prov {
   lift: number
   warm: number
   on: number
+  /** 손이 올라간 정도 — 고른 지역과는 따로, 테두리와 높이만 살짝 */
+  hov: number
   /** 고른 지역을 가리는 정도 0~1 — 가리면 유리처럼 비운다 */
   ghost: number
   /** 벽 셰이더가 읽는 지금 높이 */
@@ -443,6 +450,18 @@ const ease = (x: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3)
 
 export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: AtlasCallbacks): AtlasHandle {
   const target = new THREE.Vector3(0, 0.12, 0.18)
+  const baseTarget = target.clone()
+  /** 탐험 모드의 초점 — 0 이면 전국, 1 이면 고른 지역에 붙는다 */
+  /*
+   * 탐험 모드의 초점 — 0 이면 전국, 1 이면 고른 지역에 붙는다.
+   * 지수 감쇠(매 장 남은 거리의 일정 비율)는 출발이 툭 튄다. 속도를 가진 임계감쇠 용수철로
+   * 옮기면 천천히 출발해 미끄러지다 넘치지 않고 멈춘다. 이동 중에 다른 곳을 고르면
+   * 지금의 속도를 이어받아 방향만 바꾼다 — 다시 0 에서 출발하지 않는다.
+   */
+  const focus = { amt: 0, x: baseTarget.x, z: baseTarget.z, va: 0, vx: 0, vz: 0 }
+  /** 고르기 사이 최소 간격 — 카메라가 움직이는 동안 연달아 눌러 초점이 엎치락뒤치락하지 않게 */
+  let lastPick = 0
+  const PICK_GAP_MS = 380
   let dist = 12
   let state: AtlasState = { counts: {}, max: 0, active: null, labels: [] }
   let riseAt = -1
@@ -479,6 +498,8 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
   // 달빛처럼 조금 푸른 흰빛 — 석판은 푸르게, 공고가 많은 곳은 제 빛으로 주황이 된다
   const key = new THREE.DirectionalLight('#E4ECFF', 1.7)
   key.position.set(-3.4, 6.2, -2.6)
+  // 손끝을 따라 아주 조금 옮겨 결이 살아 있게 한다 — 기준 자리는 그대로 둔다
+  const KEY_BASE = key.position.clone()
   key.castShadow = true
   key.shadow.mapSize.set(2048, 2048)
   key.shadow.camera.left = -4.4
@@ -495,6 +516,7 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
 
   // 뒤에서 오는 푸른 테두리빛 — 윗면 가장자리에 결을 세운다
   const rim = new THREE.DirectionalLight('#6F8FD8', 1.0)
+  const RIM_BASE = 1.0
   rim.position.set(4.5, 2.4, -5.5)
   scene.add(rim)
 
@@ -663,6 +685,7 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
       lift: 0,
       warm: 0,
       on: 0,
+      hov: 0,
       ghost: 0,
       wallU,
       glass: false,
@@ -978,12 +1001,25 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
       cb.onHover(null)
     }
   }
+  // 끌다가 놓은 것은 고르기가 아니다 — 누른 자리에서 6px 넘게 움직였으면 버린다
+  let down: { x: number; y: number } | null = null
+  const onDown = (e: PointerEvent) => {
+    down = { x: e.clientX, y: e.clientY }
+  }
   const onClick = (e: MouseEvent) => {
+    const moved = down ? Math.hypot(e.clientX - down.x, e.clientY - down.y) : 0
+    down = null
+    if (moved > 6) return
+    const now = performance.now()
+    if (now - lastPick < PICK_GAP_MS) return
     const code = pick(e)
-    if (code) cb.onPick(code)
+    if (!code) return
+    lastPick = now
+    cb.onPick(code)
   }
   canvas.addEventListener('pointermove', onMove)
   canvas.addEventListener('pointerleave', onLeave)
+  canvas.addEventListener('pointerdown', onDown)
   canvas.addEventListener('click', onClick)
 
   /* ── 가림 — 고른 지역을 앞에서 가리는 더 높은 지역은 유리처럼 비운다 ── */
@@ -1041,9 +1077,11 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
       const intro = ease((t - p.delay * 0.6) / 1.1)
       const rise = riseAt < 0 ? 0 : ease((t - riseAt - p.delay) / 1.2)
       const isOn = p.code === active ? 1 : 0
+      const isHov = p.code === hovered && p.code !== active && count > 0 ? 1 : 0
       const th = Math.max(0.001, (BASE_H + DATA_H * share * rise) * intro)
       p.h += (th - p.h) * k(7)
-      p.lift += (isOn * LIFT - p.lift) * k(6)
+      p.hov += (isHov - p.hov) * k(9)
+      p.lift += (isOn * LIFT + p.hov * LIFT * 0.35 - p.lift) * k(6)
       p.warm += (share * rise - p.warm) * k(5)
       p.on += (isOn - p.on) * k(6)
       p.ghost += ((blockers.has(p.code) ? 1 : 0) - p.ghost) * k(8)
@@ -1068,12 +1106,12 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
       const g = p.ghost
       // 유리로 비운 지역은 제 빛도 줄인다 — 테두리만 남아 안쪽이 보이게
       // 고른 지역은 달아오르되 하얗게 타지 않게 — 벽의 위아래 결이 남을 만큼만
-      p.cap.emissiveIntensity = ((lit ? 0.05 + 0.7 * w : 0) + p.on * 0.95) * (1 - g * 0.8)
+      p.cap.emissiveIntensity = ((lit ? 0.05 + 0.7 * w : 0) + p.on * 0.95 + p.hov * 0.2) * (1 - g * 0.8)
       p.side.emissiveIntensity = ((lit ? 0.22 + 0.9 * w : 0.05) + p.on * 0.35) * (1 - g * 0.75)
       p.cap.opacity = 1 - g * 0.72
       p.side.opacity = 1 - g * 0.8
-      p.edgeMat.opacity = Math.min(1, (lit ? 0.24 + 0.4 * w : 0.13) + p.on * 0.6 + g * 0.2)
-      p.edgeMat.color.copy(EDGE).multiplyScalar(1 + p.on * 0.9)
+      p.edgeMat.opacity = Math.min(1, (lit ? 0.24 + 0.4 * w : 0.13) + p.on * 0.6 + p.hov * 0.45 + g * 0.2)
+      p.edgeMat.color.copy(EDGE).multiplyScalar(1 + p.on * 0.9 + p.hov * 0.6)
     }
 
     // 빛기둥·빛 웅덩이는 고른 지역으로 미끄러져 간다
@@ -1123,8 +1161,38 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
     view.d += (view.td - view.d) * k(2.4)
     view.x += (view.tx - view.x) * k(2.4)
     view.y += (view.ty - view.y) * k(2.4)
+    // 탐험 모드: 고른 지역으로 시선을 옮기고 거리를 좁힌다. 같은 감쇠로 미끄러진다
+    const want = state.zoom && ap ? 1 : 0
+    // 임계감쇠 용수철 — 긴 장(느린 기기)도 잘게 나눠 풀어 튀지 않게
+    const W = 4.2
+    for (let left = dt; left > 0; left -= 1 / 120) {
+      const h = Math.min(left, 1 / 120)
+      focus.va += (W * W * (want - focus.amt) - 2 * W * focus.va) * h
+      focus.amt += focus.va * h
+      if (ap) {
+        focus.vx += (W * W * (ap.anchor.x - focus.x) - 2 * W * focus.vx) * h
+        focus.vz += (W * W * (ap.anchor.z - focus.z) - 2 * W * focus.vz) * h
+        focus.x += focus.vx * h
+        focus.z += focus.vz * h
+      }
+    }
+    focus.amt = Math.min(1, Math.max(0, focus.amt))
+    // 주광원이 손끝을 따라 조금 돈다(±0.6) — 윗면 결과 그림자가 살아 있게. 테두리빛은 기울기만큼 조금 짙게
+    key.position.set(KEY_BASE.x + pointer.sx * 0.6 * intro, KEY_BASE.y, KEY_BASE.z + pointer.sy * 0.45 * intro)
+    rim.intensity = RIM_BASE * (1 + Math.abs(pointer.sx) * 0.18 * intro)
+    target.set(
+      baseTarget.x + (focus.x - baseTarget.x) * focus.amt,
+      baseTarget.y,
+      baseTarget.z + (focus.z - baseTarget.z) * focus.amt,
+    )
+    const vx = view.x
+    const vy = view.y
+    view.x *= 1 - focus.amt
+    view.y *= 1 - focus.amt
     applyView()
-    place(view.d, polar, az)
+    view.x = vx
+    view.y = vy
+    place(view.d * (1 - 0.45 * focus.amt), polar, az)
 
     if (frames === 2 && !readySent) {
       readySent = true
@@ -1209,6 +1277,7 @@ export function mountAtlas(host: HTMLElement, input: AtlasProvinceInput[], cb: A
     dispose() {
       canvas.removeEventListener('pointermove', onMove)
       canvas.removeEventListener('pointerleave', onLeave)
+      canvas.removeEventListener('pointerdown', onDown)
       canvas.removeEventListener('click', onClick)
       stage.dispose()
       tagLayer.remove()

@@ -9,6 +9,12 @@ import type { Property } from '@/lib/crm/types'
 import type { SpecialRead } from '@/lib/adapters/applyhome-special'
 import SaveButton from './SaveButton'
 import { ddayText, EmptyMark } from './NoticeCard'
+import BattleChart, { type BattleItem } from './battle/BattleChart'
+import { FEATURES } from '@/lib/features'
+import CommuteExplorer from './CommuteExplorer'
+import ShareStudio from './ShareStudio'
+import NoticeTitleMorph from './NoticeTitleMorph'
+import { provinceOf } from '@/lib/consumer/classify'
 
 /**
  * 공고 비교.
@@ -77,6 +83,22 @@ function priceCell(d: Detail): string {
   if (deposit !== null) bits.push(`보증금 ${formatMan(deposit)}`)
   if (monthlyRent !== null) bits.push(`월 ${monthlyRent.toLocaleString()}만원`)
   return bits.join(' · ')
+}
+
+/** 차이 막대에 넘길 값 — 원문에 없는 값은 null 로 둔다 */
+function toBattle(d: Detail): BattleItem {
+  const amounts = (d.supplyModels ?? []).map(m => m.topAmount).filter((n): n is number => n !== null)
+  const areas = (d.supplyModels ?? []).map(m => m.exclusiveArea).filter((n): n is number => n !== null)
+  const price = amounts.length ? Math.min(...amounts) : d.property.deposit
+  return {
+    id: d.property.id,
+    name: d.property.name,
+    supply: d.property.supplyCount > 0 ? d.property.supplyCount : null,
+    price: price ?? null,
+    priceKind: amounts.length ? 'SALE' : d.property.deposit !== null ? 'DEPOSIT' : null,
+    areaMax: areas.length ? Math.max(...areas) : d.property.area,
+    daysLeft: d.urgency.level === 'CLOSED' ? null : d.urgency.daysLeft,
+  }
 }
 
 function specialCell(d: Detail): string {
@@ -245,11 +267,52 @@ export default function CompareView() {
             </span>
             다른 값만 보기
           </button>
+          <ShareStudio
+            card={() => {
+              const b = items.map(toBattle)
+              const top = Math.max(1, ...b.map(x => x.price ?? 0))
+              return {
+                kicker: 'Side by side',
+                title: `공고 ${items.length}건 나란히`,
+                rows: b.map((x, i) => ({
+                  label: x.name,
+                  value: x.price === null ? '금액 원문 확인' : `${formatMan(x.price)}${x.priceKind === 'DEPOSIT' ? ' (보증금)' : ''}`,
+                  sub: [
+                    x.supply ? `공급 ${x.supply.toLocaleString('ko-KR')}세대` : '공급 원문 확인',
+                    x.daysLeft === null ? '마감 지남·미정' : x.daysLeft === 0 ? '오늘 마감' : `마감 D-${x.daysLeft}`,
+                  ].join(' · '),
+                  bar: x.price === null ? null : x.price / top,
+                  tone: i,
+                })),
+                source: [...new Set(items.map(d => d.property.source))].join(' · '),
+                asOf: (items.map(d => d.property.collectedAt ?? '').sort().at(-1) ?? '').slice(0, 10) || '수집 시각 미상',
+                slug: 'compare',
+              }
+            }}
+          />
           <Link href="/saved" className="cs-sa-backlink">
             관심공고에서 다시 고르기
           </Link>
         </div>
       </header>
+
+      {FEATURES.battle && items.length >= 2 && <BattleChart items={items.map(toBattle)} />}
+      {FEATURES.commute && items.length >= 2 && (
+        <section className="cs-battle cs-battle--commute" aria-label="업무지구까지">
+          <h2 className="cs-battle__t">업무지구까지</h2>
+          <CommuteExplorer
+            heading={false}
+            items={items.map(d => ({
+              id: d.property.id,
+              name: d.property.name,
+              province: provinceOf(d.property),
+              lat: d.property.lat,
+              lng: d.property.lng,
+              geoSource: d.property.geoSource,
+            }))}
+          />
+        </section>
+      )}
 
       <div className="cs-sa-spec" data-cols={items.length}>
         <table className="cs-table cs-cmp__table">
@@ -268,7 +331,9 @@ export default function CompareView() {
                       )}
                     </span>
                     <Link href={`/notices/${d.property.id}`} className="cs-cmp__name">
-                      {d.property.name}
+                      <NoticeTitleMorph id={d.property.id}>
+                        <span>{d.property.name}</span>
+                      </NoticeTitleMorph>
                     </Link>
                     <span className="cs-cmp__sub">{d.property.region}</span>
                   </div>

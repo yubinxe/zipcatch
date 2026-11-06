@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { km, transitHubs, type Hub } from '@/lib/consumer/commute'
+
 
 /**
  * 출퇴근 대중교통 — 공고 자리에서 주요 업무지구까지.
@@ -8,31 +10,6 @@ import { useState } from 'react'
  * ODsay 무료 등급은 하루 호출 수가 적어 화면을 열 때 일괄로 묻지 않는다.
  * 사람이 목적지를 눌렀을 때 그 한 곳만 묻는다. 좌표가 공고명으로 찾은 자리면 어림값이라고 적는다.
  */
-
-interface Hub {
-  name: string
-  x: number
-  y: number
-}
-
-/** 광역별 대표 업무지구 — 역 좌표(경도, 위도) */
-const METRO: Hub[] = [
-  { name: '강남역', x: 127.0276, y: 37.4979 },
-  { name: '시청역', x: 126.9772, y: 37.5657 },
-  { name: '여의도역', x: 126.9243, y: 37.5216 },
-  { name: '판교역', x: 127.1112, y: 37.3948 },
-]
-const HUBS: Record<string, Hub[]> = {
-  서울: METRO,
-  경기: METRO,
-  인천: [{ name: '인천시청역', x: 126.7027, y: 37.4573 }, ...METRO.slice(0, 3)],
-  부산: [{ name: '서면역', x: 129.0592, y: 35.1578 }, { name: '센텀시티역', x: 129.1316, y: 35.1693 }],
-  대구: [{ name: '반월당역', x: 128.5933, y: 35.8657 }, { name: '동대구역', x: 128.6283, y: 35.8794 }],
-  대전: [{ name: '대전시청역', x: 127.3863, y: 36.3515 }, { name: '대전역', x: 127.4344, y: 36.3324 }],
-  광주: [{ name: '광주시청', x: 126.8514, y: 35.1601 }, { name: '상무역', x: 126.8466, y: 35.1529 }],
-  울산: [{ name: '울산시청', x: 129.3114, y: 35.5396 }],
-  세종: [{ name: '정부세종청사', x: 127.2591, y: 36.5040 }],
-}
 
 interface Leg {
   mode: 'SUBWAY' | 'BUS' | 'WALK'
@@ -51,19 +28,6 @@ interface Route {
   transfers?: number
   walk?: number
   legs?: Leg[]
-}
-
-export function transitHubs(province: string): Hub[] {
-  if (HUBS[province]) return HUBS[province]
-  if (province.includes('광주')) return HUBS['광주']
-  return []
-}
-
-/** 두 좌표 사이 직선거리(km) */
-function km(aLat: number, aLng: number, bLat: number, bLng: number) {
-  const r = (d: number) => (d * Math.PI) / 180
-  const h = Math.sin(r(bLat - aLat) / 2) ** 2 + Math.cos(r(aLat)) * Math.cos(r(bLat)) * Math.sin(r(bLng - aLng) / 2) ** 2
-  return 12742 * Math.asin(Math.sqrt(h))
 }
 
 export default function TransitRoutes({ lat, lng, province, approximate }: { lat: number; lng: number; province: string; approximate: boolean }) {

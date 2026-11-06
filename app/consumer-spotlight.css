@@ -1,0 +1,129 @@
+/* ── E. 빠른 검색 (⌘K) ─────────────────────────────────────── */
+.sp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease;
+}
+.sp-btn:hover { border-color: var(--line-ink); color: var(--title); }
+.sp-btn kbd { font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
+.sp-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/*
+ * 메뉴 자리를 빼앗지 않는다. 데스크톱 머리는 메뉴가 꽉 차 있어(요금제가 끝에 걸린다)
+ * 단추를 끼우면 메뉴가 밀린다. 넓은 화면은 본문 칸 바깥 여백에 걸고, 그 사이 폭에서는
+ * 단축키(⌘K · Ctrl+K)만 둔다. 휴대폰은 메뉴가 아랫줄로 내려가 머리에 자리가 있다.
+ */
+.cs-header__inner { position: relative; }
+.sp-btn { min-width: 40px; justify-content: center; padding: 0; }
+.sp-btn kbd { display: none; }
+@media (min-width: 761px) {
+  .sp-btn { position: absolute; right: -56px; top: 50%; translate: 0 -50%; }
+}
+@media (min-width: 761px) and (max-width: 1399px) {
+  .sp-btn { display: none; }
+}
+
+.sp-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  padding: min(14vh, 120px) 16px 16px;
+  background: rgba(20, 17, 12, 0.42);
+  backdrop-filter: blur(3px);
+  animation: sp-fade 180ms ease;
+}
+@keyframes sp-fade { from { opacity: 0; } }
+.sp {
+  width: min(640px, 100%);
+  max-height: min(70vh, 560px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border-radius: 16px;
+  background: #FFFDF9;
+  color: #14110C;
+  box-shadow: 0 40px 80px -30px rgba(20, 17, 12, 0.5), 0 0 0 1px rgba(20, 17, 12, 0.08);
+  overflow: hidden;
+  animation: sp-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes sp-in { from { opacity: 0; transform: translateY(-8px) scale(0.985); } }
+.sp-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border-bottom: 1px solid #E2DBCF;
+  color: #5A5345;
+}
+.sp-field input {
+  flex: 1;
+  min-width: 0;
+  height: 60px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #14110C;
+  font: inherit;
+  font-size: 18px;
+}
+.sp-field input::placeholder { color: #9A9184; }
+.sp kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 6px;
+  border: 1px solid #E2DBCF;
+  border-radius: 5px;
+  font: inherit;
+  font-size: 11px;
+  text-align: center;
+  color: #5A5345;
+}
+.sp-list { margin: 0; padding: 6px; list-style: none; overflow-y: auto; overscroll-behavior: contain; }
+.sp-list li[role='option'] {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 0 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.sp-list li[aria-selected='true'] { background: #EFEAE0; }
+.sp-kind {
+  grid-row: span 2;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #9A9184;
+}
+.sp-kind[data-k='공고'] { color: #A83A20; }
+.sp-label { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-hint { grid-column: 2; font-size: 12px; color: #5A5345; }
+.sp-none { padding: 18px 12px; font-size: 14px; color: #5A5345; }
+.sp .sp-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 16px;
+  border-top: 1px solid #E2DBCF;
+  font-size: 12px;
+  color: #5A5345;
+}
+@media (max-width: 560px) {
+  .sp-veil { padding-top: 12px; }
+  .sp .sp-foot > span:first-child { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp, .sp-veil { animation: none; }
+}

@@ -1,4 +1,5 @@
 import type { NotificationProvider, NotificationPayload, SendOutcome } from './provider'
+import { GUARD_NOTE, isGuardedDeploy } from '@/lib/runtime/deploy-guard'
 
 /**
  * Telegram Bot API 어댑터.
@@ -27,6 +28,7 @@ export const telegramProvider: NotificationProvider = {
         detail: '고객의 텔레그램 수신자 ID가 없어 발송하지 않고 원문만 보관했습니다.',
       }
     }
+    if (isGuardedDeploy()) return { status: 'PREVIEW', detail: GUARD_NOTE }
 
     const text = payload.linkUrl
       ? `${payload.body}\n\n${payload.linkLabel ?? '자세히 보기'}: ${payload.linkUrl}`

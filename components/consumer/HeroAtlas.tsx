@@ -5,9 +5,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { KOREA_PROVINCES, KOREA_VISUAL_VIEWBOX } from '@/lib/korea-map-data'
 import { mapProvince } from '@/lib/consumer/classify'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
+import { verifiedForNotice } from '@/lib/consumer/complex-visualization'
+import { getJourney, setJourney, useJourneyRegion } from '@/lib/consumer/journey-store'
+import { centerOf, DIVE_PHASE_EVENT, prefetchDive, startDive, type DivePhase } from './dive/dive'
 import Atlas3D from './three/Atlas3D'
+import { canUse3D } from './three/support'
+import ExploreLauncher from './explore/ExploreLauncher'
 import { KOREA_SILHOUETTE } from './three/korea-silhouette'
 import type { AtlasState } from './three/atlas-scene'
+import { freshLine, type IngestMeta } from '@/lib/consumer/data-mode'
 
 /**
  * 첫 화면의 지도 — 지금 열려 있는 공고가 어디에 있는가.
@@ -42,6 +48,8 @@ interface MapResponse {
   pins: Pin[]
   total: number
   provinces: { name: string; count: number }[]
+  /** 서버가 읽은 실제 수집 기록 — 받은 시각을 수집 시각처럼 쓰지 않는다 */
+  meta?: IngestMeta
 }
 
 interface ProvinceRead {
@@ -51,6 +59,8 @@ interface ProvinceRead {
   sale: number
   rent: number
   nearest: Pin | null
+  /** 이 지역에서 원문 대조를 마쳐 단지 탐험을 열 수 있는 공고 */
+  dive: { id: string; name: string } | null
 }
 
 const TOUR_MS = 3600
@@ -123,6 +133,25 @@ export default function HeroAtlas() {
     return () => cancelAnimationFrame(id)
   }, [])
 
+  /*
+   * 입체 지도는 쓸모 있을 때만 싣는다. 좁은 화면·코어 넷 이하·데이터 절약에서는 평면 지도가
+   * 그대로 완성된 그림이고, '입체로 보기'를 누를 때 싣는다 — 느린 휴대폰에서 three 를 엮는 1초 남짓의
+   * 주 스레드 막힘이 첫 조작을 붙잡지 않게(측정: 4배 감속 휴대폰에서 1.1초 긴 작업).
+   */
+  const [want3d, setWant3d] = useState(false)
+  const [can3d, setCan3d] = useState(false)
+  useEffect(() => {
+    const nav = navigator as Navigator & { connection?: { saveData?: boolean }; deviceMemory?: number }
+    const narrow = window.matchMedia('(max-width: 760px)').matches
+    const lite = (nav.hardwareConcurrency ?? 8) <= 4 || (nav.deviceMemory ?? 8) <= 4 || !!nav.connection?.saveData
+    const ok = canUse3D()
+    const id = requestAnimationFrame(() => {
+      setCan3d(ok)
+      if (ok && !narrow && !lite) setWant3d(true)
+    })
+    return () => cancelAnimationFrame(id)
+  }, [])
+
   useEffect(() => {
     let alive = true
     fetch('/api/notices/map', { cache: 'no-store' })
@@ -131,8 +160,7 @@ export default function HeroAtlas() {
         if (!alive) return
         setData(json)
         setError(false)
-        const now = new Date()
-        setStamp(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`)
+        setStamp(freshLine(json.meta ?? null))
       })
       .catch(() => alive && setError(true))
     return () => {
@@ -143,7 +171,7 @@ export default function HeroAtlas() {
   /** 지도에 있는 열일곱 광역으로 모은다. 지도에 없는 이름은 따로 센다 */
   const { reads, ranked, unplaced, max } = useMemo(() => {
     const byName = new Map<string, ProvinceRead>(
-      KOREA_REGIONS.map(r => [r.name, { code: r.code, name: r.name, count: 0, sale: 0, rent: 0, nearest: null }]),
+      KOREA_REGIONS.map(r => [r.name, { code: r.code, name: r.name, count: 0, sale: 0, rent: 0, nearest: null, dive: null }]),
     )
     let unplaced = 0
     for (const pin of data?.pins ?? []) {
@@ -153,6 +181,8 @@ export default function HeroAtlas() {
         continue
       }
       read.count++
+      const v = verifiedForNotice(pin)
+      if (v && !read.dive) read.dive = { id: v.id, name: pin.name }
       if (pin.kind === 'SALE') read.sale++
       else read.rent++
       const d = pin.daysLeft
@@ -203,14 +233,38 @@ export default function HeroAtlas() {
   const choose = useCallback((code: string) => {
     setTouched(true)
     setSelected(code)
+    setJourney({ region: code }, 'hero')
+  }, [])
+
+  // 다른 장면(ONE MAP·단지 탐험)에서 고른 지역을 그대로 받는다 — 장면마다 따로 고르지 않게
+  const journey = useJourneyRegion()
+  useEffect(() => {
+    // 누가 바꿨는지는 그때 읽는다(구독하지 않는다 — 다른 장면의 선택마다 다시 그리지 않게)
+    if (getJourney().by === 'hero' || !journey.region) return
+    const id = requestAnimationFrame(() => {
+      setTouched(true)
+      setSelected(journey.region)
+    })
+    return () => cancelAnimationFrame(id)
+  }, [journey.region])
+
+  // 단지로 들어가는 동안 — 고른 지역으로 카메라가 다가간다
+  const [diving, setDiving] = useState(false)
+  useEffect(() => {
+    const on = (e: Event) => {
+      const p = (e as CustomEvent<DivePhase>).detail
+      setDiving(p === 'focus' || p === 'approach' || p === 'cover')
+    }
+    window.addEventListener(DIVE_PHASE_EVENT, on)
+    return () => window.removeEventListener(DIVE_PHASE_EVENT, on)
   }, [])
 
   /** 입체 지도에 건네는 것 — 평면 지도와 같은 집계, 같은 선택 */
   const scene = useMemo<AtlasState>(() => {
     const counts: Record<string, number> = {}
     for (const [code, r] of reads) counts[code] = r.count
-    return { counts, max, active: activeCode, labels: ranked.slice(0, 6).map(r => r.code) }
-  }, [reads, max, activeCode, ranked])
+    return { counts, max, active: activeCode, labels: ranked.slice(0, 6).map(r => r.code), zoom: diving }
+  }, [reads, max, activeCode, ranked, diving])
 
   const shownCount = useCount(active?.count ?? 0)
   const shownTotal = useCount(total)
@@ -225,15 +279,43 @@ export default function HeroAtlas() {
       data-state={loading ? 'loading' : error ? 'error' : empty ? 'empty' : 'ready'}
       onPointerEnter={() => setTouched(true)}
       onFocusCapture={() => setTouched(true)}
+      onKeyDown={e => {
+        // Esc — 고른 지역을 놓는다. 자동 순회는 다시 켜지 않는다(이미 손을 댔다)
+        if (e.key === 'Escape' && selected && !diving) {
+          e.stopPropagation()
+          setSelected(null)
+          setHover(null)
+          setJourney({ region: null }, 'hero')
+        }
+      }}
     >
       <div className="cs-atlas__head">
-        <span className="cs-atlas__kicker">
+        <span className="cs-atlas__kicker" data-fresh={data ? (data.meta?.state ?? 'UNKNOWN') : undefined}>
           <i aria-hidden="true" />
-          지금 열려 있는 공고
+          {/* 수집이 확인될 때만 '지금' — 그 전·지연·미확인이면 '지금'을 붙이지 않는다 */}
+          {data?.meta?.state === 'FRESH' ? '지금 열려 있는 공고' : '접수 중·예정 공고'}
         </span>
         <span className="cs-atlas__stamp cs-num">
-          {stamp ? `${stamp} 집계 · 전국 ${shownTotal.toLocaleString('ko-KR')}건` : error ? '집계 없음' : '집계 중'}
+          {stamp ? `${stamp} · 전국 ${shownTotal.toLocaleString('ko-KR')}건` : error ? '집계 없음' : '집계 중'}
         </span>
+        {/* 열일곱 광역 모두 — 공고가 없는 곳도 '0건'으로 적는다 */}
+        <details className="cs-atlas__all">
+          <summary>전체 17개 지역</summary>
+          <ul>
+            {KOREA_REGIONS.map(r => {
+              const read = reads.get(r.code)
+              const n = read?.count ?? 0
+              return (
+                <li key={r.code}>
+                  <button type="button" disabled={!n} aria-pressed={r.code === activeCode} onClick={() => choose(r.code)}>
+                    {r.name}
+                    <span className="cs-num">{n}건</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </details>
       </div>
 
       <div className="cs-atlas__body">
@@ -283,7 +365,12 @@ export default function HeroAtlas() {
             })}
           </svg>
           {/* 같은 칸 위에 겹친다 — 칸의 크기는 평면 지도가(좁은 카드에서는 CSS 가) 정한다 */}
-          <Atlas3D state={scene} onHover={setHover} onPick={choose} onLive={setLive} />
+          {want3d && <Atlas3D state={scene} onHover={setHover} onPick={choose} onLive={setLive} />}
+          {can3d && !want3d && (
+            <button type="button" className="cs-atlas__3d" onClick={() => setWant3d(true)}>
+              입체로 보기
+            </button>
+          )}
         </div>
 
         <div className="cs-atlas__read" aria-live="polite">
@@ -360,6 +447,19 @@ export default function HeroAtlas() {
                 <span className="cs-atlas__name">{active.nearest ? active.nearest.name : '공고에 마감일이 적혀 있지 않아요'}</span>
               </div>
 
+              {active.dive && (
+                <button
+                  type="button"
+                  className="cs-atlas__dive"
+                  onPointerEnter={() => prefetchDive()}
+                  onFocus={() => prefetchDive()}
+                  onClick={e => startDive({ announcementId: active.dive!.id, from: centerOf(e.currentTarget), region: active.name })}
+                >
+                  <span className="cs-atlas__dive-k">3D 단지 탐험 가능</span>
+                  <span className="cs-atlas__dive-t">{active.dive.name}</span>
+                </button>
+              )}
+
               <Link href={`/notices?region=${encodeURIComponent(active.name)}`} className="cs-atlas__go">
                 {active.name} 공고 보기
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -393,6 +493,7 @@ export default function HeroAtlas() {
       <p className="cs-atlas__source">
         청약홈 · LH 청약플러스 접수 중·예정 공고 ·{' '}
         <a href="/sources">출처와 라이선스</a>
+        <ExploreLauncher className="cs-atlas__explore">입체 지도로 탐험 →</ExploreLauncher>
       </p>
     </div>
   )

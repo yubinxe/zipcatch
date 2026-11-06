@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { ELIGIBILITY_CAUTION, type UrgencyInfo } from '@/lib/crm/services/scoring'
 import type { Property } from '@/lib/crm/types'
 import NoticeCard, { ddayText, EmptyMark, shortDate } from './NoticeCard'
+import { trayClear, trayToggle, useCompareTray } from '@/lib/consumer/compare-tray'
 import PageMasthead from './PageMasthead'
 import { useConsumer } from './ConsumerProvider'
 import { isRental } from '@/lib/consumer/classify'
@@ -48,11 +49,10 @@ export default function SavedView() {
    * 고를 것"이라, 하나를 둘로 쓰면 비교하려고 저장을 풀게 된다.
    * 셋을 넘기면 한 화면에서 읽히지 않으므로 거기서 막는다.
    */
-  const [picked, setPicked] = useState<string[]>([])
-  const togglePick = (id: string) =>
-    setPicked(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : prev.length >= 3 ? prev : [...prev, id],
-    )
+  // 4.0 — 다른 화면에서 담은 것과 같은 바구니를 쓴다(이 브라우저에 남는다)
+  const tray = useCompareTray()
+  const picked = tray.map(i => i.id)
+  const togglePick = (id: string, name: string) => trayToggle({ id, name })
 
   const key = savedIds.join(',')
   const loading = result?.key !== key
@@ -121,9 +121,11 @@ export default function SavedView() {
   }
 
   const done = !meLoading && !loading
-  const pickedRows = picked
-    .map(id => rows.find(r => r.property.id === id))
-    .filter((r): r is Row => Boolean(r))
+  /** 다른 화면에서 담아 관심공고에 없는 것도 이름은 안다 */
+  const pickedRows = tray.map(i => {
+    const row = rows.find(r => r.property.id === i.id)
+    return { property: { name: row?.property.name ?? i.name } }
+  })
 
   return (
     <div className="cs-wrap cs-sa cs-sa--saved">
@@ -344,7 +346,7 @@ export default function SavedView() {
                           <input
                             type="checkbox"
                             checked={on}
-                            onChange={() => togglePick(row.property.id)}
+                            onChange={() => togglePick(row.property.id, row.property.name)}
                             disabled={!on && picked.length >= 3}
                           />
                           <span>{on ? '비교 담음' : '비교'}</span>
@@ -371,7 +373,7 @@ export default function SavedView() {
               </li>
             ))}
           </ol>
-          <button type="button" className="cs-pickbar__clear" onClick={() => setPicked([])}>
+          <button type="button" className="cs-pickbar__clear" onClick={trayClear}>
             비우기
           </button>
           {picked.length >= 2 ? (

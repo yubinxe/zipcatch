@@ -1,5 +1,6 @@
 'use client'
 
+import { follow } from '@/lib/consumer/scroll-follow'
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
 
 /**
@@ -29,16 +30,28 @@ const live = new Set<HTMLElement>()
 const lastWritten = new WeakMap<HTMLElement, string>()
 let frame = 0
 let listening = false
+/** 화면에 적힌 값 — 목표(스크롤 위치)를 공용 규칙으로 쫓는다(lib/consumer/scroll-follow) */
+const shown = new WeakMap<HTMLElement, [number, number]>()
+let prevT = 0
 
-function measure() {
+/** t 가 있으면 쫓고(프레임), 없으면 바로 붙인다(처음·화면 밖) */
+function measure(t?: number) {
   frame = 0
   const vh = window.innerHeight || 1
+  const dt = t !== undefined && prevT ? t - prevT : 0
+  prevT = t ?? 0
   const reads: [HTMLElement, number, number][] = []
+  let moving = false
   // 읽기를 먼저 모두 하고, 쓰기는 그 다음에 — 레이아웃을 번갈아 깨우지 않는다
   for (const el of live) {
     const r = el.getBoundingClientRect()
-    const sp = Math.min(1, Math.max(0, (vh - r.top) / (vh * 0.7)))
-    const sv = Math.min(1, Math.max(0, (vh - r.top) / (vh + r.height)))
+    const tsp = Math.min(1, Math.max(0, (vh - r.top) / (vh * 0.7)))
+    const tsv = Math.min(1, Math.max(0, (vh - r.top) / (vh + r.height)))
+    const was = shown.get(el)
+    const sp = was && dt ? follow(was[0], tsp, dt) : tsp
+    const sv = was && dt ? follow(was[1], tsv, dt) : tsv
+    if (sp !== tsp || sv !== tsv) moving = true
+    shown.set(el, [sp, sv])
     reads.push([el, sp, sv])
   }
   for (const [el, sp, sv] of reads) {
@@ -48,6 +61,9 @@ function measure() {
     el.style.setProperty('--sp', sp.toFixed(3))
     el.style.setProperty('--sv', sv.toFixed(3))
   }
+  // 아직 쫓는 중이면 다음 프레임에도 — 스크롤이 멈춰도 끝까지 닿는다
+  if (moving) schedule()
+  else prevT = 0
 }
 
 function schedule() {

@@ -1,4 +1,5 @@
 import type { NotificationProvider, NotificationPayload, SendOutcome } from './provider'
+import { GUARD_NOTE, isGuardedDeploy } from '@/lib/runtime/deploy-guard'
 
 /**
  * 이메일 알림 어댑터 (기본 채널).
@@ -84,6 +85,7 @@ export const emailProvider: NotificationProvider = {
     if (!key) {
       return { status: 'PREVIEW', detail: '이메일 발송 키가 없어 발송하지 않고 원문만 보관했습니다.' }
     }
+    if (isGuardedDeploy()) return { status: 'PREVIEW', detail: GUARD_NOTE }
     if (!payload.to) {
       return { status: 'PREVIEW', detail: '고객 이메일 주소가 없어 발송하지 않고 원문만 보관했습니다.' }
     }

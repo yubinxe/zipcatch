@@ -22,15 +22,28 @@ const WIDE = '(min-width: 761px)'
 
 interface Props {
   data: StatementDatum[] | null
+  /** 고른 지역(지도 코드) */
+  active?: string | null
+  onPick?: (code: string) => void
+  onHover?: (code: string | null) => void
   /** 입체가 첫 장을 그렸으면 true, 내려가거나 맥락을 잃으면 false */
   onLive: (live: boolean) => void
 }
 
-export default function Statement3D({ data, onLive }: Props) {
+export default function Statement3D({ data, onLive, active = null, onPick, onHover }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
   const handleRef = useRef<StatementHandle | null>(null)
   const dataRef = useRef(data)
   const liveRef = useRef(onLive)
+  const pickRef = useRef({ onPick, onHover })
+  const activeRef = useRef(active)
+  useEffect(() => {
+    pickRef.current = { onPick, onHover }
+  }, [onPick, onHover])
+  useEffect(() => {
+    activeRef.current = active
+    handleRef.current?.setActive(active)
+  }, [active])
   /** 움직임 설정·화면 폭이 바뀔 때마다 늘어난다 — 아래 장면을 내렸다가(또는 다시) 세운다 */
   const [epoch, setEpoch] = useState(0)
 
@@ -51,7 +64,10 @@ export default function Statement3D({ data, onLive }: Props) {
 
   useEffect(() => {
     dataRef.current = data
-    if (data) handleRef.current?.update(data)
+    if (data) {
+      handleRef.current?.update(data)
+      handleRef.current?.setActive(activeRef.current)
+    }
   }, [data])
 
   useEffect(() => {
@@ -82,11 +98,14 @@ export default function Statement3D({ data, onLive }: Props) {
                 liveRef.current(false)
                 drop()
               },
+              onPick: code => pickRef.current.onPick?.(code),
+              onHover: code => pickRef.current.onHover?.(code),
             },
             getP,
           )
           handleRef.current = handle
           if (dataRef.current) handle.update(dataRef.current)
+          handle.setActive(activeRef.current)
         })
         .catch(() => {
           // 받아 오지 못하면 CSS 입체 지도가 그대로 남는다

@@ -107,6 +107,8 @@ export interface Property {
    * 함께 적어야 보는 사람이 스스로 판단할 수 있다.
    */
   collectedAt: string | null
+  /** 집캐치가 처음 저장한 시각(공식 공고만). 원문에 시작일이 없을 때 '언제부터 알았는지'의 하한 */
+  firstSeenAt?: string | null
   dataOrigin: DataOrigin
 }
 

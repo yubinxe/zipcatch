@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SIDO, lookupLawd } from '@/lib/consumer/lawd'
 import type { FlowResult } from '@/lib/market/flow'
 import type { AreaBand, DealKind, Dist, FlowDeal, HouseKind, MonthPoint } from '@/lib/market/flow-core'
@@ -385,7 +385,7 @@ function Summary({ body, kind }: { body: Resp; kind: DealKind }) {
 /* ───────────────────────── 차트 ───────────────────────── */
 
 function Chart({
-  series,
+  series: all,
   kind,
   focus,
   onFocus,
@@ -397,6 +397,27 @@ function Chart({
   onFocus: (m: string | null) => void
   unit: string
 }) {
+  /*
+   * 4.1 — 손끝으로 훑기.
+   *  - 마우스: 차트 위를 지나가면 그 달에 십자선이 서고 숫자가 위에 적힌다(누르기 전 미리 보기)
+   *  - 끌기: 두 달 이상을 끌어 놓으면 그 구간만 확대한다. '전체 기간'으로 돌아온다
+   *  - 손가락: 차트 아래 띠를 끌면 같은 십자선이 따라온다(차트 자체는 옆으로 밀어 보는 칸이라 손을 뺏지 않는다)
+   * 계산은 새로 하지 않는다 — 받은 달별 값을 그대로 보인다.
+   */
+  const [view, setView] = useState<[number, number] | null>(null)
+  const [hover, setHover] = useState<number | null>(null)
+  const [drag, setDrag] = useState<number | null>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const dragged = useRef(false)
+  // 조회 조건이 바뀌어 달 수가 달라지면 확대를 푼다
+  const [seenLen, setSeenLen] = useState(all.length)
+  if (seenLen !== all.length) {
+    setSeenLen(all.length)
+    setView(null)
+    setHover(null)
+  }
+  const offset = view ? view[0] : 0
+  const series = view ? all.slice(view[0], view[1] + 1) : all
   const W = 960
   const H = 360
   const pad = { l: 72, r: 16, t: 20, b: 34 }
@@ -408,6 +429,15 @@ function Chart({
   if (n === 0) return null
   const slot = (W - pad.l - pad.r) / n
   const x = (i: number) => pad.l + slot * i + slot / 2
+  /** 화면 좌표 → 보이는 구간 안의 달 번호 */
+  const indexAt = (clientX: number) => {
+    const r = svgRef.current?.getBoundingClientRect()
+    if (!r) return null
+    const vx = ((clientX - r.left) / r.width) * W
+    const i = Math.floor((vx - pad.l) / slot)
+    return i < 0 || i >= n ? null : i
+  }
+  const hp = hover !== null ? series[hover] : null
 
   const vals = series.flatMap(p => [p.value.p25, p.value.median, p.value.p75]).filter((v): v is number => v !== null)
   const lo = vals.length ? Math.min(...vals) : 0
@@ -448,8 +478,8 @@ function Chart({
       {/* 고른 달의 숫자를 차트 위에 그대로 적는다 — 그림만 보고 값을 짐작하지 않도록 */}
       <p className="cs-flow__readout" aria-live="polite">
         {(() => {
-          const p = focus ? series.find(m => m.month === focus) : null
-          if (!p) return '막대나 아래 달을 누르면 그 달의 숫자와 실제 거래가 펼쳐집니다.'
+          const p = hp ?? (focus ? all.find(m => m.month === focus) : null)
+          if (!p) return '차트 위를 훑거나 달을 누르면 그 달의 숫자와 실제 거래가 펼쳐집니다.'
           if (p.failed) return `${p.month.replace('-', '.')} · 응답을 받지 못해 확인할 수 없습니다.`
           return [
             `${p.month.replace('-', '.')}`,
@@ -463,8 +493,53 @@ function Chart({
             .join(' · ')
         })()}
       </p>
+      <div className="cs-flow__zoom" role="group" aria-label="기간">
+        <button type="button" aria-pressed={!view} onClick={() => setView(null)}>
+          전체 {all.length}개월
+        </button>
+        {all.length > 6 && (
+          <button
+            type="button"
+            aria-pressed={!!view && view[0] === all.length - 6 && view[1] === all.length - 1}
+            onClick={() => setView([all.length - 6, all.length - 1])}
+          >
+            최근 6개월
+          </button>
+        )}
+        {view && !(view[0] === all.length - 6 && view[1] === all.length - 1) && (
+          <span className="cs-flow__zoom-now">
+            {all[view[0]].month.replace('-', '.')} ~ {all[view[1]].month.replace('-', '.')} 확대
+          </span>
+        )}
+        <span className="cs-flow__zoom-hint">차트를 옆으로 끌어 구간을 확대할 수 있어요</span>
+      </div>
       <div className="cs-flow__plot">
-        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`월별 ${KIND_LABEL[kind]} ${unit} 중앙값과 거래 건수. 같은 값이 아래 표에 있습니다.`}>
+        <svg
+          ref={svgRef}
+          onPointerMove={e => {
+            if (e.pointerType === 'touch') return
+            setHover(indexAt(e.clientX))
+          }}
+          onPointerLeave={() => {
+            setHover(null)
+            setDrag(null)
+          }}
+          onPointerDown={e => {
+            if (e.pointerType !== 'mouse' || e.button !== 0) return
+            dragged.current = false
+            setDrag(indexAt(e.clientX))
+          }}
+          onPointerUp={e => {
+            if (drag === null) return
+            const end = indexAt(e.clientX)
+            setDrag(null)
+            if (end === null || Math.abs(end - drag) < 1) return
+            // 두 달 이상 끌었다 — 그 구간으로 확대하고, 이번 놓기는 고르기로 치지 않는다
+            dragged.current = true
+            setView([offset + Math.min(drag, end), offset + Math.max(drag, end)])
+            setHover(null)
+          }}
+          viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`월별 ${KIND_LABEL[kind]} ${unit} 중앙값과 거래 건수. 같은 값이 아래 표에 있습니다.`}>
           {ticks.map(t => (
             <g key={t}>
               <line x1={pad.l} x2={W - pad.r} y1={y(t)} y2={y(t)} className="cs-flow__grid" />
@@ -491,7 +566,13 @@ function Chart({
                   width={slot}
                   height={H - pad.t - pad.b + 4}
                   className="cs-flow__hit"
-                  onClick={() => onFocus(on ? null : p.month)}
+                  onClick={() => {
+                    if (dragged.current) {
+                      dragged.current = false
+                      return
+                    }
+                    onFocus(on ? null : p.month)
+                  }}
                 />
                 {p.value.p25 !== null && p.value.p75 !== null && (
                   <rect
@@ -529,8 +610,50 @@ function Chart({
               <circle key={p.month} cx={x(i)} cy={y(p.value.median)} r={focus === p.month ? 6 : 4} className="cs-flow__dot" data-prov={p.provisional || undefined} />
             ),
           )}
+          {/* 끌고 있는 구간 */}
+          {drag !== null && hover !== null && hover !== drag && (
+            <rect
+              x={pad.l + slot * Math.min(drag, hover)}
+              y={pad.t}
+              width={slot * (Math.abs(hover - drag) + 1)}
+              height={volTop + volH - pad.t}
+              className="cs-flow__brush"
+            />
+          )}
+          {/* 십자선 — 손끝이 있는 달. 값이 없는 달은 세로선만 */}
+          {hp && (
+            <g className="cs-flow__cross" aria-hidden="true">
+              <line x1={x(hover!)} x2={x(hover!)} y1={pad.t} y2={volTop + volH} />
+              {hp.value.median !== null && (
+                <>
+                  <line x1={pad.l} x2={W - pad.r} y1={y(hp.value.median)} y2={y(hp.value.median)} />
+                  <circle cx={x(hover!)} cy={y(hp.value.median)} r={7} />
+                </>
+              )}
+            </g>
+          )}
         </svg>
       </div>
+      {/* 손가락으로 훑는 띠 — 끄는 동안 십자선이 따라오고, 놓으면 그 달을 고른다 */}
+      <input
+        type="range"
+        className="cs-flow__scrub"
+        min={0}
+        max={Math.max(0, n - 1)}
+        step={1}
+        value={hover ?? Math.max(0, series.findIndex(p => p.month === focus))}
+        aria-label="달 훑기"
+        aria-valuetext={hp ? hp.month.replace('-', '년 ') + '월' : undefined}
+        onChange={e => setHover(Number(e.target.value))}
+        onPointerUp={() => {
+          if (hover !== null) onFocus(series[hover].month)
+          setHover(null)
+        }}
+        onKeyUp={e => {
+          if (hover !== null && (e.key === 'Enter' || e.key === ' ')) onFocus(series[hover].month)
+        }}
+        onBlur={() => setHover(null)}
+      />
       {/* 키보드로도 같은 달을 고른다 */}
       <div className="cs-flow__months" role="group" aria-label="달 고르기">
         {series.map(p => (

@@ -5,6 +5,11 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { Property } from '@/lib/crm/types'
 import { formatManOr, type UrgencyInfo } from '@/lib/crm/services/scoring'
 import { shortDate } from '../NoticeCard'
+import { verifiedFor, type VerifiedSource } from '@/lib/consumer/complex-visualization'
+import { verifiedCaseStatus, type IngestMeta } from '@/lib/consumer/data-mode'
+import { wonFull } from '../complex/ComplexParts'
+import DataBadge from '../DataBadge'
+import DiveButton from '../dive/DiveButton'
 import ScrollStage from './ScrollStage'
 import SitePlanArt from './SitePlanArt'
 
@@ -24,8 +29,30 @@ import SitePlanArt from './SitePlanArt'
  * 문서 자리에 놓고 카드 자리까지의 거리·배율(--tdx·--tdy·--ts)만 재어 적는다(FLIP).
  * 재는 일은 크기가 바뀔 때만 한다 — 스크롤마다 React 가 돌지 않는다.
  *
- * 보여주는 공고는 지금 마감이 가장 가까운 실제 공고 하나다. 공고가 없으면 장면을 세우지 않는다.
+ * 보여주는 공고는 지금 마감이 가장 가까운 실제 공고 하나다(수집 신선도 표를 함께 단다).
+ * 공고가 없으면 장면을 지우지 않고, 원문과 대조한 확인 사례(고덕강일 3단지)를 '검증 사례' 표와 함께 연다.
+ * 그때 머리 그림은 비워 둔다 — 실제 단지에 지어낸 배치도를 얹지 않는다.
  */
+
+const CASE_ID = '2026000373-2026000373'
+
+/** 확인 사례를 카드·문서에 쓸 값으로 — 원문에 있는 것만 */
+function caseView(src: VerifiedSource) {
+  const st = verifiedCaseStatus(src, new Date())
+  const rents = Object.values(src.landLease?.monthlyByArea ?? {})
+  const rent = rents.length ? (Math.min(...rents) === Math.max(...rents) ? wonFull(rents[0]) : `${wonFull(Math.min(...rents))} ~ ${wonFull(Math.max(...rents))}`) : '공고문 확인'
+  const result = src.schedule.find(x => x.label.startsWith('당첨자'))?.date ?? '공고문 확인'
+  return {
+    status: st,
+    facts: [
+      { k: '총 세대', v: `${src.supply.total.toLocaleString('ko-KR')}세대` },
+      { k: '새로 청약받는 세대', v: `${src.supply.main.toLocaleString('ko-KR')}세대` },
+      { k: '월 토지임대료', v: rent },
+      { k: '당첨자 발표', v: result },
+    ],
+    brief: `${src.supply.total.toLocaleString('ko-KR')}세대 · 신규 청약 ${src.supply.main.toLocaleString('ko-KR')}세대`,
+  }
+}
 
 interface Row {
   property: Property
@@ -51,13 +78,17 @@ function plotLabel(p: Property | undefined) {
 
 export default function OpenNoticeScene() {
   const [row, setRow] = useState<Row | null | undefined>(undefined)
+  const [meta, setMeta] = useState<IngestMeta | null>(null)
   const frame = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const ctl = new AbortController()
     fetch('/api/notices?limit=1', { signal: ctl.signal })
       .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then((d: { notices: Row[] }) => setRow(d.notices[0] ?? null))
+      .then((d: { notices: Row[]; meta?: IngestMeta }) => {
+        setRow(d.notices[0] ?? null)
+        setMeta(d.meta ?? null)
+      })
       .catch(() => setRow(null))
     return () => ctl.abort()
   }, [])
@@ -115,14 +146,20 @@ export default function OpenNoticeScene() {
     return () => ro.disconnect()
   }, [row])
 
-  if (row === null) return null
+  // 실제 공고가 없을 때만 확인 사례 — 지금 목록에서 온 것처럼 보이지 않게 표를 단다
+  const src = row === null ? verifiedFor(CASE_ID) : null
+  if (row === null && !src) return null
+  const cv = src ? caseView(src) : null
 
   const p = row?.property
-  const where = p ? (p.district && p.district !== p.region ? `${p.region} ${p.district}` : p.region) : ''
-  const due = p?.applicationEnd ? shortDate(p.applicationEnd) : '미정'
+  const where = src ? '서울 강동구' : p ? (p.district && p.district !== p.region ? `${p.region} ${p.district}` : p.region) : ''
+  const due = src ? cv!.status.window.replace('접수 ', '') : p?.applicationEnd ? shortDate(p.applicationEnd) : '미정'
   const hot = row ? row.urgency.daysLeft !== null && row.urgency.daysLeft >= 0 && row.urgency.daysLeft <= 3 : false
-  const kind = `${p?.source ?? '모집공고'}${p?.housingType ? ` · ${p.housingType}` : ''}`
-  const facts = p
+  const kind = src ? `${src.developer} · 토지임대부 분양` : `${p?.source ?? '모집공고'}${p?.housingType ? ` · ${p.housingType}` : ''}`
+  const title = src ? src.name : p?.name
+  const facts = cv
+    ? cv.facts
+    : p
     ? [
         { k: '보증금', v: formatManOr(p.deposit) },
         { k: '월 임대료', v: formatManOr(p.monthlyRent) },
@@ -131,7 +168,9 @@ export default function OpenNoticeScene() {
       ]
     : []
   // 카드에 한 줄로 — 값이 있는 것만
-  const brief = p
+  const brief = cv
+    ? cv.brief
+    : p
     ? [
         p.deposit ? `보증금 ${formatManOr(p.deposit)}` : null,
         p.monthlyRent ? `월 ${formatManOr(p.monthlyRent)}` : null,
@@ -143,7 +182,7 @@ export default function OpenNoticeScene() {
   const at = (v: number) => ({ '--at': v }) as CSSProperties
 
   return (
-    <ScrollStage length={3.2} className="cs-scene cs-scene--open" label="공고 한 장이 열리는 모습">
+    <ScrollStage length={2.2} className="cs-scene cs-scene--open" label="공고 한 장이 열리는 모습">
       <div className="cs-wrap cs-open__head">
         <span className="cs-sec-eyebrow">Open a Notice</span>
         <h2 className="cs-section-title">카드 한 장이, 공고 한 장으로.</h2>
@@ -155,18 +194,19 @@ export default function OpenNoticeScene() {
           {/* 바닥에 드리운 그림자 · 넓어지는 판 · 머리 그림 — 장식이라 읽지 않는다 */}
           <div className="cs-open__shadow" aria-hidden="true" />
           <div className="cs-open__sheet" aria-hidden="true" />
-          <div className="cs-open__band" aria-hidden="true">
+          <div className="cs-open__band" aria-hidden="true" data-case={src ? '' : undefined}>
             {p && <SitePlanArt seed={p.id} label={plotLabel(p)} />}
+            {src && <span className="cs-open__case">공고 원문 대조 · {src.checkedAt}</span>}
           </div>
 
           {/* 열린 공고 — 위계 순서대로 선다 */}
-          <article className="cs-open__doc" aria-busy={!p}>
+          <article className="cs-open__doc" aria-busy={!p && !src}>
             <p className="cs-open__crumb cs-open__r" style={at(0.42)}>
               <span className="cs-open__in">{kind}</span>
             </p>
             {/* 카드의 제목과 같은 요소 — 처음부터 끝까지 화면에 있다 */}
-            <h3 className="cs-open__title" title={p?.name}>
-              {p?.name ?? ' '}
+            <h3 className="cs-open__title" title={title}>
+              {title ?? ' '}
             </h3>
             <div className="cs-open__status cs-open__r" style={at(0.46)}>
               <span className="cs-open__in">
@@ -175,11 +215,16 @@ export default function OpenNoticeScene() {
                     {dday(row.urgency)}
                   </span>
                 )}
-                <span className="cs-num">접수 마감 {due}</span>
+                <span className="cs-num">{src ? due : `접수 마감 ${due}`}</span>
               </span>
             </div>
+            <p className="cs-open__badge cs-open__r" style={at(0.48)}>
+              <span className="cs-open__in">
+                {src ? <DataBadge src={src} /> : p ? <DataBadge live={{ source: p.source ?? null, meta }} /> : null}
+              </span>
+            </p>
             <p className="cs-open__addr cs-open__r" style={at(0.5)}>
-              <span className="cs-open__in">{p?.address || where}</span>
+              <span className="cs-open__in">{src ? src.address : p?.address || where}</span>
             </p>
             <dl className="cs-open__facts">
               {facts.map((f, i) => (
@@ -193,6 +238,14 @@ export default function OpenNoticeScene() {
                 </div>
               ))}
             </dl>
+            {src && (
+              <DiveButton announcementId={CASE_ID} region={src.region} className="cs-btn cs-btn--primary cs-open__go cs-open__r" style={at(0.7)}>
+                3D 단지 탐험으로 열기
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </DiveButton>
+            )}
             {p && (
               <Link href={`/notices/${p.id}`} className="cs-btn cs-btn--primary cs-open__go cs-open__r" style={at(0.7)}>
                 이 공고 자세히 보기
@@ -207,6 +260,7 @@ export default function OpenNoticeScene() {
           <div className="cs-open__face" aria-hidden="true">
             <div className="cs-open__face-band">
               <span className="cs-open__src">{kind}</span>
+              {src && <span className="cs-open__dday">검증 사례</span>}
               {row && (
                 <span className="cs-open__dday cs-num" data-hot={hot || undefined}>
                   {dday(row.urgency)}
