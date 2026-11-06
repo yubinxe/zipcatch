@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { centerOf, diveHash, prefetchDive, startDive } from './dive'
 
 /**
@@ -11,17 +11,20 @@ export default function DiveButton({
   announcementId,
   region,
   className,
+  style,
   children,
 }: {
   announcementId: string
   region?: string
   className?: string
+  style?: CSSProperties
   children: ReactNode
 }) {
   return (
     <a
       href={`/${diveHash(announcementId)}`}
       className={className}
+      style={style}
       onPointerEnter={() => prefetchDive()}
       onFocus={() => prefetchDive()}
       onClick={e => {

@@ -679,3 +679,27 @@
 .op-badge[data-kind='FIXTURE'] i { background: #8c99ae; }
 .op-badge[data-kind='UNKNOWN'] b,
 .op-badge[data-kind='FIXTURE'] b { background: transparent; color: #c9d2de; box-shadow: 0 0 0 1px #8c99ae inset; }
+
+/* ── 실제 공고가 모자랄 때의 확인 사례 — 견주기·공고 열기 ── */
+.cs-decide__why { max-width: 56ch; margin: 12px 0 0; font-size: 14px; line-height: 1.7; color: rgba(255, 255, 255, 0.62); word-break: keep-all; }
+.cs-decide__pick { display: inline-block; position: relative; max-width: 100%; }
+.cs-decide__pick select {
+  appearance: none; -webkit-appearance: none; max-width: 100%;
+  font: inherit; color: inherit; letter-spacing: inherit; line-height: 1.2;
+  padding: 0 1.1em 4px 0; border: 0; border-bottom: 1px solid rgba(201, 163, 90, 0.55); border-radius: 0;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23c9a35a' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 0.1em center / 0.42em auto;
+  cursor: pointer; transition: border-color 160ms var(--op-ease, ease);
+}
+.cs-decide__pick select:hover { border-bottom-color: #c9a35a; }
+.cs-decide__pick select:focus-visible { outline: 2px solid #c9a35a; outline-offset: 4px; }
+.cs-decide__pick select option { color: #0a1322; background: #fff; font-size: 16px; }
+.cs-decide__end .op-badge { justify-content: center; }
+.cs-open__badge { margin: 10px 0 0; }
+.cs-open__badge .op-badge { color: rgba(255, 255, 255, 0.62); }
+.cs-open__band[data-case] { display: flex; align-items: flex-end; }
+.cs-open__case {
+  position: relative; z-index: 1; margin: 0 0 18% 7%;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.18em; color: #c9a35a;
+  padding-top: 10px; border-top: 1px solid rgba(201, 163, 90, 0.5);
+}
+@media (max-width: 760px) { .cs-decide__why { font-size: 13px; } }
