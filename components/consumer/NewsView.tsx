@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import PageMasthead from './PageMasthead'
+import { extractHotKeywords, matchesKeyword } from '@/lib/consumer/news-keywords'
 
 /**
  * 청약뉴스 — 뉴스룸.
@@ -346,9 +347,28 @@ export default function NewsView() {
 
   const fetched = useMemo(() => entry?.items ?? [], [entry])
   const majorCount = useMemo(() => fetched.filter(n => isMajor(n.source)).length, [fetched])
-  const items = useMemo(
+  const pool = useMemo(
     () => (majorOnly ? fetched.filter(n => isMajor(n.source)) : fetched),
     [fetched, majorOnly],
+  )
+
+  /*
+   * 뜨거운 키워드 — 지금 화면에 선 기사에서만 센다.
+   * 외부 인기 지수가 아니라 '이 목록의 제목에서 자주 등장한 말'이므로,
+   * 보이는 것과 세는 것이 어긋나면 안 된다(주요 언론사만 보기를 켜면 함께 좁아진다).
+   */
+  const hot = useMemo(() => extractHotKeywords(pool, { now, limit: 10 }), [pool, now])
+  const [picked, setPicked] = useState<string | null>(null)
+
+  /*
+   * 주제를 바꾸거나 목록이 바뀌어 그 말이 더는 없으면 저절로 풀린다.
+   * 효과로 상태를 되돌리면 한 번 더 그리게 되므로, 지금 목록에서 유효한지를 그 자리에서 따진다.
+   */
+  const keyword = picked && hot.some(h => h.term === picked) ? picked : null
+
+  const items = useMemo(
+    () => (keyword ? pool.filter(n => matchesKeyword(n.title, keyword)) : pool),
+    [pool, keyword],
   )
 
   /** 맨 앞의 한 건 — 주요 언론사 기사 가운데 가장 최근 것. 없으면 그냥 가장 최근 것 */
@@ -526,7 +546,7 @@ export default function NewsView() {
 
   const panelId = `${uid}-panel`
   /** 바뀔 때마다 목록이 새로 들어서도록 */
-  const sceneKey = `${topic}:${majorOnly ? 'major' : 'all'}:${entry?.rev ?? -1}`
+  const sceneKey = `${topic}:${majorOnly ? 'major' : 'all'}:${keyword ?? ''}:${entry?.rev ?? -1}`
 
   const status = loading
     ? `${current.label} 기사를 불러오는 중입니다.`
@@ -690,103 +710,169 @@ export default function NewsView() {
             <div className="cs-nr-top">
               {lead && <LeadStory item={lead} now={now} major={isMajor(lead.source)} />}
 
-              <aside className="cs-nr-edition" aria-label="이 목록 요약">
-                <p className="cs-nr-edition__eyebrow">이 목록</p>
-                <dl className="cs-nr-edition__grid">
-                  <div>
-                    <dt>기사</dt>
-                    <dd className="cs-num">
-                      {stats.total}
-                      <small>건</small>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>오늘 발행</dt>
-                    <dd className="cs-num">
-                      {stats.today}
-                      <small>건</small>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>매체</dt>
-                    <dd className="cs-num">
-                      {stats.outlets}
-                      <small>곳</small>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>주요 언론사</dt>
-                    <dd className="cs-num">
-                      {stats.major}
-                      <small>건</small>
-                    </dd>
-                  </div>
-                </dl>
-                <div className="cs-nr-edition__foot">
-                  <span>
-                    {entry?.fetchedAt ? (
-                      <>
-                        <time dateTime={entry.fetchedAt} title={exact(entry.fetchedAt)}>
-                          {clock(parse(entry.fetchedAt) ?? now)}
-                        </time>{' '}
-                        기준 · 최대 30건
-                      </>
-                    ) : (
-                      '최신순 · 최대 30건'
-                    )}
-                  </span>
-                  <button
-                    type="button"
-                    className="cs-nr-refresh"
-                    onClick={refresh}
-                    disabled={refreshing}
-                    aria-label={refreshing ? '새로 불러오는 중' : '목록 새로 불러오기'}
-                  >
-                    <IconRefresh />
-                    <span>{refreshing ? '불러오는 중' : '새로고침'}</span>
-                  </button>
-                </div>
-              </aside>
             </div>
 
-            {groups.map(g => (
-              <section key={g.key} className="cs-nr-group" aria-labelledby={`${uid}-g-${g.key}`}>
-                <header className="cs-nr-group__head">
-                  <h3 id={`${uid}-g-${g.key}`}>{GROUP_LABEL[g.key]}</h3>
-                  <span className="cs-nr-group__date">{groupDates(g.items)}</span>
-                  <span className="cs-nr-group__rule" aria-hidden="true" />
-                  <span className="cs-nr-group__count cs-num">{g.items.length}건</span>
-                </header>
-                <ol className="cs-nr-list">
-                  {g.items.map((n, i) => (
-                    <li
-                      key={n.link}
-                      className="cs-nr-row"
-                      style={{ '--i': Math.min(g.offset + i, 14) } as CSSProperties}
-                    >
-                      <a className="cs-nr-row__link" href={n.link} target="_blank" rel="noopener noreferrer nofollow">
-                        <SourceMark logo={n.logo} source={n.source} />
-                        <span className="cs-nr-row__body">
-                          <span className="cs-nr-row__title">{n.title}</span>
-                          <span className="cs-nr-row__meta">
-                            <span className="cs-nr-row__source">{n.source}</span>
-                            <span aria-hidden="true" className="cs-nr-dot" />
-                            <time dateTime={n.publishedAt ?? undefined} title={exact(n.publishedAt)}>
-                              {ago(n.publishedAt, now)}
-                            </time>
+            <div className="cs-nr-body">
+              <div className="cs-nr-main">
+              {groups.map(g => (
+                <section key={g.key} className="cs-nr-group" aria-labelledby={`${uid}-g-${g.key}`}>
+                  <header className="cs-nr-group__head">
+                    <h3 id={`${uid}-g-${g.key}`}>{GROUP_LABEL[g.key]}</h3>
+                    <span className="cs-nr-group__date">{groupDates(g.items)}</span>
+                    <span className="cs-nr-group__rule" aria-hidden="true" />
+                    <span className="cs-nr-group__count cs-num">{g.items.length}건</span>
+                  </header>
+                  <ol className="cs-nr-list">
+                    {g.items.map((n, i) => (
+                      <li
+                        key={n.link}
+                        className="cs-nr-row"
+                        style={{ '--i': Math.min(g.offset + i, 14) } as CSSProperties}
+                      >
+                        <a className="cs-nr-row__link" href={n.link} target="_blank" rel="noopener noreferrer nofollow">
+                          <SourceMark logo={n.logo} source={n.source} />
+                          <span className="cs-nr-row__body">
+                            <span className="cs-nr-row__title">{n.title}</span>
+                            <span className="cs-nr-row__meta">
+                              <span className="cs-nr-row__source">{n.source}</span>
+                              <span aria-hidden="true" className="cs-nr-dot" />
+                              <time dateTime={n.publishedAt ?? undefined} title={exact(n.publishedAt)}>
+                                {ago(n.publishedAt, now)}
+                              </time>
+                            </span>
                           </span>
-                        </span>
-                        <span className="cs-nr-row__go" aria-hidden="true">
-                          <span className="cs-nr-row__golabel">원문 보기</span>
-                          <IconArrow />
-                        </span>
-                        <span className="cs-sr"> — {n.source} 원문, 새 창에서 열림</span>
-                      </a>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            ))}
+                          <span className="cs-nr-row__go" aria-hidden="true">
+                            <span className="cs-nr-row__golabel">원문 보기</span>
+                            <IconArrow />
+                          </span>
+                          <span className="cs-sr"> — {n.source} 원문, 새 창에서 열림</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              ))}
+              </div>
+
+              {/* 오른쪽 난 — 뜨거운 키워드와 이 목록 요약을 한 편집 단위로 묶는다 */}
+              <aside className="cs-nr-rail" aria-label="키워드와 목록 요약">
+                <section className="cs-nr-hot" aria-labelledby={`${uid}-hot`}>
+                  <header className="cs-nr-hot__head">
+                    <h3 id={`${uid}-hot`}>뜨거운 키워드</h3>
+                    <p>최근 기사 제목에서 자주 등장한 부동산 키워드</p>
+                  </header>
+
+                  {hot.length === 0 ? (
+                    <p className="cs-nr-hot__none">
+                      이 주제의 최근 제목에서는 두 건 이상 겹치는 용어가 아직 없습니다.
+                    </p>
+                  ) : (
+                    <ol className="cs-nr-hot__list">
+                      {hot.map((h, i) => {
+                        const on = h.term === keyword
+                        return (
+                          <li key={h.term} className="cs-nr-hot__item">
+                            <button
+                              type="button"
+                              className="cs-nr-hot__btn"
+                              aria-pressed={on}
+                              onClick={() => setPicked(on ? null : h.term)}
+                            >
+                              <span className="cs-nr-hot__rank cs-num" aria-hidden="true">
+                                {String(i + 1).padStart(2, '0')}
+                              </span>
+                              <span className="cs-nr-hot__term">{h.term}</span>
+                              <span className="cs-nr-hot__meta cs-num">
+                                {h.articles}건<small> · {h.outlets}곳</small>
+                              </span>
+                              <span
+                                className="cs-nr-hot__bar"
+                                aria-hidden="true"
+                                style={{ '--w': hot[0].score ? h.score / hot[0].score : 0 } as CSSProperties}
+                              />
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ol>
+                  )}
+
+                  {keyword && (
+                    <div className="cs-nr-hot__filter" role="status">
+                      <span>
+                        <b>{keyword}</b> 가 든 기사 {items.length}건만 보는 중
+                      </span>
+                      <button type="button" className="cs-nr-textbtn" onClick={() => setPicked(null)}>
+                        전체 보기
+                      </button>
+                    </div>
+                  )}
+
+                  <p className="cs-nr-hot__fine">
+                    제목에 실제로 나온 횟수입니다. 검색량·조회수 같은 외부 지수가 아니며, 같은 사건을
+                    여러 매체가 같은 제목으로 실은 경우는 한 건으로 셉니다.
+                  </p>
+                </section>
+
+                <aside className="cs-nr-edition" aria-label="이 목록 요약">
+                  <p className="cs-nr-edition__eyebrow">이 목록</p>
+                  <dl className="cs-nr-edition__grid">
+                    <div>
+                      <dt>기사</dt>
+                      <dd className="cs-num">
+                        {stats.total}
+                        <small>건</small>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>오늘 발행</dt>
+                      <dd className="cs-num">
+                        {stats.today}
+                        <small>건</small>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>매체</dt>
+                      <dd className="cs-num">
+                        {stats.outlets}
+                        <small>곳</small>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>주요 언론사</dt>
+                      <dd className="cs-num">
+                        {stats.major}
+                        <small>건</small>
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="cs-nr-edition__foot">
+                    <span>
+                      {entry?.fetchedAt ? (
+                        <>
+                          <time dateTime={entry.fetchedAt} title={exact(entry.fetchedAt)}>
+                            {clock(parse(entry.fetchedAt) ?? now)}
+                          </time>{' '}
+                          기준 · 최대 30건
+                        </>
+                      ) : (
+                        '최신순 · 최대 30건'
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      className="cs-nr-refresh"
+                      onClick={refresh}
+                      disabled={refreshing}
+                      aria-label={refreshing ? '새로 불러오는 중' : '목록 새로 불러오기'}
+                    >
+                      <IconRefresh />
+                      <span>{refreshing ? '불러오는 중' : '새로고침'}</span>
+                    </button>
+                  </div>
+                </aside>
+              </aside>
+            </div>
           </div>
         )}
       </section>

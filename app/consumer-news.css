@@ -1426,3 +1426,204 @@
     transform: none;
   }
 }
+
+/* ═════════════════════════════════════════════════════════
+   뜨거운 키워드 — 기사 곁의 편집 난
+   ------------------------------------------------------------
+   목록과 요약을 한 편집 단위로 묶는다. 넓은 화면에서는 오른쪽에 붙어
+   따라오고, 좁은 화면에서는 기사 앞에 가로로 눕는다 — 긴 키워드 기둥을
+   기사보다 먼저 세우면 정작 뉴스를 못 읽는다.
+   ═════════════════════════════════════════════════════════ */
+.cs-nr-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(24px, 3vw, 40px);
+}
+@media (min-width: 1081px) {
+  .cs-nr-body {
+    grid-template-columns: minmax(0, 1fr) minmax(290px, 30%);
+    align-items: start;
+  }
+  .cs-nr-rail {
+    position: sticky;
+    /* 붙는 주제 막대 아래에 선다 — 머리글 높이는 화면마다 달라 변수로 받는다 */
+    top: calc(var(--nr-top, 73px) + 86px);
+    display: grid;
+    gap: 18px;
+    /* 난이 화면보다 길면 스스로 구른다. 바닥글을 덮지 않는다 */
+    max-height: calc(100vh - var(--nr-top, 73px) - 110px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+@media (max-width: 1080px) {
+  .cs-nr-body {
+    display: flex;
+    flex-direction: column;
+  }
+  /* 키워드를 기사 앞으로 — 다만 짧게 */
+  .cs-nr-rail {
+    order: -1;
+    display: grid;
+    gap: 16px;
+  }
+  .cs-nr-hot__list {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cs-nr-hot__item {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    border: 0 !important;
+  }
+  .cs-nr-hot__btn {
+    gap: 8px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+  }
+  .cs-nr-hot__bar {
+    display: none;
+  }
+  .cs-nr-hot__fine {
+    display: none;
+  }
+}
+
+.cs-nr-hot {
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  padding: clamp(18px, 2vw, 24px);
+}
+.cs-nr-hot__head h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--title);
+}
+.cs-nr-hot__head p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+  word-break: keep-all;
+}
+.cs-nr-hot__none {
+  margin: 16px 0 0;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--body);
+  word-break: keep-all;
+}
+
+.cs-nr-hot__list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+.cs-nr-hot__item + .cs-nr-hot__item {
+  border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+.cs-nr-hot__btn {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.1em 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 2px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  transition: color 0.2s ease;
+}
+.cs-nr-hot__btn:hover .cs-nr-hot__term,
+.cs-nr-hot__btn:focus-visible .cs-nr-hot__term {
+  color: var(--accent);
+}
+.cs-nr-hot__rank {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.cs-nr-hot__term {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--title);
+  word-break: keep-all;
+  transition: color 0.2s ease;
+}
+.cs-nr-hot__meta {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.cs-nr-hot__meta small {
+  font-weight: 500;
+}
+/* 빈도 막대 — 1위 대비 비율. 숫자를 대신하지 않고 거든다 */
+.cs-nr-hot__bar {
+  grid-column: 2 / -1;
+  display: block;
+  height: 2px;
+  margin-top: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 28%, transparent));
+  transform: scaleX(var(--w, 0));
+  transform-origin: 0 50%;
+  opacity: 0.55;
+}
+.cs-nr-hot__btn[aria-pressed='true'] .cs-nr-hot__term {
+  color: var(--accent);
+}
+.cs-nr-hot__btn[aria-pressed='true'] .cs-nr-hot__bar {
+  opacity: 1;
+  height: 3px;
+}
+.cs-nr-hot__btn[aria-pressed='true'] .cs-nr-hot__rank {
+  color: var(--accent);
+}
+
+.cs-nr-hot__filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+  margin-top: 14px;
+  padding: 11px 13px;
+  border-radius: var(--r-inner);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  font-size: 13.5px;
+  color: var(--body);
+}
+.cs-nr-hot__filter b {
+  color: var(--accent);
+}
+.cs-nr-hot__fine {
+  margin: 14px 0 0;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--muted);
+  word-break: keep-all;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-nr-hot__btn,
+  .cs-nr-hot__term {
+    transition: none !important;
+  }
+}
