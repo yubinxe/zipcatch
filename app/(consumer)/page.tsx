@@ -16,6 +16,7 @@ import DiveButton from '@/components/consumer/dive/DiveButton'
 import { VERIFIED } from '@/lib/consumer/complex-visualization'
 import DiveHost from '@/components/consumer/dive/DiveHost'
 import Director from '@/components/consumer/director/Director'
+import DiscoveryDoors from '@/components/consumer/home/DiscoveryDoors'
 
 /**
  * 자주 묻는 것.
@@ -170,10 +171,9 @@ export default function ConsumerHome() {
           </div>
           {/* 목록과 지도는 같은 공고를 다르게 보는 두 창구다. 지도를 독립 화면(/map)으로 옮길 때
               들어오는 길도 같이 옮겼다 — 이 고리들의 목적지는 바꾸지 않는다 */}
-          <nav className="cs-hero__more" aria-label="공고 둘러보기">
-            <Link href="/notices">전체 모집공고</Link>
-            <Link href="/map">지도 보기</Link>
-          </nav>
+          {/* 들어가는 두 문 — 첫 화면에서 가장 많이 눌리는 자리다.
+              글자 고리 두 개로 두면 그 무게가 보이지 않는다 */}
+          <DiscoveryDoors />
 
           <p className="cs-note" style={{ marginTop: 20 }}>
             가입 없이 먼저 확인하세요 · 청약홈·LH 실제 모집공고
