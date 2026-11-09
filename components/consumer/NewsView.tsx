@@ -7,6 +7,17 @@ import PageMasthead from './PageMasthead'
 import { extractHotKeywords, matchesKeyword } from '@/lib/consumer/news-keywords'
 
 /**
+ * 받침에 따라 '이/가'. 키워드는 사람이 쓴 말이라 조사를 틀리면 바로 눈에 띈다.
+ * 한글이 아닌 끝(GTX·DSR 처럼)은 조사를 붙이지 않는다 — 읽는 법이 사람마다 달라서다.
+ */
+function subjectParticle(word: string): string {
+  const last = word.trim().at(-1) ?? ''
+  const code = last.charCodeAt(0)
+  if (!(code >= 0xac00 && code <= 0xd7a3)) return '가'
+  return (code - 0xac00) % 28 === 0 ? '가' : '이'
+}
+
+/**
  * 청약뉴스 — 뉴스룸.
  *
  * 기사를 옮겨 적지 않는다. 제목과 매체, 시각만 두고 클릭은 원문으로 보낸다 —
@@ -800,7 +811,8 @@ export default function NewsView() {
                   {keyword && (
                     <div className="cs-nr-hot__filter" role="status">
                       <span>
-                        <b>{keyword}</b> 가 든 기사 {items.length}건만 보는 중
+                        <b>{keyword}</b>
+                        {subjectParticle(keyword)} 든 기사 {items.length}건만 보는 중
                       </span>
                       <button type="button" className="cs-nr-textbtn" onClick={() => setPicked(null)}>
                         전체 보기
