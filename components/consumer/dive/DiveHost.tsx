@@ -8,6 +8,8 @@ import { setJourney } from '@/lib/consumer/journey-store'
 import { loadSite } from '@/lib/consumer/sites'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import DataBadge from '../DataBadge'
+import NoticePlace, { type PlaceNotice } from './NoticePlace'
+import { resolveCoord } from '@/lib/consumer/geo'
 import { DIVE_EVENT, DIVE_PHASE_EVENT, diveHash, parseDiveHash, prefetchDive, type DivePhase, type DiveRequest } from './dive'
 
 const ComplexExperience = dynamic(() => import('../complex/ComplexExperience'), { ssr: false })
@@ -30,6 +32,8 @@ interface Open {
  */
 export default function DiveHost() {
   const [open, setOpen] = useState<Open | null>(null)
+  /** 등록부에 없는 공고의 '자리' 화면 — 입체 모형 없이 지역·좌표까지만 */
+  const [place, setPlace] = useState<PlaceNotice | null>(null)
   const [phase, setPhase] = useState<DivePhase>('idle')
   const timers = useRef<number[]>([])
   const pushed = useRef(false)
@@ -53,8 +57,25 @@ export default function DiveHost() {
 
   const begin = useCallback((req: DiveRequest, fromHash = false) => {
     const src = verifiedFor(req.announcementId)
-    // 확인되지 않은 공고에는 탐험을 열지 않는다 — 없는 기능을 있는 척하지 않는다
-    if (!src) return
+    /*
+     * 대조를 마치지 않은 공고라고 문을 닫지 않는다. 입체 모형을 세울 수 없을 뿐,
+     * '어디인가'는 가진 자료만큼 보여 줄 수 있다. 위치를 아예 정할 수 없을 때만 열지 않는다.
+     */
+    if (!src) {
+      const q = req.place
+      if (!q) return
+      const geocoded =
+        typeof q.lat === 'number' && typeof q.lng === 'number' && Number.isFinite(q.lat) && Number.isFinite(q.lng)
+          ? { lat: q.lat, lng: q.lng }
+          : null
+      const c = resolveCoord({ geocoded, address: q.address, region: q.district, province: q.region })
+      if (!c) return
+      clear()
+      setPlace({ ...q, coord: c.source })
+      const rc = KOREA_REGIONS.find(r => r.name === (q.region ?? '').trim())?.code ?? null
+      setJourney({ region: rc, noticeId: q.id ?? null, noticeName: q.name, announcementId: req.announcementId }, 'dive')
+      return
+    }
     clear()
     reduced.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const code = KOREA_REGIONS.find(r => r.name === src.region)?.code ?? null
@@ -183,6 +204,7 @@ export default function DiveHost() {
     return () => window.removeEventListener('keydown', onKey)
   }, [phase, leave])
 
+  if (place) return createPortal(<NoticePlace notice={place} onClose={() => setPlace(null)} />, document.body)
   if (!open) return null
   const src = verifiedFor(open.req.announcementId)!
   const from = open.req.from ?? null

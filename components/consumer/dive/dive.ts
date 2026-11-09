@@ -10,6 +10,23 @@
 export interface DiveRequest {
   /** 확인된 공고의 청약홈 id */
   announcementId: string
+  /**
+   * 대조를 마치지 않은 공고의 자리 — 전국 어느 공고에서든 '어디인가'로 들어갈 수 있게.
+   * 등록부에 없는 공고는 이 값으로 지역·좌표 수준의 화면을 연다(NoticePlace).
+   */
+  place?: {
+    id?: string | null
+    name: string
+    region?: string | null
+    district?: string | null
+    address?: string | null
+    housingType?: string | null
+    source?: string | null
+    sourceUrl?: string | null
+    applicationEnd?: string | null
+    lat?: number | null
+    lng?: number | null
+  } | null
   /** 출발한 표지의 화면 위치 — 없으면 화면 가운데 */
   from?: { x: number; y: number } | null
   /** 지도에서 고른 지역(이름) — 전환 중 함께 붙잡아 둔다 */
