@@ -149,8 +149,11 @@ export default function NoticeMap({
   day = null,
   today = null,
   onToday,
+  initialScope = '수도권',
 }: {
   heading?: boolean
+  /** 처음 여는 범위 — /map?region= 으로 들어온 지역에서 정한다 */
+  initialScope?: MapScope
   day?: string | null
   today?: string | null
   onToday?: () => void
@@ -169,7 +172,7 @@ export default function NoticeMap({
    * '서울'로 두었더니 빈 지도가 열렸다 — 지금 접수 중인 서울 공식 공고가 0건이다.
    * 처음 본 화면이 비어 있으면 서비스에 공고가 없다고 읽힌다. 공고가 있는 데서 연다.
    */
-  const [scope, setScope] = useState<MapScope>('수도권')
+  const [scope, setScope] = useState<MapScope>(initialScope)
   const [data, setData] = useState<MapData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)

@@ -5,6 +5,7 @@ import PageMasthead from '@/components/consumer/PageMasthead'
 import MapTimeScope from '@/components/consumer/map/MapTimeScope'
 import ExploreLauncher from '@/components/consumer/explore/ExploreLauncher'
 import { FEATURES } from '@/lib/features'
+import type { MapScope } from '@/lib/consumer/geo'
 import '../../consumer-timemachine.css'
 
 export const metadata = {
@@ -20,7 +21,21 @@ export const metadata = {
  *
  * 무대 아래로 지도 판이 떠올라 무대 바닥에 걸친다 — 밤의 상황실에 들어선 듯이.
  */
-export default function MapPage() {
+/**
+ * ?region=지역코드 → 처음 여는 범위.
+ * 지도의 범위는 서울·수도권·전국 셋이다. 서울은 서울로, 경기·인천은 수도권으로,
+ * 그 밖의 시도는 전국으로 연다 — 수도권에서 열면 고른 지역이 화면 밖이다.
+ */
+function scopeOf(region: string | undefined): MapScope {
+  if (!region) return '수도권'
+  if (region === '100') return '서울'
+  if (region === '410' || region === '400') return '수도권'
+  return '전국'
+}
+
+export default async function MapPage({ searchParams }: { searchParams: Promise<{ region?: string | string[] }> }) {
+  const { region } = await searchParams
+  const initialScope = scopeOf(Array.isArray(region) ? region[0] : region)
   return (
     <div className="cs-wrap cs-sa cs-sa--map">
       {/*
@@ -69,7 +84,7 @@ export default function MapPage() {
       </PageMasthead>
       {/* 화면 제목이 이미 같은 말을 했다. 조각의 머리는 접는다 */}
       {/* 4.0 확장 — 타임머신이 위 지도와 날짜를 나눠 쓴다. NEXT_PUBLIC_FEATURE_TIME_MACHINE=0 이면 예전 지도 그대로 */}
-      {FEATURES.timeMachine ? <MapTimeScope /> : <NoticeMap heading={false} />}
+      {FEATURES.timeMachine ? <MapTimeScope initialScope={initialScope} /> : <NoticeMap heading={false} initialScope={initialScope} />}
     </div>
   )
 }
