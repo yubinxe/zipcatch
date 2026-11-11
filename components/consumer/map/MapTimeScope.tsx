@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react'
 import NoticeMap from '../NoticeMap'
 import TimeMachine from '../TimeMachine'
+import type { MapScope } from '@/lib/consumer/geo'
 
 /**
  * 지도와 타임머신이 같은 날을 보게 묶는다.
@@ -10,7 +11,7 @@ import TimeMachine from '../TimeMachine'
  * 둘은 여전히 따로 선다 — 지도는 날짜가 없으면 예전 그대로이고, 타임머신은 지도 없이도
  * 제 그림을 그린다. 이 감싸개는 고른 날 하나만 건넨다.
  */
-export default function MapTimeScope() {
+export default function MapTimeScope({ initialScope }: { initialScope?: MapScope } = {}) {
   const [day, setDay] = useState<string | null>(null)
   const [today, setToday] = useState<string | null>(null)
   const [jump, setJump] = useState<{ day: string; n: number } | null>(null)
@@ -24,6 +25,7 @@ export default function MapTimeScope() {
     <>
       <NoticeMap
         heading={false}
+        initialScope={initialScope}
         day={day}
         today={today}
         onToday={() => {
