@@ -43,7 +43,7 @@ interface Pin {
   urgencyLabel: string
   lat: number
   lng: number
-  coordSource: 'GEOCODED' | 'DISTRICT' | 'PROVINCE'
+  coordSource: 'ADDRESS' | 'NAME' | 'DISTRICT' | 'PROVINCE'
   /** range=all 일 때만 온다 */
   applicationStart?: string | null
   seen?: string | null
@@ -400,7 +400,8 @@ export default function NoticeMap({
     let failed = 0
     data.pins.forEach(pin => {
       const urgent = pin.daysLeft !== null && pin.daysLeft <= 3
-      const approx = pin.coordSource !== 'GEOCODED'
+      // 주소로 찾은 자리만 '정확'. 공고명으로 찾은 자리는 같은 이름의 다른 곳일 수 있다
+      const approx = pin.coordSource !== 'ADDRESS'
       // 신호등. 급한 쪽이 붉고, 여유가 있으면 푸르다.
       // 색은 남은 날이 결정을 바꾸는 구간까지만 쓴다 — 여드레 넘게 남은 공고를
       // 물들여 봐야 화면만 시끄럽고 급한 것이 묻힌다.

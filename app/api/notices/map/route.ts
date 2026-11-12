@@ -54,6 +54,8 @@ export async function GET(req: Request) {
       const stored = p.lat !== null && p.lng !== null ? { lat: p.lat, lng: p.lng } : null
       const coord = resolveCoord({
         geocoded: stored,
+        // 공고명으로 찾은 좌표를 주소로 찾은 좌표와 같은 표식으로 그리지 않는다
+        geoSource: p.geoSource,
         address: p.address,
         region: p.region,
         province,

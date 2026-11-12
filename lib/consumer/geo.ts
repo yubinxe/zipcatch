@@ -84,7 +84,22 @@ export function districtFromAddress(address: string | null | undefined): string 
   return null
 }
 
-export type CoordSource = 'GEOCODED' | 'DISTRICT' | 'PROVINCE'
+/**
+ * 이 좌표가 어디서 왔는가. 정확한 것부터.
+ *
+ *  ADDRESS   주소를 지오코딩한 점 — 그 번지
+ *  NAME      공고명으로 찾은 점 — 같은 이름의 다른 곳일 수 있다
+ *  DISTRICT  시·군·구 기준점 — 그 구의 한가운데지 공고의 자리가 아니다
+ *  PROVINCE  광역 기준점
+ *
+ * 예전에는 저장된 좌표를 전부 GEOCODED 하나로 불렀다. 공고명으로 찾은 60건이
+ * 주소로 찾은 63건과 같은 믿음을 가진 것처럼 보였다 — 지도에서 같은 표식으로
+ * 그려지고, 거리 계산에도 같이 들어갔다. 온 길을 끝까지 들고 다닌다.
+ */
+export type CoordSource = 'ADDRESS' | 'NAME' | 'DISTRICT' | 'PROVINCE'
+
+/** 저장된 좌표의 출처(opportunities.geo_source)를 그대로 받는다 */
+export type StoredGeoSource = 'ADDRESS' | 'NAME' | 'REGION' | null | undefined
 
 export interface ResolvedCoord extends LatLng {
   /** 이 점이 얼마나 믿을 만한지. 화면에서 다르게 그린다 */
@@ -103,11 +118,21 @@ export interface ResolvedCoord extends LatLng {
  */
 export function resolveCoord(input: {
   geocoded?: LatLng | null
+  /**
+   * 넘겨준 좌표가 어떻게 얻어진 것인가(DB 의 geo_source). 주소로 찾았으면 'ADDRESS',
+   * 공고명으로 찾았으면 'NAME'. 적지 않으면 공고명 수준으로 낮춰 본다 —
+   * 모르는 좌표를 주소만큼 믿는 쪽이 늘 더 비싸다.
+   */
+  geoSource?: StoredGeoSource
   address?: string | null
   region?: string | null
   province?: string | null
 }): ResolvedCoord | null {
-  if (input.geocoded) return { ...input.geocoded, source: 'GEOCODED' }
+  if (input.geocoded) {
+    const g = input.geoSource
+    // 'REGION' 은 지역 기준점을 저장해 둔 것이라 점으로 치지 않는다 — 아래 단계로 내린다
+    if (g !== 'REGION') return { ...input.geocoded, source: g === 'ADDRESS' ? 'ADDRESS' : 'NAME' }
+  }
 
   const byAddress = districtFromAddress(input.address)
   if (byAddress) return { ...DISTRICT_CENTER[byAddress], source: 'DISTRICT' }

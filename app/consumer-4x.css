@@ -442,3 +442,24 @@
     transition: none !important;
   }
 }
+
+/* 한계는 여러 줄이 될 수 있다 — 위치 한 줄, 형상 한 줄 */
+.cs-place__limit {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.cs-place__limit li {
+  position: relative;
+  padding-left: 14px;
+}
+.cs-place__limit li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}

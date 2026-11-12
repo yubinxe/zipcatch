@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useRef } from 'react'
 import { KOREA_MAP_VIEWBOX, KOREA_PROVINCES } from '@/lib/korea-map-data'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
-import { resolveSpatial, type CoordKind } from '@/lib/consumer/spatial-capability'
+import { resolveSpatial } from '@/lib/consumer/spatial-capability'
 
 /**
  * 공고의 자리 — 원문 대조를 마치지 않은 공고의 공간 화면.
@@ -26,14 +26,16 @@ export interface PlaceNotice {
   source?: string | null
   sourceUrl?: string | null
   applicationEnd?: string | null
-  coord?: CoordKind | null
+  coord?: 'ADDRESS' | 'NAME' | 'DISTRICT' | 'PROVINCE' | null
+  /** 기관 API 에서 받은 공고인가 */
+  officialFeed?: boolean
   lat?: number | null
   lng?: number | null
 }
 
 export default function NoticePlace({ notice, onClose }: { notice: PlaceNotice; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
-  const cap = resolveSpatial({ coord: notice.coord ?? null })
+  const cap = resolveSpatial({ coord: notice.coord ?? null, officialFeed: notice.officialFeed })
 
   /* 모달의 기본 예절 — Esc 로 닫히고, 초점이 안에 머문다 */
   useEffect(() => {
@@ -123,7 +125,11 @@ export default function NoticePlace({ notice, onClose }: { notice: PlaceNotice; 
             </dl>
 
             {/* 이 등급이 세울 수 없는 것 — 화면에서 가장 먼저 읽히게 둔다 */}
-            <p className="cs-place__limit">{cap.limitation}</p>
+            <ul className="cs-place__limit">
+              {cap.limitations.map(l => (
+                <li key={l}>{l}</li>
+              ))}
+            </ul>
 
             <div className="cs-place__go">
               {notice.id && (
