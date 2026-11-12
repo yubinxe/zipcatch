@@ -2,12 +2,16 @@
 
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
-import { KOREA_MAP_VIEWBOX, KOREA_PROVINCES } from '@/lib/korea-map-data'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
+import GeoStage from './GeoStage'
 import { resolveSpatial } from '@/lib/consumer/spatial-capability'
 
 /**
  * 공고의 자리 — 원문 대조를 마치지 않은 공고의 공간 화면.
+ *
+ * 평면 그림 한 장을 '3D 공간 탐험'이라 부를 수 없어 입체 무대로 바꿨다(GeoStage).
+ * 같은 행정 경계 자료를 판으로 세우고 카메라가 그 지역으로 내려간다. 건물은 그리지
+ * 않는다 — 동 윤곽과 층수를 확인하지 않았기 때문이다.
  *
  * 전국 어느 공고에서든 '어디인가'로 들어갈 수 있어야 한다. 그렇다고 없는 정밀도를
  * 지어내지 않는다. 가진 자료가 좌표까지면 그 점을, 지역까지면 지역을 비추고,
@@ -80,11 +84,16 @@ export default function NoticePlace({ notice, onClose }: { notice: PlaceNotice; 
 
         <div className="cs-place__body">
           <figure className="cs-place__map">
-            <svg viewBox={KOREA_MAP_VIEWBOX} role="img" aria-label={`${regionName || '전국'} 위치 그림`}>
-              {KOREA_PROVINCES.map(p => (
-                <path key={p.code} d={p.path} className="cs-place__prov" data-on={p.code === code || undefined} />
-              ))}
-            </svg>
+            <GeoStage
+              regionCode={code}
+              point={
+                cap.can.pinpoint && typeof notice.lat === 'number' && typeof notice.lng === 'number'
+                  ? { lat: notice.lat, lng: notice.lng }
+                  : null
+              }
+              pinpoint={cap.can.pinpoint}
+              label={`${regionName || '전국'} 위치 그림`}
+            />
             <figcaption>{cap.accuracy}</figcaption>
           </figure>
 
