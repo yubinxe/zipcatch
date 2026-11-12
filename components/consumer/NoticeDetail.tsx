@@ -378,6 +378,7 @@ export default function NoticeDetail({ id }: { id: string }) {
                       applicationEnd: property.applicationEnd,
                       lat: property.lat,
                       lng: property.lng,
+                      geoSource: property.geoSource,
                     },
                   })
                 }

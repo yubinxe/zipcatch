@@ -26,6 +26,8 @@ export interface DiveRequest {
     applicationEnd?: string | null
     lat?: number | null
     lng?: number | null
+    /** 저장된 좌표가 어떻게 얻어졌는가(DB geo_source) — 주소로 찾은 것과 공고명으로 찾은 것을 가른다 */
+    geoSource?: 'ADDRESS' | 'NAME' | 'REGION' | null
   } | null
   /** 출발한 표지의 화면 위치 — 없으면 화면 가운데 */
   from?: { x: number; y: number } | null
@@ -51,11 +53,28 @@ export function centerOf(el: Element | null): { x: number; y: number } | null {
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
 }
 
-/** 주소창으로 바로 여는 고리 — '/#dive=2026000373' */
-export const diveHash = (announcementId: string) => `#dive=${announcementId.split('-')[0]}`
-export function parseDiveHash(hash: string): string | null {
-  const m = /^#dive=(\d{10})$/.exec(hash)
-  return m ? `${m[1]}-${m[1]}` : null
+/**
+ * 주소창으로 바로 여는 고리.
+ *
+ * 예전에는 청약홈 공고번호 10자리만 받았다('#dive=2026000373'). 전국 공고의 열쇠는
+ * 운영 id(UUID 등)라, 그 형식이 아닌 공고는 주소로 열 수도 공유할 수도 없었다.
+ * 두 가지를 다 받는다 — 10자리는 예전처럼 청약홈 id 로 풀고, 그 밖은 공고 id 그대로.
+ */
+export const diveHash = (key: string) => `#dive=${/^\d{10}-\d{10}$/.test(key) ? key.split('-')[0] : key}`
+
+export interface DiveKey {
+  /** 청약홈 주택관리번호-공고번호. 10자리 고리로 들어왔을 때만 */
+  announcementId: string | null
+  /** 운영 공고 id. 그 밖의 고리 */
+  noticeId: string | null
+}
+
+export function parseDiveHash(hash: string): DiveKey | null {
+  const m = /^#dive=([A-Za-z0-9-]{6,64})$/.exec(hash)
+  if (!m) return null
+  const v = m[1]
+  if (/^\d{10}$/.test(v)) return { announcementId: `${v}-${v}`, noticeId: null }
+  return { announcementId: null, noticeId: v }
 }
 
 /**

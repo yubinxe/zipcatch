@@ -55,6 +55,48 @@ export default function DiveHost() {
     broadcast('idle')
   }, [])
 
+  /**
+   * 공고 id 하나로 여는 길 — 전국 어느 공고에서든 같은 입구.
+   * 무엇을 그려도 되는지는 서버가 정해 준다(/api/notices/:id/spatial).
+   */
+  const openByNoticeId = useCallback(async (noticeId: string, fromHash = false) => {
+    try {
+      const r = await fetch(`/api/notices/${noticeId}/spatial`, { cache: 'no-store' })
+      if (!r.ok) return
+      const d = (await r.json()) as {
+        noticeId: string
+        notice: { name: string; source: string; housingType: string | null; applicationEnd: string | null; sourceUrl: string | null }
+        location: { lat: number | null; lng: number | null; province: string | null; district: string | null; address: string | null; provenance: string }
+        spatialAvailable: boolean
+      }
+      if (!d.spatialAvailable) return
+      const prov = d.location.provenance
+      setPlace({
+        id: d.noticeId,
+        name: d.notice.name,
+        region: d.location.province,
+        district: d.location.district,
+        address: d.location.address,
+        housingType: d.notice.housingType,
+        source: d.notice.source,
+        sourceUrl: d.notice.sourceUrl,
+        applicationEnd: d.notice.applicationEnd,
+        lat: d.location.lat,
+        lng: d.location.lng,
+        coord: prov === 'ADDRESS' || prov === 'NAME' || prov === 'DISTRICT' || prov === 'PROVINCE' ? prov : null,
+        officialFeed: true,
+      })
+      const rc = KOREA_REGIONS.find(x => x.name === (d.location.province ?? '').trim())?.code ?? null
+      setJourney({ region: rc, noticeId: d.noticeId, noticeName: d.notice.name, announcementId: null }, 'dive')
+      if (!fromHash && !pushed.current) {
+        history.pushState({ zcDive: d.noticeId }, '', diveHash(d.noticeId))
+        pushed.current = true
+      }
+    } catch {
+      /* 자리를 못 열면 조용히 둔다 — 공고 화면은 그대로다 */
+    }
+  }, [])
+
   const begin = useCallback((req: DiveRequest, fromHash = false) => {
     const src = verifiedFor(req.announcementId)
     /*
@@ -68,10 +110,10 @@ export default function DiveHost() {
         typeof q.lat === 'number' && typeof q.lng === 'number' && Number.isFinite(q.lat) && Number.isFinite(q.lng)
           ? { lat: q.lat, lng: q.lng }
           : null
-      const c = resolveCoord({ geocoded, address: q.address, region: q.district, province: q.region })
+      const c = resolveCoord({ geocoded, geoSource: q.geoSource, address: q.address, region: q.district, province: q.region })
       if (!c) return
       clear()
-      setPlace({ ...q, coord: c.source })
+      setPlace({ ...q, coord: c.source, officialFeed: true })
       const rc = KOREA_REGIONS.find(r => r.name === (q.region ?? '').trim())?.code ?? null
       setJourney({ region: rc, noticeId: q.id ?? null, noticeName: q.name, announcementId: req.announcementId }, 'dive')
       return
@@ -180,9 +222,20 @@ export default function DiveHost() {
     window.addEventListener('popstate', onPop)
     const onClose = () => leaveRef.current()
     window.addEventListener('zc:dive-close', onClose)
-    // 주소로 바로 들어온 경우
-    const id = parseDiveHash(location.hash)
-    const raf = id ? requestAnimationFrame(() => begin({ announcementId: id }, true)) : 0
+    /*
+     * 주소로 바로 들어온 경우. 10자리 고리는 예전처럼 청약홈 id 로, 그 밖은 공고 id 로 푼다.
+     * 공고 id 로 들어오면 공간 자료를 받아 와야 무엇을 그릴지 정할 수 있다(/api/notices/:id/spatial).
+     */
+    const key = parseDiveHash(location.hash)
+    let raf = 0
+    if (key?.announcementId) {
+      const aid = key.announcementId
+      raf = requestAnimationFrame(() => begin({ announcementId: aid }, true))
+    } else if (key?.noticeId) {
+      const nid = key.noticeId
+      // 효과 본문에서 바로 상태를 건드리지 않는다 — 한 프레임 뒤에 연다
+      raf = requestAnimationFrame(() => void openByNoticeId(nid, true))
+    }
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener(DIVE_EVENT, onDive)
@@ -190,7 +243,7 @@ export default function DiveHost() {
       window.removeEventListener('zc:dive-close', onClose)
       clear()
     }
-  }, [begin, finish])
+  }, [begin, finish, openByNoticeId])
 
   // 전환 중 Esc — 취소. 탐험 안에서는 탐험 창이 Esc 를 맡는다
   useEffect(() => {
@@ -204,7 +257,20 @@ export default function DiveHost() {
     return () => window.removeEventListener('keydown', onKey)
   }, [phase, leave])
 
-  if (place) return createPortal(<NoticePlace notice={place} onClose={() => setPlace(null)} />, document.body)
+  if (place)
+    return createPortal(
+      <NoticePlace
+        notice={place}
+        onClose={() => {
+          setPlace(null)
+          if (pushed.current) {
+            pushed.current = false
+            history.back()
+          }
+        }}
+      />,
+      document.body,
+    )
   if (!open) return null
   const src = verifiedFor(open.req.announcementId)!
   const from = open.req.from ?? null
