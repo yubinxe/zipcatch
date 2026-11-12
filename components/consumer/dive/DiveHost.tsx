@@ -266,6 +266,9 @@ export default function DiveHost() {
           if (pushed.current) {
             pushed.current = false
             history.back()
+          } else if (parseDiveHash(location.hash)) {
+            // 주소로 바로 들어온 경우엔 뒤로 갈 자리가 없다. 고리만 조용히 지운다
+            history.replaceState(null, '', location.pathname + location.search)
           }
         }}
       />,

@@ -14,7 +14,6 @@ import OpenNoticeScene from '@/components/consumer/home/OpenNoticeScene'
 import DecideScene from '@/components/consumer/home/DecideScene'
 import DiveButton from '@/components/consumer/dive/DiveButton'
 import { VERIFIED } from '@/lib/consumer/complex-visualization'
-import DiveHost from '@/components/consumer/dive/DiveHost'
 import Director from '@/components/consumer/director/Director'
 import DiscoveryDoors from '@/components/consumer/home/DiscoveryDoors'
 
@@ -389,7 +388,6 @@ export default function ConsumerHome() {
       </Reveal>
 
       {/* 지도·첫 화면·시연 모드가 부르는 단지 탐험 — 화면을 덮는 한 겹 */}
-      <DiveHost />
       {/* 시연 모드 — 주소에 ?director=1 이 있을 때만 */}
       <Director />
 
