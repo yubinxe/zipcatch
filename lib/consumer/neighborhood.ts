@@ -44,9 +44,15 @@ interface OverpassWay {
 const BIG_ROAD = /^(motorway|trunk|primary|secondary)(_link)?$/
 const ROAD = /^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|living_street|service)(_link)?$/
 
+/**
+ * 질의는 가볍게 — 전역 bbox 한 번(around 여러 번보다 서버 부담이 훨씬 작다), 필요한 종류만.
+ * 처음 판(around × 6, service 길·landuse 포함)은 운영에서 두 출처 모두 22초를 넘겼다.
+ */
 export function overpassQuery(lat: number, lng: number, r: number) {
-  const a = `(around:${r},${lat.toFixed(5)},${lng.toFixed(5)})`
-  return `[out:json][timeout:25];(way["building"]${a};way["highway"]${a};way["natural"="water"]${a};way["waterway"="riverbank"]${a};way["leisure"="park"]${a};way["landuse"~"^(grass|forest|recreation_ground)$"]${a};);out geom tags;`
+  const dLat = r / 110540
+  const dLng = r / (111320 * Math.cos((lat * Math.PI) / 180))
+  const bbox = [lat - dLat, lng - dLng, lat + dLat, lng + dLng].map(v => v.toFixed(5)).join(',')
+  return `[out:json][timeout:20][bbox:${bbox}];(way["building"];way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|living_street)(_link)?$"];way["natural"="water"];way["leisure"="park"];);out geom;`
 }
 
 /** 높이 — 지도에 적힌 값만. 'height' 가 먼저, 없으면 층수 × 3m(셈한 값이라 est) */
@@ -111,20 +117,22 @@ export function parseOverpass(json: { elements?: OverpassWay[] }, origin: { lat:
 export async function fetchNeighborhood(lat: number, lng: number, radiusM = 450): Promise<NeighborhoodData> {
   const origin = { lat: Math.round(lat * 1e4) / 1e4, lng: Math.round(lng * 1e4) / 1e4 }
   const q = overpassQuery(origin.lat, origin.lng, radiusM)
-  let last: unknown = null
-  for (const ep of ENDPOINTS) {
-    try {
-      const r = await fetch(`${ep}?data=${encodeURIComponent(q)}`, {
-        headers: { 'User-Agent': 'zipcatch/1.0 (+https://zipcatch.vercel.app)', Accept: 'application/json' },
-        signal: AbortSignal.timeout(22_000),
-        next: { revalidate: 60 * 60 * 24 * 30 },
-      })
-      if (!r.ok) throw new Error(`HTTP ${r.status}`)
-      const json = (await r.json()) as { elements?: OverpassWay[]; osm3s?: { timestamp_osm_base?: string } }
-      return parseOverpass(json, origin, radiusM, json.osm3s?.timestamp_osm_base ?? new Date().toISOString())
-    } catch (err) {
-      last = err
-    }
+  // 두 출처를 함께 묻고 먼저 온 답을 쓴다 — 하나씩 차례로 기다리면 함수 시간(30초)을 넘긴다
+  const one = async (ep: string) => {
+    const r = await fetch(`${ep}?data=${encodeURIComponent(q)}`, {
+      headers: { 'User-Agent': 'zipcatch/1.0 (+https://zipcatch.vercel.app)', Accept: 'application/json' },
+      signal: AbortSignal.timeout(25_000),
+      next: { revalidate: 60 * 60 * 24 * 30 },
+    })
+    if (!r.ok) throw new Error(`${new URL(ep).host} HTTP ${r.status}`)
+    const json = (await r.json()) as { elements?: OverpassWay[]; osm3s?: { timestamp_osm_base?: string }; remark?: string }
+    if (!json.elements && json.remark) throw new Error(`${new URL(ep).host} ${json.remark.slice(0, 80)}`)
+    return parseOverpass(json, origin, radiusM, json.osm3s?.timestamp_osm_base ?? new Date().toISOString())
   }
-  throw new Error(`주변 지도 자료를 받지 못했습니다: ${last instanceof Error ? last.message : String(last)}`)
+  try {
+    return await Promise.any(ENDPOINTS.map(one))
+  } catch (err) {
+    const errs = err instanceof AggregateError ? err.errors : [err]
+    throw new Error(`주변 지도 자료를 받지 못했습니다: ${errs.map(e => (e instanceof Error ? e.message : String(e))).join(' / ')}`)
+  }
 }
