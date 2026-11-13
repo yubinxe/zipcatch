@@ -9,7 +9,7 @@ import Statement3D from '@/components/consumer/three/Statement3D'
 import type { StatementDatum } from '@/components/consumer/three/statement-scene'
 import { verifiedForNotice } from '@/lib/consumer/complex-visualization'
 import { setJourney, useJourneyRegion } from '@/lib/consumer/journey-store'
-import { centerOf, prefetchDive, startDive } from '../dive/dive'
+import { centerOf, prefetchDive, startDive, VERIFIED_SITE } from '../dive/dive'
 import ScrollStage from './ScrollStage'
 import DataBadge from '../DataBadge'
 import type { IngestMeta } from '@/lib/consumer/data-mode'
@@ -198,7 +198,7 @@ export default function StatementScene() {
   const canDive = !!picked?.dive
   useEffect(() => {
     if (!canDive) return
-    const id = window.setTimeout(() => prefetchDive(), 1200)
+    const id = window.setTimeout(() => prefetchDive(VERIFIED_SITE), 1200)
     return () => window.clearTimeout(id)
   }, [canDive])
 
@@ -373,8 +373,8 @@ export default function StatementScene() {
                 <button
                   type="button"
                   className="cs-atlas__dive"
-                  onPointerEnter={() => prefetchDive()}
-                  onFocus={() => prefetchDive()}
+                  onPointerEnter={() => prefetchDive(VERIFIED_SITE)}
+                  onFocus={() => prefetchDive(VERIFIED_SITE)}
                   onClick={e => startDive({ announcementId: picked.dive!.id, from: centerOf(e.currentTarget), region: picked.name })}
                 >
                   <span className="cs-atlas__dive-k">3D 단지 탐험 가능</span>

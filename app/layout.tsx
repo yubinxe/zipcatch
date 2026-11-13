@@ -42,6 +42,7 @@ import './consumer-apple.css'
 import './consumer-opus.css'
 /* 4.x — 여섯 장면의 손길 다듬기. 마지막에 온다 */
 import './consumer-4x.css'
+import './consumer-explorer.css'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zipcatch.vercel.app').replace(/\/$/, '')
 

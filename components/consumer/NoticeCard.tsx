@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import DiveButton from './dive/DiveButton'
 import type { ReactNode } from 'react'
 import type { Candidate } from '@/lib/crm/services/scoring'
 import type { Property } from '@/lib/crm/types'
@@ -324,6 +325,12 @@ export default function NoticeCard({
           <span className="cs-nc__src">{property.source}</span>
         </div>
         <div className="cs-nc__acts">
+          {/* 공간 탐험 — 실제 공고면 어느 카드에서든. 상세를 거치지 않고 같은 탐험 껍데기를 연다 */}
+          {!isSample && (
+            <DiveButton noticeId={property.id} name={property.name} region={property.region} className="cs-nc__3d zx-entry" aria-label={`${property.name} 3D 공간 탐험`}>
+              3D
+            </DiveButton>
+          )}
           {/* 부르는 쪽이 제 고르기(관심공고)를 넘기면 그것을, 아니면 비교 담기 */}
           {pick ?? <CompareToggle id={property.id} name={property.name} />}
           <SaveButton propertyId={property.id} />

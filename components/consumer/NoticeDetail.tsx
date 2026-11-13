@@ -16,7 +16,7 @@ import NoticeTitleMorph from './NoticeTitleMorph'
 import ComplexLauncher from './complex/ComplexLauncher'
 import { wonFull } from './complex/ComplexParts'
 import { officialModel, verifiedFor } from '@/lib/consumer/complex-visualization'
-import { centerOf, startDive } from './dive/dive'
+import DiveButton from './dive/DiveButton'
 import NoticeCalendar, { marksFrom } from './NoticeCalendar'
 import NearbyStores from './NearbyStores'
 import WaitStatus from './WaitStatus'
@@ -355,36 +355,12 @@ export default function NoticeDetail({ id }: { id: string }) {
             {isSample ? <li data-tone="sample">예시 데이터</li> : <li>{property.source}</li>}
           </ul>
           <div className="cs-sa-mrow__go">
-            {/* 대조를 마치지 않은 공고에도 '어디인가'는 연다 — 입체 모형 없이 지역·좌표까지.
-                등급과 한계는 그 화면에서 밝힌다(lib/consumer/spatial-capability). */}
-            {!verified && (
-              <button
-                type="button"
-                className="cs-sa-mlink cs-sa-mlink--place"
-                onClick={e =>
-                  startDive({
-                    announcementId: property.announcementId ?? property.id,
-                    from: centerOf(e.currentTarget),
-                    region: property.region,
-                    place: {
-                      id: property.id,
-                      name: property.name,
-                      region: property.region,
-                      district: property.district,
-                      address: property.address,
-                      housingType: property.housingType,
-                      source: property.source,
-                      sourceUrl: property.sourceUrl,
-                      applicationEnd: property.applicationEnd,
-                      lat: property.lat,
-                      lng: property.lng,
-                      geoSource: property.geoSource,
-                    },
-                  })
-                }
-              >
-                이 공고의 자리 보기
-              </button>
+            {/* 공간 탐험 — 실제 공고라면 어느 것이든 같은 입구. 자리·형상의 등급은 탐험 화면이 밝힌다
+                (원문 대조 단지는 그 안에서 '단지' 단계로 이어진다) */}
+            {!isSample && (
+              <DiveButton noticeId={property.id} name={property.name} region={property.region} className="cs-sa-mlink cs-sa-mlink--place zx-entry">
+                3D 공간 탐험
+              </DiveButton>
             )}
             <Link href="/results" className="cs-sa-mlink">
               <i aria-hidden="true">←</i> 후보 목록으로
