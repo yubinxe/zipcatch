@@ -35,6 +35,84 @@ export interface RoutineDef {
   run: () => Promise<RoutineResult>
 }
 
+/**
+ * 기관 공고를 받아 저장하는 일만 — 알림·매칭은 하지 않는다.
+ *
+ * 공고 동기화(sync-notices)와 수집 전용 루틴(ingest-notices)이 같은 길을 쓴다.
+ * (출처, 공고번호)로 upsert 하므로 같은 공고를 두 번 돌려도 한 줄이다. 한 출처가 실패해도
+ * 다른 출처는 저장하고, 출처마다 받은 수·새로 들어온 수·실패 사유를 남긴다.
+ */
+export async function ingestOfficialNotices() {
+  const [applyhome, lh] = await Promise.all([
+    fetchApplyhome({ perPage: 100, monthsBack: 2 }),
+    fetchLh({ perPage: 200 }),
+  ])
+
+  const sources: Record<string, unknown>[] = []
+  const failures: string[] = []
+  let inserted = 0
+  const newKeys: { source: string; externalId: string }[] = []
+
+  for (const [source, label, res] of [
+    ['APPLYHOME', '청약홈', applyhome],
+    ['LH', 'LH', lh],
+  ] as const) {
+    if (!res.ok) {
+      sources.push({ source, label, ok: false, reason: res.reason })
+      failures.push(`${label}: ${res.reason}`)
+      continue
+    }
+    const before = new Set(
+      (await repo.listOpportunities({ includeDemo: false, limit: 1000 })).map(o => `${o.source}|${o.external_id}`),
+    )
+    const up = await repo.upsertOpportunities(res.rows)
+    if (up.failed) failures.push(`${label}: 저장 실패 ${up.errors.join(' · ')}`)
+    inserted += up.inserted
+    for (const r of res.rows) {
+      const k = `${r.source}|${r.external_id}`
+      if (!before.has(k) && r.external_id) newKeys.push({ source: r.source!, externalId: r.external_id })
+    }
+    sources.push({ source, label, ok: !up.failed, fetched: res.rows.length, inserted: up.inserted, updated: up.updated, failed: up.failed })
+  }
+
+  // 마이홈 — LH 공고의 빈 칸(금액·주소·접수일)을 채우고, LH 밖 공급기관 공고를 싣는다
+  const myhome = await syncMyhome()
+  sources.push({ source: 'MYHOME', label: '마이홈', ...myhome })
+  if (!myhome.ok && myhome.reason) failures.push(`마이홈: ${myhome.reason}`)
+  inserted += myhome.inserted ?? 0
+  for (const k of myhome.newKeys ?? []) newKeys.push(k)
+
+  return { sources, failures, inserted, newKeys }
+}
+
+// ── 0. 공고 수집 (수집 전용) ─────────────────────────────────
+/**
+ * 스케줄러가 자동으로 돌리는 수집. 공고를 받아 저장하고 신선도 기록만 남긴다.
+ * 알림 발송·매칭·이벤트 생성은 하지 않는다 — 그 일은 sync-notices 를 사람이 돌릴 때만 한다.
+ */
+const ingestNotices: RoutineDef = {
+  key: 'ingest-notices',
+  name: '공고 수집 (알림 없음)',
+  purpose: '매일 아침 청약홈·LH·마이홈 공고를 받아 저장소를 최신으로 유지한다. 고객에게 아무것도 보내지 않는다.',
+  instruction: `1. 청약홈 분양공고·LH 임대공고·마이홈 공고를 가져온다.
+2. (출처, 공고번호) 기준으로 upsert 한다 — 같은 공고를 두 번 쌓지 않는다.
+3. 출처마다 받은 수·새로 들어온 수·실패 사유를 남긴다. 한 출처가 실패해도 나머지는 저장한다.
+4. 알림·매칭·이벤트를 만들지 않는다.`,
+  scheduleCron: '0 0 * * *',
+  scheduleLabel: '매일 오전 9:00 (GMT+9)',
+
+  async run() {
+    const { sources, failures, inserted, newKeys } = await ingestOfficialNotices()
+    const okCount = sources.filter(x => x.ok).length
+    if (okCount === 0) throw new Error(`모든 출처 실패 — ${failures.join(' / ')}`)
+    return {
+      summary: failures.length ? `신규 ${inserted}건 — 일부 실패: ${failures.join(' / ')}` : `신규 ${inserted}건 · 출처 ${okCount}곳`,
+      detail: { sources, failures, inserted, newKeys: newKeys.length, notified: 0 },
+      actionable: failures.length > 0,
+    }
+  },
+}
+
 // ── 1. 공고 동기화 ───────────────────────────────────────────
 const syncNotices: RoutineDef = {
   key: 'sync-notices',
@@ -53,45 +131,7 @@ const syncNotices: RoutineDef = {
   scheduleLabel: '매일 오전 9:00 (GMT+9)',
 
   async run() {
-    const [applyhome, lh] = await Promise.all([
-      fetchApplyhome({ perPage: 100, monthsBack: 2 }),
-      fetchLh({ perPage: 200 }),
-    ])
-
-    const sources: Record<string, unknown>[] = []
-    const failures: string[] = []
-    let inserted = 0
-    const newKeys: { source: string; externalId: string }[] = []
-
-    for (const [source, label, res] of [
-      ['APPLYHOME', '청약홈', applyhome],
-      ['LH', 'LH', lh],
-    ] as const) {
-      if (!res.ok) {
-        sources.push({ source, label, ok: false, reason: res.reason })
-        failures.push(`${label}: ${res.reason}`)
-        continue
-      }
-      const before = new Set(
-        (await repo.listOpportunities({ includeDemo: false, limit: 1000 })).map(
-          o => `${o.source}|${o.external_id}`,
-        ),
-      )
-      const up = await repo.upsertOpportunities(res.rows)
-      inserted += up.inserted
-      for (const r of res.rows) {
-        const k = `${r.source}|${r.external_id}`
-        if (!before.has(k) && r.external_id) newKeys.push({ source: r.source!, externalId: r.external_id })
-      }
-      sources.push({ source, label, ok: true, fetched: res.rows.length, inserted: up.inserted, updated: up.updated })
-    }
-
-    // 마이홈 — LH 공고의 빈 칸(금액·주소·접수일)을 채우고, LH 밖 공급기관 공고를 싣는다
-    const myhome = await syncMyhome()
-    sources.push({ source: 'MYHOME', label: '마이홈', ...myhome })
-    if (!myhome.ok && myhome.reason) failures.push(`마이홈: ${myhome.reason}`)
-    inserted += myhome.inserted ?? 0
-    for (const k of myhome.newKeys ?? []) newKeys.push(k)
+    const { sources, failures, inserted, newKeys } = await ingestOfficialNotices()
 
     // 신규 공고만 이벤트로 올린다. 매칭·알림 폭주를 막기 위해 상한을 둔다.
     const all = await repo.listOpportunities({ includeDemo: false, limit: 1000 })
@@ -264,13 +304,8 @@ const fillGeo: RoutineDef = {
   async run() {
     const r = await fillCoordinates({ limit: 80 })
 
-    if (!r.ok) {
-      return {
-        summary: `좌표를 채우지 못했습니다 — ${r.reason}`,
-        detail: { ok: false, reason: r.reason },
-        actionable: true,
-      }
-    }
+    // 채우지 못했으면 실패로 남긴다 — 성공 줄에 실패 사유를 적어 두면 실패가 보이지 않는다
+    if (!r.ok) throw new Error(`좌표를 채우지 못했습니다 — ${r.reason}`)
 
     const found = r.byAddress + r.byName
     return {
@@ -292,7 +327,14 @@ const fillGeo: RoutineDef = {
   },
 }
 
-export const ROUTINES: RoutineDef[] = [syncNotices, deadlineWatch, leadDigest, fillGeo]
+export const ROUTINES: RoutineDef[] = [ingestNotices, syncNotices, deadlineWatch, leadDigest, fillGeo]
+
+/**
+ * 스케줄러가 스스로 돌려도 되는 루틴 — 고객에게 아무것도 보내지 않는 것만.
+ * 알림을 낼 수 있는 루틴(sync-notices·deadline-watch·lead-digest)은 예약으로 돌리지 않는다.
+ * 사람이 운영 화면에서 직접 누를 때만 돈다.
+ */
+export const AUTO_ROUTINES = ['ingest-notices', 'fill-geo'] as const
 
 export function findRoutine(key: string): RoutineDef | undefined {
   return ROUTINES.find(r => r.key === key)

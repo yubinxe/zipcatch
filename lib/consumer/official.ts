@@ -100,9 +100,25 @@ export interface OfficialQuery {
 }
 
 /**
- * 실제 공고 목록. 저장소 오류로 화면 전체가 죽지 않게 빈 배열로 떨어진다.
- * 실패를 예시 데이터로 덮지 않는다 — 호출부가 개수로 구분한다.
+ * 저장소를 읽지 못했다는 사실 — '공고가 0건'과 섞지 않는다.
+ *
+ * 예전에는 읽기 오류를 빈 배열로 삼켰다. 그러면 DB 연결이 끊긴 날에도 화면이 '지금 열린 공고가
+ * 없습니다'라고 말한다. 공고가 없는 것과 못 읽은 것은 다른 사실이라, 못 읽었으면 던진다.
+ * 각 API 가 이를 받아 503 과 READ_FAILED 를 돌려준다.
  */
+export class OfficialReadError extends Error {
+  readonly code = 'READ_FAILED'
+  constructor(cause: unknown) {
+    super(`공고 저장소를 읽지 못했습니다: ${cause instanceof Error ? cause.message : String(cause)}`)
+    this.name = 'OfficialReadError'
+  }
+}
+
+/** 공고 id 형식 — 운영 id(UUID)와 미리보기 가상 공고(fx-…)만. 그 밖은 묻기 전에 '없음' */
+const ID_RE = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|fx-[a-z0-9-]{1,40})$/i
+export const isNoticeId = (id: string) => ID_RE.test(id)
+
+/** 실제 공고 목록. 저장소를 읽지 못하면 OfficialReadError 를 던진다(빈 배열로 덮지 않는다). */
 export async function listOfficialProperties(q: OfficialQuery = {}): Promise<Property[]> {
   // 미리보기 검증용 가상 공고 — 운영 배포에서는 켜지지 않는다(lib/runtime/preview-fixture)
   if (await fixtureActive()) {
@@ -126,19 +142,24 @@ export async function listOfficialProperties(q: OfficialQuery = {}): Promise<Pro
     const out = rows.map(row => toProperty(row, today))
     if (!q.housingType) return out
     return out.filter(p => p.housingType.includes(q.housingType!) || q.housingType!.includes(p.housingType))
-  } catch {
-    return []
+  } catch (err) {
+    throw new OfficialReadError(err)
   }
 }
 
-/** 실제 공고 1건. 없으면 null (예시 공고 조회는 호출부가 따로 한다) */
+/**
+ * 실제 공고 1건. 없으면 null (예시 공고 조회는 호출부가 따로 한다).
+ * 형식이 아닌 id 는 묻지 않고 null. 저장소를 읽지 못했으면 OfficialReadError — '없음'으로 숨기지 않는다.
+ */
 export async function findOfficialProperty(id: string): Promise<Property | null> {
-  if (id.startsWith('fx-') && (await fixtureActive())) return fixtureProperties().find(p => p.id === id) ?? null
+  if (id.startsWith('fx-')) return (await fixtureActive()) ? (fixtureProperties().find(p => p.id === id) ?? null) : null
+  if (!isNoticeId(id)) return null
+  let row: OpportunityRow | null
   try {
-    const row = await repo.getOpportunity(id)
-    if (!row || row.is_demo) return null
-    return toProperty(row)
-  } catch {
-    return null
+    row = await repo.getOpportunity(id)
+  } catch (err) {
+    throw new OfficialReadError(err)
   }
+  if (!row || row.is_demo) return null
+  return toProperty(row)
 }
