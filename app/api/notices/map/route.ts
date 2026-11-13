@@ -1,6 +1,6 @@
-import { listOfficialProperties } from '@/lib/consumer/official'
+import { listOfficialProperties, OfficialReadError } from '@/lib/consumer/official'
 import { isRental, provinceOf } from '@/lib/consumer/classify'
-import { resolveCoord } from '@/lib/consumer/geo'
+import { resolveNoticeLocation } from '@/lib/consumer/location'
 import { checkUrgency } from '@/lib/crm/services/scoring'
 import { dayKey } from '@/lib/consumer/timeline-core'
 import { ingestMeta } from '@/lib/consumer/freshness'
@@ -50,21 +50,21 @@ export async function GET(req: Request) {
       const province = provinceOf(p)
       byProvince.set(province, (byProvince.get(province) ?? 0) + 1)
 
-      // 저장해 둔 좌표가 있으면 그것이 가장 정확하다. 없으면 지역 기준점.
-      const stored = p.lat !== null && p.lng !== null ? { lat: p.lat, lng: p.lng } : null
-      const coord = resolveCoord({
-        geocoded: stored,
-        // 공고명으로 찾은 좌표를 주소로 찾은 좌표와 같은 표식으로 그리지 않는다
-        geoSource: p.geoSource,
-        address: p.address,
-        region: p.region,
-        province,
-      })
+      // 저장해 둔 좌표는 공고의 시·도·시군구와 맞는지 본 뒤에만 쓴다. 어긋나거나 없으면 지역 기준점.
+      const loc = resolveNoticeLocation(p)
+      const coord =
+        loc.point && loc.provenance !== 'UNKNOWN'
+          ? {
+              ...loc.point,
+              // 공고명으로 찾은 좌표를 주소로 찾은 좌표와 같은 표식으로 그리지 않는다
+              source: ({ PARCEL_CONFIRMED: 'ADDRESS', ADDRESS_GEOCODED: 'ADDRESS', NAME_GEOCODED: 'NAME', DISTRICT_APPROXIMATE: 'DISTRICT', PROVINCE_APPROXIMATE: 'PROVINCE' } as const)[loc.provenance],
+            }
+          : null
       if (!coord) {
         noCoord++
         continue
       }
-      if (stored) exact++
+      if (coord.source === 'ADDRESS' || coord.source === 'NAME') exact++
 
       pins.push({
         id: p.id,
@@ -86,6 +86,8 @@ export async function GET(req: Request) {
         lat: coord.lat,
         lng: coord.lng,
         coordSource: coord.source,
+        /** 위치 등급 — 필지·주소·공고명·시군구·시도 */
+        provenance: loc.provenance,
       })
     }
 
@@ -104,9 +106,11 @@ export async function GET(req: Request) {
       meta,
     })
   } catch (err) {
+    // 못 읽은 것과 0건을 가른다 — 화면이 '공고 없음'이라고 말하지 않게
+    const readFailed = err instanceof OfficialReadError
     return Response.json(
-      { error: err instanceof Error ? err.message : '지도를 불러오지 못했습니다.' },
-      { status: 500 },
+      { error: readFailed ? '공고 저장소를 읽지 못했습니다.' : '지도를 불러오지 못했습니다.', readStatus: readFailed ? 'READ_FAILED' : 'ERROR' },
+      { status: readFailed ? 503 : 500 },
     )
   }
 }

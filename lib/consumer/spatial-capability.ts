@@ -31,9 +31,12 @@ export type SourceCredibility =
 
 /** 그 점이 얼마나 그 자리인가 */
 export type PositionAccuracy =
-  | 'PARCEL_OR_BUILDING_CONFIRMED'
+  /** 필지·동을 원문이나 공적 자료로 확인했다 */
+  | 'PARCEL_CONFIRMED'
+  /** 주소를 지오코딩했다 — 주소의 점이지 동의 자리는 아니다 */
   | 'ADDRESS_GEOCODED'
-  | 'NAME_MATCHED'
+  /** 공고명으로 찾았다 — 같은 이름의 다른 곳일 수 있다(정밀도를 올려 읽지 않는다) */
+  | 'NAME_GEOCODED'
   | 'DISTRICT_APPROXIMATE'
   | 'PROVINCE_APPROXIMATE'
   | 'UNKNOWN'
@@ -63,7 +66,7 @@ export interface SpatialInput {
   /** 사용 허락을 받은 실제 3D 모델이 있는가 — 지금은 어느 공고에도 없다 */
   hasAuthorizedModel?: boolean
   /** 좌표가 어디서 왔는가. 좌표가 없으면 null */
-  coord?: 'ADDRESS' | 'NAME' | 'DISTRICT' | 'PROVINCE' | null
+  coord?: 'PARCEL' | 'ADDRESS' | 'NAME' | 'DISTRICT' | 'PROVINCE' | null
   /** 기관 API 에서 받은 공고인가(청약홈·LH) */
   officialFeed?: boolean
   /** 주변 건물 윤곽을 올릴 수 있는가 */
@@ -78,13 +81,24 @@ export interface SpatialCapability {
   mode: VisualMode
   /** 그것도 못 세울 때 물러설 자리 */
   fallback: VisualMode
-  /** 공간 화면을 열 수 있는가 */
+  /**
+   * 세 가지를 따로 답한다 — 하나가 다른 것을 막지 않는다.
+   *  explorerOpens     탐험 화면은 언제나 연다(위치를 몰라도 전국 무대와 그 이유를 보여 준다)
+   *  locationResolved  공고의 자리를 지역 이상으로 정할 수 있는가
+   *  buildingGeometry  동 형상(매스·모델)을 세울 수 있는가
+   */
+  explorerOpens: true
+  locationResolved: boolean
+  buildingGeometry: boolean
+  /** 예전 이름 — locationResolved 와 같다 */
   available: boolean
   /** 이 등급에서 그려도 되는 것 */
   can: {
     model: boolean
-    /** 건물 하나를 짚는 표식 */
+    /** 한 점을 짚는 표식 — 필지 확인·주소 좌표만 */
     pinpoint: boolean
+    /** 점 대신 불확실 범위(원)로 — 공고명으로 찾은 자리 */
+    approximateArea: boolean
     /** 지역 수준의 지리 맥락 */
     regionContext: boolean
   }
@@ -95,18 +109,18 @@ export interface SpatialCapability {
 }
 
 const POSITION_TEXT: Record<PositionAccuracy, string> = {
-  PARCEL_OR_BUILDING_CONFIRMED: '필지·동 확인',
+  PARCEL_CONFIRMED: '필지·동 확인',
   ADDRESS_GEOCODED: '주소 좌표 기준',
-  NAME_MATCHED: '공고명으로 찾은 자리 · 대략',
+  NAME_GEOCODED: '공고명으로 찾은 자리 · 대략',
   DISTRICT_APPROXIMATE: '시·군·구 기준점 · 대략',
   PROVINCE_APPROXIMATE: '광역 기준점 · 대략',
   UNKNOWN: '위치 정보 없음',
 }
 
 const POSITION_LIMIT: Record<PositionAccuracy, string | null> = {
-  PARCEL_OR_BUILDING_CONFIRMED: null,
+  PARCEL_CONFIRMED: null,
   ADDRESS_GEOCODED: '좌표는 주소를 옮긴 것이고, 개별 동의 자리는 확인하지 않았습니다.',
-  NAME_MATCHED: '공고명으로 찾은 자리입니다. 같은 이름의 다른 곳일 수 있으니 주소를 공고 원문에서 확인하세요.',
+  NAME_GEOCODED: '공고명으로 찾은 자리입니다. 같은 이름의 다른 곳일 수 있으니 주소를 공고 원문에서 확인하세요.',
   DISTRICT_APPROXIMATE: '표식은 시·군·구의 기준점이며 이 공고의 실제 자리가 아닙니다.',
   PROVINCE_APPROXIMATE: '표식은 광역의 기준점이며 이 공고의 실제 자리가 아닙니다.',
   UNKNOWN: '공고에서 위치를 정할 수 있는 값을 찾지 못했습니다.',
@@ -137,10 +151,12 @@ export function resolveSpatial(input: SpatialInput): SpatialCapability {
   const coord = input.coord ?? null
 
   const position: PositionAccuracy =
-    coord === 'ADDRESS'
+    coord === 'PARCEL'
+      ? 'PARCEL_CONFIRMED'
+      : coord === 'ADDRESS'
       ? 'ADDRESS_GEOCODED'
       : coord === 'NAME'
-        ? 'NAME_MATCHED'
+        ? 'NAME_GEOCODED'
         : coord === 'DISTRICT'
           ? 'DISTRICT_APPROXIMATE'
           : coord === 'PROVINCE'
@@ -165,7 +181,7 @@ export function resolveSpatial(input: SpatialInput): SpatialCapability {
       ? 'VERIFIED_ARCHITECTURAL_MASSING'
       : position === 'UNKNOWN'
         ? 'NO_GEOGRAPHIC_CONTEXT'
-        : position === 'ADDRESS_GEOCODED' || position === 'NAME_MATCHED'
+        : position === 'PARCEL_CONFIRMED' || position === 'ADDRESS_GEOCODED' || position === 'NAME_GEOCODED'
           ? input.hasFootprints
             ? 'PUBLIC_BUILDING_FOOTPRINT'
             : 'TERRAIN_AND_BUILDING_CONTEXT'
@@ -189,11 +205,15 @@ export function resolveSpatial(input: SpatialInput): SpatialCapability {
     geometry,
     mode,
     fallback,
-    available: geometry !== 'NO_GEOGRAPHIC_CONTEXT',
+    explorerOpens: true,
+    locationResolved: position !== 'UNKNOWN',
+    buildingGeometry: geometry === 'AUTHORIZED_REAL_3D_MODEL' || geometry === 'VERIFIED_ARCHITECTURAL_MASSING',
+    available: position !== 'UNKNOWN',
     can: {
       model: geometry === 'AUTHORIZED_REAL_3D_MODEL' || geometry === 'VERIFIED_ARCHITECTURAL_MASSING',
-      // 점으로 짚어도 되는 것은 그 자리를 아는 두 경우뿐. 지역 기준점은 짚는 것이 아니다
-      pinpoint: position === 'ADDRESS_GEOCODED' || position === 'NAME_MATCHED',
+      // 점으로 짚어도 되는 것은 필지 확인과 주소 좌표뿐. 공고명 좌표는 범위로, 지역 기준점은 짚지 않는다
+      pinpoint: position === 'PARCEL_CONFIRMED' || position === 'ADDRESS_GEOCODED',
+      approximateArea: position === 'NAME_GEOCODED',
       regionContext: position !== 'UNKNOWN',
     },
     accuracy: POSITION_TEXT[position],
@@ -201,5 +221,5 @@ export function resolveSpatial(input: SpatialInput): SpatialCapability {
   }
 }
 
-/** 공간 탐험을 열 수 있는가 */
-export const canExplore = (c: SpatialCapability) => c.available
+/** 공간 탐험 화면은 언제나 연다 — 위치를 몰라도 이유와 전국 무대를 보여 준다 */
+export const canExplore = (c: SpatialCapability) => c.explorerOpens

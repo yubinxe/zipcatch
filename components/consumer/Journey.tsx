@@ -18,8 +18,9 @@ import { setJourney, useJourney } from '@/lib/consumer/journey-store'
 import { loadSite } from '@/lib/consumer/sites'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import { won, wonFull } from './complex/ComplexParts'
-import { centerOf, prefetchDive, startDive } from './dive/dive'
+import { centerOf, prefetchDive, startDive, VERIFIED_SITE } from './dive/dive'
 import DataBadge from './DataBadge'
+import DiveButton from './dive/DiveButton'
 import type { IngestMeta } from '@/lib/consumer/data-mode'
 import { useTween } from './complex/useTween'
 
@@ -282,8 +283,8 @@ function CompareTypes({ src, models, types, onTypes }: { src: VerifiedSource; mo
       <button
         type="button"
         className="op-jr__3d"
-        onPointerEnter={() => prefetchDive()}
-        onFocus={() => prefetchDive()}
+        onPointerEnter={() => prefetchDive(VERIFIED_SITE)}
+        onFocus={() => prefetchDive(VERIFIED_SITE)}
         onClick={e => startDive({ announcementId: VERIFIED_ID, from: centerOf(e.currentTarget), region: src.region, type: a.name })}
       >
         이 두 주택형을 단지 안에서 보기 (3D)
@@ -662,6 +663,17 @@ export default function Journey() {
               <span>지금 보는 공고</span>
               <b>{chosenName}</b>
               <DataBadge src={src} live={picked ? { source: picked.property.source ?? null, meta } : null} compact />
+              {/* 고른 수집 공고를 그대로 공간 탐험으로(확인 사례는 아래 단지 탐험 단추가 있다) */}
+              {picked?.property.id && (
+                <DiveButton
+                  noticeId={picked.property.id}
+                  name={chosenName}
+                  region={picked.property.region}
+                  className="cs-btn cs-btn--text zx-entry op-jr__3d"
+                >
+                  3D 공간 탐험
+                </DiveButton>
+              )}
             </>
           ) : (
             <span>아직 고른 공고가 없습니다</span>

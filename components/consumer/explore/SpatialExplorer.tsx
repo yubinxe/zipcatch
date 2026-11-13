@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import DiveButton from '../dive/DiveButton'
 import { useSheetDrag } from '@/lib/consumer/use-sheet-drag'
 import { lockScroll } from '@/lib/consumer/scroll-lock'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -290,6 +291,9 @@ export default function SpatialExplorer({ open, onClose }: { open: boolean; onCl
                       {p.monthlyRent ? ` · 월 ${p.monthlyRent.toLocaleString()}만원` : ''}
                     </span>
                   </Link>
+                  <DiveButton noticeId={p.id} name={p.name} region={p.province} className="sx-list__3d zx-entry" aria-label={`${p.name} 3D 공간 탐험`}>
+                    3D
+                  </DiveButton>
                 </li>
               ))}
             </ol>

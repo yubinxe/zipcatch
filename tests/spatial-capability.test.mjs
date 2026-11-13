@@ -18,7 +18,10 @@ test('주소 좌표와 공고명 좌표를 같은 믿음으로 두지 않는다'
   const a = resolveSpatial({ coord: 'ADDRESS', officialFeed: true })
   const n = resolveSpatial({ coord: 'NAME', officialFeed: true })
   assert.equal(a.position, 'ADDRESS_GEOCODED')
-  assert.equal(n.position, 'NAME_MATCHED')
+  assert.equal(n.position, 'NAME_GEOCODED')
+  assert.equal(n.can.pinpoint, false)
+  assert.equal(n.can.approximateArea, true)
+  assert.equal(a.can.pinpoint, true)
   assert.notEqual(a.accuracy, n.accuracy)
   assert.match(n.limitations.join(' '), /같은 이름의 다른 곳/)
 })
@@ -47,12 +50,22 @@ test('지역 기준점만 있으면 지역까지 — 짚지 않는다', () => {
   }
 })
 
-test('위치를 모르면 공간 화면을 열지 않는다', () => {
+test('위치를 몰라도 탐험 화면은 연다 — 자리를 정할 수 없다는 것과 화면을 열 수 있다는 것은 다르다', () => {
   const c = resolveSpatial({})
   assert.equal(c.position, 'UNKNOWN')
   assert.equal(c.geometry, 'NO_GEOGRAPHIC_CONTEXT')
   assert.equal(c.source, 'UNAVAILABLE')
-  assert.equal(canExplore(c), false)
+  assert.equal(canExplore(c), true)
+  assert.equal(c.locationResolved, false)
+  assert.equal(c.buildingGeometry, false)
+  assert.equal(c.can.pinpoint, false)
+  assert.equal(c.can.approximateArea, false)
+})
+
+test('필지 확인은 한 점으로, 공고명 좌표는 점으로 올려 읽지 않는다', () => {
+  assert.equal(resolveSpatial({ coord: 'PARCEL' }).position, 'PARCEL_CONFIRMED')
+  assert.equal(resolveSpatial({ coord: 'PARCEL' }).can.pinpoint, true)
+  assert.equal(resolveSpatial({ coord: 'NAME' }).can.pinpoint, false)
 })
 
 test('원문을 대조했어도 현장 자료가 없으면 매스를 세우지 않는다', () => {

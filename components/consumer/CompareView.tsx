@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import DiveButton from './dive/DiveButton'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { Candidate, UrgencyInfo } from '@/lib/crm/services/scoring'
@@ -336,6 +337,11 @@ export default function CompareView() {
                       </NoticeTitleMorph>
                     </Link>
                     <span className="cs-cmp__sub">{d.property.region}</span>
+                    {d.property.dataOrigin === 'OFFICIAL' && (
+                      <DiveButton noticeId={d.property.id} name={d.property.name} region={d.property.region} className="cs-cmp__3d zx-entry">
+                        3D 공간 탐험
+                      </DiveButton>
+                    )}
                   </div>
                 </th>
               ))}

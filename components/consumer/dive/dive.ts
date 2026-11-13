@@ -38,6 +38,71 @@ export interface DiveRequest {
 }
 
 export const DIVE_EVENT = 'zc:dive'
+/** 공간 탐험을 여는 하나의 입구 — 공고 id 로 */
+export const EXPLORE_EVENT = 'zc:explore'
+
+export interface ExploreOptions {
+  /** 누른 요소의 화면 위치 — 전환의 출발점 */
+  from?: { x: number; y: number } | null
+  /** 불러오는 동안 껍데기에 미리 적을 이름(자료가 오면 서버 값으로 바뀐다) */
+  name?: string | null
+  /** 지도·목록에서 고른 지역 이름 */
+  region?: string | null
+  /** 처음 볼 단계 — 없으면 자료가 허락하는 가장 가까운 단계 */
+  level?: 'NATIONAL' | 'REGIONAL' | 'NEIGHBORHOOD' | 'COMPLEX' | null
+}
+
+export interface ExploreRequest extends ExploreOptions {
+  noticeId: string
+}
+
+/**
+ * 모든 '3D 공간 탐험' 단추가 부르는 하나의 함수. 공고 id(운영 저장소의 id)만 넘기면 된다 —
+ * 좌표·지역·형상은 공간 API(/api/notices/:id/spatial)가 정한다. 껍데기는 누르는 즉시 열리고,
+ * 자료는 그 안에서 받는다(DiveHost).
+ */
+export function openSpatialExplorer(noticeId: string, options: ExploreOptions = {}) {
+  window.dispatchEvent(new CustomEvent<ExploreRequest>(EXPLORE_EVENT, { detail: { noticeId, ...options } }))
+}
+
+/* ── 주소 ─────────────────────────────────────────────────────
+   공유·새 탭의 고정 주소는 공고 상세의 ?view=3d 하나다. 다른 화면 위에서 열 때는 그 화면 주소를
+   지키고(지도·목록의 고른 지역·필터) 그 위에 ?explore=<id> 만 얹는다. 예전 #dive= 고리도 받는다. */
+
+/** 공유·새 탭용 주소 */
+export const explorerHref = (noticeId: string) => `/notices/${encodeURIComponent(noticeId)}?view=3d`
+
+const UUID_OR_FX = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|fx-[a-z0-9-]{1,40})$/i
+
+/** 지금 주소가 가리키는 탐험 공고 id(없으면 null) — ?explore= · /notices/<id>?view=3d · 예전 #dive=<id> */
+export function explorerIdFromUrl(loc: Pick<Location, 'pathname' | 'search' | 'hash'>): string | null {
+  const q = new URLSearchParams(loc.search)
+  const e = q.get('explore')
+  if (e && UUID_OR_FX.test(e)) return e
+  const m = /^\/notices\/([^/?#]+)\/?$/.exec(loc.pathname)
+  if (m && q.get('view') === '3d' && UUID_OR_FX.test(decodeURIComponent(m[1]))) return decodeURIComponent(m[1])
+  const k = parseDiveHash(loc.hash)
+  if (k?.noticeId && UUID_OR_FX.test(k.noticeId)) return k.noticeId
+  return null
+}
+
+/** 이 화면 위에서 탐험을 연 주소 — 공고 상세 위에서는 ?view=3d, 그 밖은 ?explore=<id> */
+export function urlWithExplorer(loc: Pick<Location, 'pathname' | 'search'>, noticeId: string): string {
+  const q = new URLSearchParams(loc.search)
+  if (loc.pathname === `/notices/${noticeId}`) q.set('view', '3d')
+  else q.set('explore', noticeId)
+  const s = q.toString()
+  return `${loc.pathname}${s ? `?${s}` : ''}`
+}
+
+/** 탐험 고리를 걷어 낸 주소 — 화면의 다른 상태(지역·필터)는 그대로 */
+export function urlWithoutExplorer(loc: Pick<Location, 'pathname' | 'search'>): string {
+  const q = new URLSearchParams(loc.search)
+  q.delete('explore')
+  q.delete('view')
+  const s = q.toString()
+  return `${loc.pathname}${s ? `?${s}` : ''}`
+}
 export const DIVE_PHASE_EVENT = 'zc:dive-phase'
 
 export type DivePhase = 'idle' | 'focus' | 'approach' | 'cover' | 'reveal' | 'inside'
@@ -70,7 +135,7 @@ export interface DiveKey {
 }
 
 export function parseDiveHash(hash: string): DiveKey | null {
-  const m = /^#dive=([A-Za-z0-9-]{6,64})$/.exec(hash)
+  const m = /^#dive=([A-Za-z0-9-]{4,64})$/.exec(hash)
   if (!m) return null
   const v = m[1]
   if (/^\d{10}$/.test(v)) return { announcementId: `${v}-${v}`, noticeId: null }
@@ -78,16 +143,27 @@ export function parseDiveHash(hash: string): DiveKey | null {
 }
 
 /**
- * 들어갈 곳을 미리 받아 둔다 — 탐험 단추에 손이 가거나(올리기·초점) 탐험할 수 있는 지역이 고른 상태일 때.
- * 한 번만. 단지 장면 코드(three 포함)와 현장 자료(약 16KB)를 받되 그리지는 않는다.
+ * 들어갈 곳을 미리 받아 둔다 — 탐험 단추에 손이 가거나(올리기·초점).
+ *
+ * 무엇을 받는지는 단추가 정한다. 원문 대조 단지(현장 열쇠가 있는 단추)만 단지 장면 코드와 그 현장
+ * 자료를 받고, 그 밖의 공고는 공용 무대 코드만 받는다 — 상관없는 공고에서 고덕강일 자료를 받지 않는다.
+ * 같은 것은 한 번만.
  */
-let prefetched = false
-export function prefetchDive(siteKey: string | null = 'godeok-gangil-3') {
-  if (prefetched) return
-  prefetched = true
+/** 등록된 확인 사례(고덕강일 3단지)의 현장 열쇠 — 그 사례로 바로 들어가는 단추(첫 화면·ONE MAP·FOUR STEPS)만 쓴다 */
+export const VERIFIED_SITE = 'godeok-gangil-3'
+
+const prefetched = new Set<string>()
+export function prefetchDive(siteKey: string | null = null) {
   const nav = navigator as Navigator & { connection?: { saveData?: boolean } }
   if (nav.connection?.saveData) return
-  void import('../complex/ComplexExperience').catch(() => {})
-  void import('../complex/complex-scene').catch(() => {})
-  void import('@/lib/consumer/sites').then(m => m.loadSite(siteKey)).catch(() => {})
+  if (!prefetched.has('stage')) {
+    prefetched.add('stage')
+    void import('./geo-scene').catch(() => {})
+  }
+  if (siteKey && !prefetched.has(siteKey)) {
+    prefetched.add(siteKey)
+    void import('../complex/ComplexExperience').catch(() => {})
+    void import('../complex/complex-scene').catch(() => {})
+    void import('@/lib/consumer/sites').then(m => m.loadSite(siteKey)).catch(() => {})
+  }
 }

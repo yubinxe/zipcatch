@@ -5,7 +5,7 @@ import { judgeFreshness, STALE_AFTER_HOURS, type IngestMeta } from './data-mode'
 /**
  * 공고 목록의 실제 수집 시각 — 읽기만 한다(쓰기·수집 재개 없음).
  *
- *  - lastIngestedAt: routine_runs 에서 'sync-notices' 실행 가운데 한 출처라도 받아 저장한 마지막 실행의 종료 시각
+ *  - lastIngestedAt: routine_runs 에서 'ingest-notices'·'sync-notices' 실행 가운데 한 출처라도 받아 저장한 마지막 실행의 종료 시각
  *  - latestRowAt:    opportunities.updated_at 의 최댓값(예시 제외). 좌표·보강 쓰기도 이 값을 올리므로 참고값
  *  - requestedAt:    이 응답을 만든 서버 시각
  *
@@ -27,7 +27,7 @@ async function read() {
     sb
       .from('routine_runs')
       .select('status, finished_at, detail')
-      .eq('routine_key', 'sync-notices')
+      .in('routine_key', ['ingest-notices', 'sync-notices'])
       .order('started_at', { ascending: false })
       .limit(20),
     sb.from('opportunities').select('updated_at').eq('is_demo', false).order('updated_at', { ascending: false }).limit(1),

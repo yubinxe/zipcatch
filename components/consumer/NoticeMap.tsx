@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import DiveButton from './dive/DiveButton'
+import CompareToggle from './battle/CompareToggle'
 import { MAP_SCOPE, type MapScope } from '@/lib/consumer/geo'
 import { formatManOr } from '@/lib/crm/services/scoring'
 import { PillChoice } from './Choose'
@@ -27,6 +29,9 @@ import MapIntro, {
  * 위치를 다르게 그리고, 지도에 올리지 못한 공고 수를 아래에 적는다.
  * 지도에 없는 공고가 없는 공고처럼 읽히면 지도를 믿고 목록을 안 보게 된다.
  */
+
+/** 문자열을 HTML 로 넣을 때 — 공고명 같은 바깥 값 */
+const esc = (v: string) => v.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string)
 
 interface Pin {
   id: string
@@ -179,6 +184,8 @@ export default function NoticeMap({
   /** 지금 화면에 들어온 공고 — 지도를 움직이면 따라 바뀐다 */
   const [visible, setVisible] = useState<Pin[]>([])
   const [hovered, setHovered] = useState<string | null>(null)
+  /** 지도 표지에서 고른 공고 — 옆 판이 그 공고를 위에 세우고 목록의 같은 줄을 밝힌다 */
+  const [selected, setSelected] = useState<string | null>(null)
   /**
    * 첫 장면(벡터 지도 → 카카오 지도). 'done' 이 되면 벡터 층이 내려간다.
    * 카카오 지도가 서면 handoff 가 생기고, 벡터는 그 지도의 실제 범위로 착지한다.
@@ -426,12 +433,14 @@ export default function NoticeMap({
         .filter(Boolean)
         .join(' ')
       const label = pin.soon ? '예정' : dday(pin.daysLeft)
-      const title = `${pin.name} · ${pin.province}`.replace(/"/g, '&quot;')
+      // 공고명은 바깥 자료다 — 문자열 속 HTML 로 해석되지 않게 다섯 글자를 모두 바꾼다
+      const title = esc(`${pin.name} · ${pin.province}`)
 
       try {
         const ov = new kakao.maps.CustomOverlay({
           position: new kakao.maps.LatLng(pin.lat, pin.lng),
-          content: `<a class="${cls}" href="/notices/${pin.id}" title="${title}">${label}</a>`,
+          // 누르면 상세로 바로 가지 않고 그 공고를 고른다(옆 판에 상세·3D·비교). 새 탭·주소 복사는 링크 그대로
+          content: `<a class="${cls}" href="/notices/${esc(pin.id)}" data-pin="${esc(pin.id)}" title="${title}" aria-label="${title}">${esc(label)}</a>`,
           yAnchor: 0.5,
           xAnchor: 0.5,
           clickable: true,
@@ -528,6 +537,7 @@ export default function NoticeMap({
    * 옆 목록. 지도가 서 있으면 보이는 범위를 따르고, 지도를 열지 못했으면 고른 범위의
    * 공고를 마감 순으로 그대로 보여 준다 — 지도가 없다고 목록까지 비우지 않는다.
    */
+  const selectedPin = selected ? ((wide ?? data)?.pins.find(p => p.id === selected) ?? data?.pins.find(p => p.id === selected) ?? null) : null
   const listed = useMemo(() => {
     if (!error || !shown) return visible
     const allow = SCOPE_PROVINCES[scope]
@@ -633,7 +643,22 @@ export default function NoticeMap({
             같은 자리에 두어야 오류가 나도 벡터 지도가 처음부터 다시 날지 않는다.
           */}
           <div className="cs-map__stage cs-mi-stage" data-mi={error ? 'fallback' : intro}>
-            {!error && <div className="cs-map__canvas" ref={host} role="application" aria-label="공고 지도" />}
+            {!error && (
+              <div
+                className="cs-map__canvas"
+                ref={host}
+                role="application"
+                aria-label="공고 지도"
+                onClick={e => {
+                  const a = (e.target as Element).closest?.('a[data-pin]')
+                  if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+                  e.preventDefault()
+                  const id = a.getAttribute('data-pin')
+                  setSelected(id)
+                  requestAnimationFrame(() => document.querySelector(`.cs-map__list li[data-id="${CSS.escape(id ?? '')}"]`)?.scrollIntoView({ block: 'nearest' }))
+                }}
+              />
+            )}
             {(error || intro !== 'done') && (
               <MapIntro
                 mode={error ? 'fallback' : 'intro'}
@@ -682,6 +707,28 @@ export default function NoticeMap({
               <strong>보이는 범위의 공고</strong>
               <span className="cs-num">{listed.length}건</span>
             </div>
+            {selectedPin && (
+              <div className="cs-map__pick" aria-live="polite">
+                <p className="cs-map__pick-k">고른 공고</p>
+                <b className="cs-map__pick-name">{selectedPin.name}</b>
+                <span className="cs-map__pick-meta">
+                  {selectedPin.province} · {selectedPin.housingType} · {selectedPin.soon ? '접수 예정' : dday(selectedPin.daysLeft)}
+                  {selectedPin.coordSource !== 'ADDRESS' && ' · 위치 대략'}
+                </span>
+                <div className="cs-map__pick-go">
+                  <Link href={`/notices/${selectedPin.id}`} className="cs-btn cs-btn--primary">
+                    자세히 보기
+                  </Link>
+                  <DiveButton noticeId={selectedPin.id} name={selectedPin.name} region={selectedPin.province} className="cs-btn cs-btn--ghost zx-entry">
+                    3D 공간 탐험
+                  </DiveButton>
+                  <CompareToggle id={selectedPin.id} name={selectedPin.name} />
+                  <button type="button" className="cs-btn cs-btn--text" onClick={() => setSelected(null)}>
+                    고르기 해제
+                  </button>
+                </div>
+              </div>
+            )}
             {listed.length === 0 ? (
               <p className="cs-note" style={{ padding: '18px 16px' }}>
                 {error && !data
@@ -699,7 +746,7 @@ export default function NoticeMap({
             ) : (
               <ul className="cs-map__list">
                 {listed.map(p => (
-                  <li key={p.id} data-hover={hovered === p.id} data-kind={p.kind.toLowerCase()}>
+                  <li key={p.id} data-id={p.id} data-hover={hovered === p.id} data-selected={selected === p.id || undefined} data-kind={p.kind.toLowerCase()}>
                     <Link
                       href={`/notices/${p.id}`}
                       onMouseEnter={() => setHovered(p.id)}

@@ -173,6 +173,32 @@ export async function markRoutineRan(key: string, at: string, next: string | nul
   if (error) throw new Error(`markRoutineRan: ${error.message}`)
 }
 
+/**
+ * 예약 실행 한 번을 잡는다 — 저장된 다음 실행 시각(next_run_at)이 지났을 때만, 한 호출만.
+ *
+ * 예전에는 호출 시각 앞 90초 안에 예약 시각이 있었는지로 판단했다. Vercel Hobby 의 Cron 은
+ * 그 시간 안의 아무 분에나 불리므로 거의 언제나 창을 놓쳤다. 이제는 저장된 시각과 비교한다 —
+ * 늦게 불려도 한 번 돌고, 같은 창에 두 번 불려도 두 번째는 잡지 못한다(조건부 갱신).
+ */
+export async function claimDue(key: string, at: string, next: string | null): Promise<boolean> {
+  const sb = getSupabase()
+  if (!sb) {
+    const r = mem().routines.find(x => x.key === key)
+    if (!r || (r.next_run_at && r.next_run_at > at)) return false
+    r.next_run_at = next
+    r.last_run_at = at
+    return true
+  }
+  const { data, error } = await sb
+    .from('routines')
+    .update({ next_run_at: next, last_run_at: at, updated_at: now() })
+    .eq('key', key)
+    .or(`next_run_at.is.null,next_run_at.lte.${at}`)
+    .select('key')
+  if (error) throw new Error(`claimDue: ${error.message}`)
+  return (data ?? []).length > 0
+}
+
 export async function startRun(
   routine: RoutineRow,
   trigger: RoutineRunRow['trigger'],

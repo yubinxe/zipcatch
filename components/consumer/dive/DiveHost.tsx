@@ -8,9 +8,22 @@ import { setJourney } from '@/lib/consumer/journey-store'
 import { loadSite } from '@/lib/consumer/sites'
 import { KOREA_REGIONS } from '@/lib/korea-regions'
 import DataBadge from '../DataBadge'
-import NoticePlace, { type PlaceNotice } from './NoticePlace'
-import { resolveCoord } from '@/lib/consumer/geo'
-import { DIVE_EVENT, DIVE_PHASE_EVENT, diveHash, parseDiveHash, prefetchDive, type DivePhase, type DiveRequest } from './dive'
+import NoticePlace, { type ExplorerView } from './NoticePlace'
+import type { ExplorerLevel, SpatialResponse } from '@/app/api/notices/[id]/spatial/route'
+import {
+  DIVE_EVENT,
+  DIVE_PHASE_EVENT,
+  EXPLORE_EVENT,
+  diveHash,
+  explorerIdFromUrl,
+  parseDiveHash,
+  prefetchDive,
+  urlWithExplorer,
+  urlWithoutExplorer,
+  type DivePhase,
+  type DiveRequest,
+  type ExploreRequest,
+} from './dive'
 
 const ComplexExperience = dynamic(() => import('../complex/ComplexExperience'), { ssr: false })
 
@@ -32,8 +45,23 @@ interface Open {
  */
 export default function DiveHost() {
   const [open, setOpen] = useState<Open | null>(null)
-  /** 등록부에 없는 공고의 '자리' 화면 — 입체 모형 없이 지역·좌표까지만 */
-  const [place, setPlace] = useState<PlaceNotice | null>(null)
+  /**
+   * 공간 탐험 껍데기의 상태 — IDLE → OPENING → LOADING_CONTEXT → READY | LIMITED_DATA | ERROR → CLOSING → IDLE.
+   * 누르는 즉시 껍데기가 서고(OPENING), 자료는 그 안에서 받는다. 앞 요청은 끊고(AbortController),
+   * 요청 번호가 다른 응답은 버린다 — B 를 고른 뒤 늦게 온 A 가 B 를 덮지 않는다.
+   */
+  const [ex, setEx] = useState<ExplorerView | null>(null)
+  const exReq = useRef(0)
+  const exCtl = useRef<AbortController | null>(null)
+  /** 탐험을 연 요소 — 닫으면 그리로 초점을 돌린다 */
+  const opener = useRef<HTMLElement | null>(null)
+  /** 단지 단계를 탐험 껍데기 안에서 열었는가(닫으면 껍데기로 돌아온다) */
+  const nested = useRef(false)
+  const exPushed = useRef(false)
+  const exRef = useRef<ExplorerView | null>(null)
+  useEffect(() => {
+    exRef.current = ex
+  }, [ex])
   const [phase, setPhase] = useState<DivePhase>('idle')
   const timers = useRef<number[]>([])
   const pushed = useRef(false)
@@ -55,47 +83,80 @@ export default function DiveHost() {
     broadcast('idle')
   }, [])
 
-  /**
-   * 공고 id 하나로 여는 길 — 전국 어느 공고에서든 같은 입구.
-   * 무엇을 그려도 되는지는 서버가 정해 준다(/api/notices/:id/spatial).
-   */
-  const openByNoticeId = useCallback(async (noticeId: string, fromHash = false) => {
+  /* ── 공간 탐험(공고 id) ─────────────────────────────────── */
+  const loadExplorer = useCallback(async (noticeId: string, id: number) => {
+    exCtl.current?.abort()
+    const ctl = new AbortController()
+    exCtl.current = ctl
+    setEx(v => (v && exReq.current === id ? { ...v, status: 'LOADING_CONTEXT', error: null } : v))
     try {
-      const r = await fetch(`/api/notices/${noticeId}/spatial`, { cache: 'no-store' })
-      if (!r.ok) return
-      const d = (await r.json()) as {
-        noticeId: string
-        notice: { name: string; source: string; housingType: string | null; applicationEnd: string | null; sourceUrl: string | null }
-        location: { lat: number | null; lng: number | null; province: string | null; district: string | null; address: string | null; provenance: string }
-        spatialAvailable: boolean
+      const r = await fetch(`/api/notices/${encodeURIComponent(noticeId)}/spatial`, { signal: ctl.signal })
+      const j = (await r.json().catch(() => null)) as (SpatialResponse & { code?: string }) | null
+      if (exReq.current !== id) return
+      if (!r.ok || !j || !('noticeId' in j)) {
+        const code = r.status === 404 ? 'NOT_FOUND' : j?.code === 'READ_FAILED' ? 'READ_FAILED' : 'ERROR'
+        setEx(v => (v && exReq.current === id ? { ...v, status: 'ERROR', error: { code, message: `HTTP ${r.status}` } } : v))
+        return
       }
-      if (!d.spatialAvailable) return
-      const prov = d.location.provenance
-      setPlace({
-        id: d.noticeId,
-        name: d.notice.name,
-        region: d.location.province,
-        district: d.location.district,
-        address: d.location.address,
-        housingType: d.notice.housingType,
-        source: d.notice.source,
-        sourceUrl: d.notice.sourceUrl,
-        applicationEnd: d.notice.applicationEnd,
-        lat: d.location.lat,
-        lng: d.location.lng,
-        coord: prov === 'ADDRESS' || prov === 'NAME' || prov === 'DISTRICT' || prov === 'PROVINCE' ? prov : null,
-        officialFeed: true,
-      })
-      const rc = KOREA_REGIONS.find(x => x.name === (d.location.province ?? '').trim())?.code ?? null
-      setJourney({ region: rc, noticeId: d.noticeId, noticeName: d.notice.name, announcementId: null }, 'dive')
-      if (!fromHash && !pushed.current) {
-        history.pushState({ zcDive: d.noticeId }, '', diveHash(d.noticeId))
-        pushed.current = true
-      }
-    } catch {
-      /* 자리를 못 열면 조용히 둔다 — 공고 화면은 그대로다 */
+      const lv: ExplorerLevel = j.levels.includes('NEIGHBORHOOD') ? 'NEIGHBORHOOD' : j.levels.includes('REGIONAL') ? 'REGIONAL' : 'NATIONAL'
+      setEx(v =>
+        v && exReq.current === id
+          ? { ...v, status: j.capability.locationResolved ? 'READY' : 'LIMITED_DATA', data: j, error: null, level: v.level && j.levels.includes(v.level) ? v.level : lv }
+          : v,
+      )
+      const rc = KOREA_REGIONS.find(x => x.name === (j.location.province ?? '').trim())?.code ?? null
+      setJourney({ region: rc, noticeId: j.noticeId, noticeName: j.notice.name, announcementId: j.site.announcementId }, 'dive')
+    } catch (err) {
+      if (exReq.current !== id || (err instanceof DOMException && err.name === 'AbortError')) return
+      setEx(v => (v && exReq.current === id ? { ...v, status: 'ERROR', error: { code: 'NETWORK', message: String(err) } } : v))
     }
   }, [])
+
+  /** 껍데기를 곧장 연다. fromUrl 이면 주소를 새로 올리지 않는다(이미 그 주소다) */
+  const openExplorer = useCallback(
+    (req: ExploreRequest, fromUrl = false) => {
+      const id = ++exReq.current
+      if (!fromUrl) opener.current = (document.activeElement as HTMLElement | null) ?? null
+      setEx({ status: 'OPENING', noticeId: req.noticeId, name: req.name ?? null, data: null, error: null, level: (req.level as ExplorerLevel | null) ?? null })
+      if (!fromUrl) {
+        const url = urlWithExplorer(location, req.noticeId)
+        if (exPushed.current) history.replaceState({ zcExplore: req.noticeId }, '', url)
+        else {
+          history.pushState({ zcExplore: req.noticeId }, '', url)
+          exPushed.current = true
+        }
+      }
+      prefetchDive(null)
+      void loadExplorer(req.noticeId, id)
+    },
+    [loadExplorer],
+  )
+
+  /** 닫기 — 상태만 거둔다(주소는 부르는 쪽이 정리). 진행 중인 요청을 끊고, 연 단추로 초점을 돌린다 */
+  const finishExplorer = useCallback(() => {
+    exReq.current++
+    exCtl.current?.abort()
+    exCtl.current = null
+    setEx(v => (v ? { ...v, status: 'CLOSING' } : v))
+    window.setTimeout(() => {
+      setEx(v => (v && v.status === 'CLOSING' ? null : v))
+      const o = opener.current
+      opener.current = null
+      if (o && o.isConnected) o.focus({ preventScroll: true })
+    }, 160)
+  }, [])
+
+  const closeExplorer = useCallback(() => {
+    if (exPushed.current) {
+      // 우리가 올린 주소면 뒤로 — 브라우저 뒤로 가기와 같은 길(popstate 가 마저 닫는다)
+      exPushed.current = false
+      history.back()
+      return
+    }
+    // 주소로 바로 들어왔다 — 뒤로 갈 자리가 없다. 고리만 걷어 낸다
+    if (explorerIdFromUrl(location)) history.replaceState(history.state, '', urlWithoutExplorer(location) + (location.hash.startsWith('#dive=') ? '' : location.hash))
+    finishExplorer()
+  }, [finishExplorer])
 
   const begin = useCallback((req: DiveRequest, fromHash = false) => {
     const src = verifiedFor(req.announcementId)
@@ -104,18 +165,9 @@ export default function DiveHost() {
      * '어디인가'는 가진 자료만큼 보여 줄 수 있다. 위치를 아예 정할 수 없을 때만 열지 않는다.
      */
     if (!src) {
+      // 대조를 마치지 않은 공고 — 같은 공간 탐험 껍데기로(공고 id 가 있을 때). 위치는 서버가 정한다
       const q = req.place
-      if (!q) return
-      const geocoded =
-        typeof q.lat === 'number' && typeof q.lng === 'number' && Number.isFinite(q.lat) && Number.isFinite(q.lng)
-          ? { lat: q.lat, lng: q.lng }
-          : null
-      const c = resolveCoord({ geocoded, geoSource: q.geoSource, address: q.address, region: q.district, province: q.region })
-      if (!c) return
-      clear()
-      setPlace({ ...q, coord: c.source, officialFeed: true })
-      const rc = KOREA_REGIONS.find(r => r.name === (q.region ?? '').trim())?.code ?? null
-      setJourney({ region: rc, noticeId: q.id ?? null, noticeName: q.name, announcementId: req.announcementId }, 'dive')
+      if (q?.id) openExplorer({ noticeId: q.id, name: q.name, from: req.from, region: req.region })
       return
     }
     clear()
@@ -185,7 +237,7 @@ export default function DiveHost() {
         window.addEventListener('zc:complex-ready', onReady)
       }, T.focus + T.approach + T.cover),
     )
-  }, [])
+  }, [openExplorer])
 
   useEffect(() => {
     const on = () => {
@@ -197,6 +249,12 @@ export default function DiveHost() {
 
   // 닫기·취소 — 우리가 주소를 올렸으면 뒤로 가기로(브라우저 뒤로 가기와 같은 길)
   const leave = useCallback(() => {
+    if (nested.current) {
+      // 탐험 껍데기 안에서 연 단지 단계 — 껍데기로 돌아온다(주소는 그대로)
+      nested.current = false
+      finish()
+      return
+    }
     if (pushed.current) {
       pushed.current = false
       history.back()
@@ -212,38 +270,58 @@ export default function DiveHost() {
 
   useEffect(() => {
     const onDive = (e: Event) => begin((e as CustomEvent<DiveRequest>).detail)
+    const onExplore = (e: Event) => openExplorer((e as CustomEvent<ExploreRequest>).detail)
     const onPop = () => {
-      if (!parseDiveHash(location.hash)) {
+      // 단지 전환(#dive=10자리)
+      if (!parseDiveHash(location.hash)?.announcementId && !nested.current) {
         pushed.current = false
         finish()
       }
+      // 공간 탐험 — 주소가 가리키는 대로(뒤로: 닫기, 앞으로: 다시 열기)
+      const id = explorerIdFromUrl(location)
+      if (!id) {
+        exPushed.current = false
+        nested.current = false
+        setOpen(null)
+        finishExplorer()
+      } else {
+        const v = exRef.current
+        if (!(v && v.noticeId === id && v.status !== 'CLOSING')) openExplorer({ noticeId: id }, true)
+      }
     }
     window.addEventListener(DIVE_EVENT, onDive)
+    window.addEventListener(EXPLORE_EVENT, onExplore)
     window.addEventListener('popstate', onPop)
     const onClose = () => leaveRef.current()
     window.addEventListener('zc:dive-close', onClose)
     /*
-     * 주소로 바로 들어온 경우. 10자리 고리는 예전처럼 청약홈 id 로, 그 밖은 공고 id 로 푼다.
-     * 공고 id 로 들어오면 공간 자료를 받아 와야 무엇을 그릴지 정할 수 있다(/api/notices/:id/spatial).
+     * 주소로 바로 들어온 경우.
+     *  - #dive=10자리      원문 대조 단지(예전 고리 그대로)
+     *  - ?explore=<id> · /notices/<id>?view=3d · 예전 #dive=<id>  공간 탐험
+     * 예전 #dive=<id> 는 같은 자리의 새 주소로 바꿔 적는다(공유한 고리가 깨지지 않게).
      */
     const key = parseDiveHash(location.hash)
     let raf = 0
     if (key?.announcementId) {
       const aid = key.announcementId
       raf = requestAnimationFrame(() => begin({ announcementId: aid }, true))
-    } else if (key?.noticeId) {
-      const nid = key.noticeId
-      // 효과 본문에서 바로 상태를 건드리지 않는다 — 한 프레임 뒤에 연다
-      raf = requestAnimationFrame(() => void openByNoticeId(nid, true))
+    } else {
+      const id = explorerIdFromUrl(location)
+      if (id) {
+        if (key?.noticeId) history.replaceState(history.state, '', urlWithExplorer(location, id))
+        raf = requestAnimationFrame(() => openExplorer({ noticeId: id }, true))
+      }
     }
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener(DIVE_EVENT, onDive)
+      window.removeEventListener(EXPLORE_EVENT, onExplore)
       window.removeEventListener('popstate', onPop)
       window.removeEventListener('zc:dive-close', onClose)
       clear()
+      exCtl.current?.abort()
     }
-  }, [begin, finish, openByNoticeId])
+  }, [begin, finish, openExplorer, finishExplorer])
 
   // 전환 중 Esc — 취소. 탐험 안에서는 탐험 창이 Esc 를 맡는다
   useEffect(() => {
@@ -257,28 +335,32 @@ export default function DiveHost() {
     return () => window.removeEventListener('keydown', onKey)
   }, [phase, leave])
 
-  if (place)
-    return createPortal(
+  const shell =
+    ex &&
+    createPortal(
       <NoticePlace
-        notice={place}
-        onClose={() => {
-          setPlace(null)
-          if (pushed.current) {
-            pushed.current = false
-            history.back()
-          } else if (parseDiveHash(location.hash)) {
-            // 주소로 바로 들어온 경우엔 뒤로 갈 자리가 없다. 고리만 조용히 지운다
-            history.replaceState(null, '', location.pathname + location.search)
-          }
+        view={ex}
+        onClose={closeExplorer}
+        onRetry={() => {
+          const id = ++exReq.current
+          void loadExplorer(ex.noticeId, id)
+        }}
+        onLevel={l => setEx(v => (v ? { ...v, level: l } : v))}
+        onComplex={aid => {
+          nested.current = true
+          begin({ announcementId: aid }, true)
         }}
       />,
       document.body,
     )
-  if (!open) return null
+
+  if (!open) return shell || null
+
   const src = verifiedFor(open.req.announcementId)!
   const from = open.req.from ?? null
   return (
     <>
+      {shell}
       {phase !== 'inside' &&
         createPortal(
           <div

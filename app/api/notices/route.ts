@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getState } from '@/lib/crm/store'
 import { checkUrgency, type UrgencyInfo } from '@/lib/crm/services/scoring'
-import { listOfficialProperties } from '@/lib/consumer/official'
+import { listOfficialProperties, OfficialReadError } from '@/lib/consumer/official'
 import { ingestMeta } from '@/lib/consumer/freshness'
 import { kindRank, provinceOf } from '@/lib/consumer/classify'
 import type { Property } from '@/lib/crm/types'
@@ -150,9 +150,11 @@ export async function GET(req: NextRequest) {
       meta: await ingestMeta(now),
     })
   } catch (err) {
+    // 못 읽은 것과 0건을 가른다 — 화면이 '공고 없음'이라고 말하지 않게
+    const readFailed = err instanceof OfficialReadError
     return Response.json(
-      { error: err instanceof Error ? err.message : '공고를 불러오지 못했습니다.' },
-      { status: 500 },
+      { error: readFailed ? '공고 저장소를 읽지 못했습니다.' : '공고를 불러오지 못했습니다.', readStatus: readFailed ? 'READ_FAILED' : 'ERROR' },
+      { status: readFailed ? 503 : 500 },
     )
   }
 }
