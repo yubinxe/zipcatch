@@ -14,27 +14,32 @@ import { KOREA_MAP_VIEWBOX, KOREA_PROVINCES } from '@/lib/korea-map-data'
  * 건물을 그리지 않는다 — 동 윤곽과 층수를 확인하지 않았기 때문이다. 세울 수 있는 것은
  * '어디인가'까지다.
  *
- * 좌표는 경계 그림과 같은 틀에 놓아야 겹친다. 대한민국 범위의 경위도를 SVG viewBox 로
- * 선형 대응시킨다 — 이 축척에서는 도법 차이가 표식 크기 안에 들어간다.
+ * 좌표는 경계 그림과 같은 틀에 놓아야 겹친다. 예전에는 경위도 범위를 viewBox 에 선형으로
+ * 늘렸는데, 그 틀로는 시청 17곳 가운데 9곳이 다른 시·도에 떨어졌다. 그림 자신에서 찾은
+ * 메르카토르 변환을 쓴다(lib/consumer/geo-projection — 기준점 시험 tests/geo-projection.test.mjs).
  */
-
-/** 경계 그림이 그려진 경위도 범위 — @svg-maps/south-korea 의 틀에 맞춘 값 */
-const BOUNDS = { west: 125.0, east: 131.0, south: 33.0, north: 38.7 }
+import { projectToMap } from '@/lib/consumer/geo-projection'
 
 export interface GeoSceneInput {
   /** 비출 광역의 코드. 없으면 전국을 보여 준다 */
   regionCode: string | null
   /** 표식을 세울 자리. 자리를 모르면 null */
   point: { lat: number; lng: number } | null
-  /** 그 점을 '그 자리'로 짚어도 되는가 — 아니면 지역만 밝힌다 */
+  /** 그 점을 '그 자리'로 짚어도 되는가(필지·주소) */
   pinpoint: boolean
+  /** 점 대신 불확실 범위로(공고명으로 찾은 자리) */
+  approximate?: boolean
   reducedMotion: boolean
 }
 
 export interface GeoScene {
   dispose: () => void
-  /** 카메라를 처음 자리로 */
+  /** 카메라를 처음 자리로(그 지역·자리로 다시 내려간다) */
   reset: () => void
+  /** 전국을 한눈에 */
+  national: () => void
+  /** 키보드·단추로 카메라를 움직인다 — 끌기·집기를 못 쓰는 사람을 위한 같은 조작 */
+  nudge: (kind: 'in' | 'out' | 'left' | 'right' | 'up' | 'down') => void
 }
 
 const COLOR = {
@@ -51,13 +56,8 @@ function viewBox(): [number, number, number, number] {
   return [x, y, w, h]
 }
 
-/** 경위도 → 경계 그림의 좌표계 */
-function project(lat: number, lng: number): { x: number; y: number } {
-  const [vx, vy, vw, vh] = viewBox()
-  const u = (lng - BOUNDS.west) / (BOUNDS.east - BOUNDS.west)
-  const v = (BOUNDS.north - lat) / (BOUNDS.north - BOUNDS.south)
-  return { x: vx + u * vw, y: vy + v * vh }
-}
+/** 경위도 → 경계 그림의 좌표계(메르카토르) */
+const project = (lat: number, lng: number) => projectToMap(lat, lng)
 
 export function createGeoScene(canvas: HTMLCanvasElement, input: GeoSceneInput): GeoScene {
   const [vx, vy, vw, vh] = viewBox()
@@ -113,6 +113,24 @@ export function createGeoScene(canvas: HTMLCanvasElement, input: GeoSceneInput):
   /* ── 자리 표식 ───────────────────────────────────────────
      짚어도 되는 공고만 기둥을 세운다. 지역까지만 아는 공고는 지역 판의 금빛이 답이다. */
   const marks: THREE.Object3D[] = []
+  // 공고명으로 찾은 자리 — 기둥을 세우지 않고 옅은 범위만. '이 근처'이지 '여기'가 아니다
+  if (input.point && !input.pinpoint && input.approximate) {
+    const { x, y } = project(input.point.lat, input.point.lng)
+    const area = new THREE.Mesh(
+      new THREE.CircleGeometry(4.2, 48),
+      new THREE.MeshBasicMaterial({ color: COLOR.halo, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false }),
+    )
+    area.rotation.x = -Math.PI / 2
+    area.position.set((x - cx) * S, 7.4, (y - cy) * S)
+    const edge = new THREE.Mesh(
+      new THREE.RingGeometry(4.0, 4.4, 64),
+      new THREE.MeshBasicMaterial({ color: COLOR.halo, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }),
+    )
+    edge.rotation.x = -Math.PI / 2
+    edge.position.set((x - cx) * S, 7.45, (y - cy) * S)
+    scene.add(area, edge)
+    marks.push(area, edge)
+  }
   if (input.point && input.pinpoint) {
     const { x, y } = project(input.point.lat, input.point.lng)
     const px = (x - cx) * S
@@ -141,7 +159,7 @@ export function createGeoScene(canvas: HTMLCanvasElement, input: GeoSceneInput):
       target.set((b.x - cx) * S, 0, (b.y - cy) * S)
     }
   }
-  if (input.point && input.pinpoint) {
+  if (input.point && (input.pinpoint || input.approximate)) {
     const { x, y } = project(input.point.lat, input.point.lng)
     target.set((x - cx) * S, 0, (y - cy) * S)
   }
@@ -166,20 +184,16 @@ export function createGeoScene(canvas: HTMLCanvasElement, input: GeoSceneInput):
   const DUR = 1200
   const ease = (x: number) => 1 - Math.pow(1 - x, 3)
 
+  /*
+   * 그릴 일이 있을 때만 그린다 — 내려가는 동안, 손으로 돌리는 동안(감속 포함), 크기가 바뀔 때.
+   * 가만히 있는 장면을 매 프레임 다시 그리지 않는다(전지·발열).
+   */
   let raf = 0
-  const resize = () => {
-    const w = canvas.clientWidth
-    const h = canvas.clientHeight
-    if (!w || !h) return
-    renderer.setSize(w, h, false)
-    camera.aspect = w / h
-    camera.updateProjectionMatrix()
-  }
-  const ro = new ResizeObserver(resize)
-  ro.observe(canvas)
-
+  let settle = 0
+  const draw = () => renderer.render(scene, camera)
   const tick = (now: number) => {
-    raf = requestAnimationFrame(tick)
+    raf = 0
+    if (document.hidden) return
     if (flying) {
       if (!t0) t0 = now
       const k = Math.min(1, (now - t0) / DUR)
@@ -189,19 +203,38 @@ export function createGeoScene(canvas: HTMLCanvasElement, input: GeoSceneInput):
         flying = false
         controls.update()
       }
-    } else {
-      controls.update()
+      draw()
+      raf = requestAnimationFrame(tick)
+      return
     }
-    for (const m of marks) if (m instanceof THREE.Mesh && m.geometry instanceof THREE.RingGeometry) m.rotation.z += 0.004
-    renderer.render(scene, camera)
+    // 감속이 끝날 때까지 몇 프레임 더 — update 가 바뀐 것이 없다고 하면 멈춘다
+    const moved = controls.update()
+    draw()
+    if (moved) settle = 12
+    if (settle-- > 0) raf = requestAnimationFrame(tick)
   }
-  raf = requestAnimationFrame(tick)
+  const wake = () => {
+    settle = 12
+    if (!raf) raf = requestAnimationFrame(tick)
+  }
+  controls.addEventListener('change', wake)
+  controls.addEventListener('start', wake)
+
+  const resize = () => {
+    const w = canvas.clientWidth
+    const h = canvas.clientHeight
+    if (!w || !h) return
+    renderer.setSize(w, h, false)
+    camera.aspect = w / h
+    camera.updateProjectionMatrix()
+    wake()
+  }
+  const ro = new ResizeObserver(resize)
+  ro.observe(canvas)
+  wake()
 
   const onVis = () => {
-    if (document.hidden) {
-      cancelAnimationFrame(raf)
-      raf = 0
-    } else if (!raf) raf = requestAnimationFrame(tick)
+    if (!document.hidden) wake()
   }
   document.addEventListener('visibilitychange', onVis)
 
@@ -212,9 +245,34 @@ export function createGeoScene(canvas: HTMLCanvasElement, input: GeoSceneInput):
       controls.target.copy(target)
       camera.position.copy(input.reducedMotion ? near : far)
       controls.update()
+      wake()
+    },
+    national() {
+      flying = false
+      controls.target.set(0, 0, 0)
+      camera.position.copy(far)
+      camera.lookAt(0, 0, 0)
+      controls.update()
+      wake()
+    },
+    nudge(kind) {
+      flying = false
+      const off = camera.position.clone().sub(controls.target)
+      const sph = new THREE.Spherical().setFromVector3(off)
+      if (kind === 'in') sph.radius = Math.max(controls.minDistance, sph.radius * 0.8)
+      if (kind === 'out') sph.radius = Math.min(controls.maxDistance, sph.radius * 1.25)
+      if (kind === 'left') sph.theta -= 0.25
+      if (kind === 'right') sph.theta += 0.25
+      if (kind === 'up') sph.phi = Math.max(0.2, sph.phi - 0.15)
+      if (kind === 'down') sph.phi = Math.min(controls.maxPolarAngle, sph.phi + 0.15)
+      camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(sph))
+      controls.update()
+      wake()
     },
     dispose() {
       cancelAnimationFrame(raf)
+      controls.removeEventListener('change', wake)
+      controls.removeEventListener('start', wake)
       document.removeEventListener('visibilitychange', onVis)
       ro.disconnect()
       controls.dispose()
