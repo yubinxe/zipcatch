@@ -31,7 +31,11 @@ export interface NeighborhoodData {
   fetchedAt: string
 }
 
-const ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
+const ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+]
 const MAX_BUILDINGS = 1800
 
 type Geom = { lat: number; lon: number }[]
@@ -120,7 +124,8 @@ export async function fetchNeighborhood(lat: number, lng: number, radiusM = 450)
   // 두 출처를 함께 묻고 먼저 온 답을 쓴다 — 하나씩 차례로 기다리면 함수 시간(30초)을 넘긴다
   const one = async (ep: string) => {
     const r = await fetch(`${ep}?data=${encodeURIComponent(q)}`, {
-      headers: { 'User-Agent': 'zipcatch/1.0 (+https://zipcatch.vercel.app)', Accept: 'application/json' },
+      // Accept 를 json 으로 좁히면 overpass-api.de 가 406 을 돌려준다(운영에서 확인) — 붙이지 않는다
+      headers: { 'User-Agent': 'zipcatch/1.0 (+https://zipcatch.vercel.app)' },
       signal: AbortSignal.timeout(25_000),
       next: { revalidate: 60 * 60 * 24 * 30 },
     })
