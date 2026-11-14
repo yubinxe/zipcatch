@@ -67,7 +67,8 @@ async function call<T>(url: string, params: Record<string, string>, revalidate: 
   if (!key) return { ok: false, reason: '마이홈 인증키(MYHOME_API_KEY)가 설정되지 않았습니다.', items: [], total: 0 }
   const q = new URLSearchParams({ serviceKey: key, ...params })
   try {
-    const res = await fetch(`${url}?${q}`, { next: { revalidate } })
+    // 쪽마다 20초에서 끊는다 — 멈춘 원천 하나가 수집 전체를 시간 초과로 죽이지 않게
+    const res = await fetch(`${url}?${q}`, { next: { revalidate }, signal: AbortSignal.timeout(20_000) })
     const json = (await res.json().catch(() => null)) as {
       response?: { header?: { resultCode?: string; resultMsg?: string }; body?: { totalCount?: string | number; item?: T[] | T } }
     } | null

@@ -2,6 +2,9 @@ import * as repo from '@/lib/db/repo'
 import type { GeoSource, OpportunityRow } from '@/lib/db/types'
 import { geocode, geocodeByName, isGeocodingConfigured } from '@/lib/consumer/geocode'
 import { provinceOf } from '@/lib/consumer/classify'
+import { DISTRICT_CENTER, districtFromAddress } from '@/lib/consumer/geo'
+import { checkLocation } from '@/lib/consumer/location-check'
+import { PROVINCE_POLYGONS } from '@/lib/consumer/location'
 
 /**
  * 공고의 좌표를 미리 찾아 저장해 둔다.
@@ -42,6 +45,8 @@ export interface GeocodeFillResult {
   missed: number
   /** 이미 좌표가 있어 건너뛴 건수 */
   skipped: number
+  /** 찾았으나 공고의 지역과 어긋나 저장하지 않은 건수(사유별) */
+  rejected?: Record<string, number>
 }
 
 const NONE: GeocodeFillResult = {
@@ -100,12 +105,18 @@ export async function fillCoordinates(
     }
   }
 
-  const todo = rows.filter(r => needsGeo(r, now)).slice(0, limit)
+  // 새로 들어온 공고부터 — 오래된 공고에 호출을 먼저 쓰지 않는다(상한 limit 은 그대로)
+  const todo = rows
+    .filter(r => needsGeo(r, now))
+    .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+    .slice(0, limit)
   const skipped = rows.length - todo.length
 
   let byAddress = 0
   let byName = 0
   let missed = 0
+  /** 찾았지만 공고의 시·도·시군구와 어긋나 저장하지 않은 수 — 사유별 */
+  const rejected: Record<string, number> = {}
 
   for (let i = 0; i < todo.length; i += BATCH) {
     const slice = todo.slice(i, i + BATCH)
@@ -128,6 +139,23 @@ export async function fillCoordinates(
           const province = provinceOf({ region: row.region, district: row.district ?? '' })
           hit = await geocodeByName(row.title, province).catch(() => null)
           source = 'NAME'
+        }
+
+        /*
+         * 찾은 점이 공고의 시·도와 맞는지, 시·군·구 기준점에서 너무 멀지 않은지 저장 전에 본다.
+         * 어긋나면 고르지 않는다 — 좌표를 비워 두면 화면은 지역 기준으로 물러선다(이름이 같은 다른 동네 방지).
+         */
+        if (hit) {
+          const province = provinceOf({ region: row.region, district: row.district ?? '' })
+          const dKey = districtFromAddress(row.address) ?? (row.district && DISTRICT_CENTER[row.district] ? row.district : null)
+          const check = checkLocation(
+            { lat: hit.lat, lng: hit.lng, source, province, districtCenter: dKey ? DISTRICT_CENTER[dKey] : null },
+            PROVINCE_POLYGONS,
+          )
+          if (!check.ok) {
+            rejected[check.reason ?? 'UNKNOWN'] = (rejected[check.reason ?? 'UNKNOWN'] ?? 0) + 1
+            hit = null
+          }
         }
 
         // 못 찾았어도 찾아본 시각은 남긴다. 안 남기면 매번 다시 묻게 된다.
@@ -159,5 +187,6 @@ export async function fillCoordinates(
     byName,
     missed,
     skipped,
+    rejected,
   }
 }

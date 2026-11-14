@@ -145,6 +145,8 @@ export async function fetchApplyhome(opts: { perPage?: number; monthsBack?: numb
   try {
     const res = await fetch(`${BASE}/ApplyhomeInfoDetailSvc/v1/getAPTLttotPblancDetail?${params}`, {
       next: { revalidate: 300 },
+      // 원천이 멈추면 수집 함수 전체가 시간 초과로 죽고 기록도 못 남긴다 — 출처마다 25초에서 끊는다
+      signal: AbortSignal.timeout(25_000),
     })
     const json = await res.json()
 
