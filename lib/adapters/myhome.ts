@@ -108,7 +108,11 @@ export async function fetchMyhomeWait(brtcCode: string, opts: { signguCode?: str
 
 const iso = (d: string | undefined) => (d && /^\d{8}$/.test(d) ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}` : null)
 /** 원 → 만 원(소수 한 자리). 0·빈 값은 '모름'(null)이다 — 0 원으로 적지 않는다 */
-const man = (won: number | null | undefined) => (won && won > 0 ? Math.round(won / 1000) / 10 : null)
+/**
+ * 원 → 만 원(정수). 저장소의 금액 칸(deposit·monthly_rent)은 정수다 — 소수(5343.2)를 보내면
+ * 저장이 실패하고 수집 전체가 멈췄다(2026-11-14 운영). 만 원 아래는 반올림한다(오차 5천 원 미만).
+ */
+const man = (won: number | null | undefined) => (won && won > 0 ? Math.round(won / 10000) : null)
 export const panIdOf = (n: Pick<MyhomeNotice, 'url'>) => n.url?.match(/panId=(\d+)/)?.[1] ?? null
 
 /**

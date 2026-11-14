@@ -97,7 +97,16 @@ export async function ingestOfficialNotices() {
 
   // 마이홈 — LH 공고의 빈 칸(금액·주소·접수일)을 채우고, LH 밖 공급기관 공고를 싣는다
   const m0 = Date.now()
-  const myhome = await syncMyhome()
+  // 마이홈이 던져도 앞 두 출처의 저장은 남는다 — 실패는 이 출처의 실패로만(전체 실패로 번지지 않게)
+  const myhome = await syncMyhome().catch(err => ({
+    ok: false,
+    reason: err instanceof Error ? err.message.slice(0, 200) : String(err),
+    fetched: 0,
+    enriched: 0,
+    inserted: 0,
+    updated: 0,
+    newKeys: [] as { source: string; externalId: string }[],
+  }))
   const { newKeys: mk, ...mrest } = myhome
   sources.push({ source: 'MYHOME', label: '마이홈', ...mrest, newKeys: mk?.length ?? 0, durationMs: Date.now() - m0 })
   if (!myhome.ok && myhome.reason) failures.push(`마이홈: ${myhome.reason}`)

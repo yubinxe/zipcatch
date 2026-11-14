@@ -16,6 +16,8 @@ export async function syncMyhome(): Promise<{
   enriched: number
   inserted: number
   updated: number
+  enrichFailed?: number
+  failed?: number
   newKeys: { source: string; externalId: string }[]
 }> {
   const res = await fetchMyhomeNotices({ pages: 5, rows: 100 })
@@ -27,6 +29,8 @@ export async function syncMyhome(): Promise<{
   // 1. LH 보강 — 빈 칸만
   const patches = lhPatches(res.items)
   let enriched = 0
+  let enrichFailed = 0
+  let firstError: string | null = null
   for (const o of existing) {
     if (o.source !== 'LH' || !o.external_id) continue
     const p = patches.get(o.external_id)
@@ -42,18 +46,27 @@ export async function syncMyhome(): Promise<{
       if (cur === null || cur === undefined || cur === '') only[k] = v
     }
     if (Object.keys(only).length) {
-      await repo.updateOpportunity(o.id, only)
-      enriched++
+      // 한 행이 실패해도 나머지는 계속 — 실패는 세어 남긴다
+      try {
+        await repo.updateOpportunity(o.id, only)
+        enriched++
+      } catch (err) {
+        enrichFailed++
+        if (!firstError) firstError = err instanceof Error ? err.message : String(err)
+      }
     }
   }
 
   // 2. LH 밖 공급기관
   const rows = normalizeMyhome(res.items, fetchedAt)
   const before = new Set(existing.map(o => `${o.source}|${o.external_id}`))
-  const up = rows.length ? await repo.upsertOpportunities(rows) : { inserted: 0, updated: 0 }
+  const up = rows.length ? await repo.upsertOpportunities(rows) : { inserted: 0, updated: 0, failed: 0, errors: [] as string[] }
   const newKeys = rows
     .filter(r => r.external_id && !before.has(`${r.source}|${r.external_id}`))
     .map(r => ({ source: r.source!, externalId: r.external_id! }))
 
-  return { ok: true, reason: null, fetched: res.items.length, enriched, inserted: up.inserted, updated: up.updated, newKeys }
+  // 저장 실패를 성공으로 적지 않는다 — 보강·적재 어느 쪽이든 실패가 있으면 이 출처는 실패(나머지 출처는 그대로)
+  const failed = (up.failed ?? 0) + enrichFailed
+  const reason = failed ? `저장 실패 ${failed}건 — ${up.errors?.[0] ?? firstError ?? ''}`.slice(0, 200) : null
+  return { ok: failed === 0, reason, fetched: res.items.length, enriched, enrichFailed, inserted: up.inserted, updated: up.updated, failed, newKeys }
 }
