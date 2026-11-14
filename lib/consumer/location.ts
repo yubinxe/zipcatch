@@ -30,7 +30,7 @@ export interface NoticeLocation {
   provenance: LocationProvenance
   /** 짚거나 범위를 그릴 점. 지역 기준점일 때도 채운다(카메라가 바라볼 곳) — 표식은 provenance 로 정한다 */
   point: LatLng | null
-  /** 표식 반경(m) — 주소 좌표 150, 공고명 좌표 900. 지역 기준이면 null */
+  /** 표식 반경(m) — 주소 좌표 150, 공고명 좌표 600. 지역 기준이면 null */
   uncertaintyM: number | null
   province: string | null
   regionCode: string | null
@@ -82,7 +82,7 @@ export function resolveNoticeLocation(
     ...base,
     provenance,
     point: { lat: c.lat, lng: c.lng },
-    uncertaintyM: provenance === 'ADDRESS_GEOCODED' ? 150 : provenance === 'NAME_GEOCODED' ? 900 : null,
+    uncertaintyM: provenance === 'ADDRESS_GEOCODED' ? 150 : provenance === 'NAME_GEOCODED' ? 600 : null,
     rejected,
     rejectCode,
   }
