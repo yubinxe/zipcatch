@@ -99,7 +99,8 @@ export function urlWithExplorer(loc: Pick<Location, 'pathname' | 'search'>, noti
 export function urlWithoutExplorer(loc: Pick<Location, 'pathname' | 'search'>): string {
   const q = new URLSearchParams(loc.search)
   q.delete('explore')
-  q.delete('view')
+  // 3D 와 무관한 view 값(목록·지도 보기 등)은 지우지 않는다
+  if (q.get('view') === '3d') q.delete('view')
   const s = q.toString()
   return `${loc.pathname}${s ? `?${s}` : ''}`
 }

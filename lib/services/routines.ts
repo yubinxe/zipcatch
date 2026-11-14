@@ -43,10 +43,19 @@ export interface RoutineDef {
  * 다른 출처는 저장하고, 출처마다 받은 수·새로 들어온 수·실패 사유를 남긴다.
  */
 export async function ingestOfficialNotices() {
-  const [applyhome, lh] = await Promise.all([
-    fetchApplyhome({ perPage: 100, monthsBack: 2 }),
-    fetchLh({ perPage: 200 }),
-  ])
+  const t0 = Date.now()
+  const timed = async <T,>(p: Promise<T>) => {
+    const s = Date.now()
+    const v = await p
+    return { v, ms: Date.now() - s }
+  }
+  const [ah, lhr] = await Promise.all([timed(fetchApplyhome({ perPage: 100, monthsBack: 2 })), timed(fetchLh({ perPage: 200 }))])
+  const applyhome = ah.v
+  const lh = lhr.v
+  const ms: Record<string, number> = { APPLYHOME: ah.ms, LH: lhr.ms }
+  /** 받은 공고 가운데 가장 늦은 접수 시작일 — 원천이 실제로 새 공고를 주는지 보는 근거 */
+  const latestOf = (rows: { application_start?: string | null }[]) =>
+    rows.map(r => r.application_start ?? '').filter(Boolean).sort().pop() ?? null
 
   const sources: Record<string, unknown>[] = []
   const failures: string[] = []
@@ -58,7 +67,7 @@ export async function ingestOfficialNotices() {
     ['LH', 'LH', lh],
   ] as const) {
     if (!res.ok) {
-      sources.push({ source, label, ok: false, reason: res.reason })
+      sources.push({ source, label, ok: false, reason: res.reason, durationMs: ms[source] })
       failures.push(`${label}: ${res.reason}`)
       continue
     }
@@ -72,17 +81,30 @@ export async function ingestOfficialNotices() {
       const k = `${r.source}|${r.external_id}`
       if (!before.has(k) && r.external_id) newKeys.push({ source: r.source!, externalId: r.external_id })
     }
-    sources.push({ source, label, ok: !up.failed, fetched: res.rows.length, inserted: up.inserted, updated: up.updated, failed: up.failed })
+    sources.push({
+      source,
+      label,
+      ok: !up.failed,
+      fetched: res.rows.length,
+      normalized: res.rows.filter(r => r.external_id).length,
+      inserted: up.inserted,
+      updated: up.updated,
+      failed: up.failed,
+      latestNotice: latestOf(res.rows),
+      durationMs: ms[source],
+    })
   }
 
   // 마이홈 — LH 공고의 빈 칸(금액·주소·접수일)을 채우고, LH 밖 공급기관 공고를 싣는다
+  const m0 = Date.now()
   const myhome = await syncMyhome()
-  sources.push({ source: 'MYHOME', label: '마이홈', ...myhome })
+  const { newKeys: mk, ...mrest } = myhome
+  sources.push({ source: 'MYHOME', label: '마이홈', ...mrest, newKeys: mk?.length ?? 0, durationMs: Date.now() - m0 })
   if (!myhome.ok && myhome.reason) failures.push(`마이홈: ${myhome.reason}`)
   inserted += myhome.inserted ?? 0
-  for (const k of myhome.newKeys ?? []) newKeys.push(k)
+  for (const k of mk ?? []) newKeys.push(k)
 
-  return { sources, failures, inserted, newKeys }
+  return { sources, failures, inserted, newKeys, durationMs: Date.now() - t0 }
 }
 
 // ── 0. 공고 수집 (수집 전용) ─────────────────────────────────
@@ -98,16 +120,18 @@ const ingestNotices: RoutineDef = {
 2. (출처, 공고번호) 기준으로 upsert 한다 — 같은 공고를 두 번 쌓지 않는다.
 3. 출처마다 받은 수·새로 들어온 수·실패 사유를 남긴다. 한 출처가 실패해도 나머지는 저장한다.
 4. 알림·매칭·이벤트를 만들지 않는다.`,
-  scheduleCron: '0 0 * * *',
-  scheduleLabel: '매일 오전 9:00 (GMT+9)',
+  // 08:00 KST. Vercel Hobby Cron 은 그 시간 안 아무 분에 부른다 — 실패하면 14:00 KST 의 재시도 호출이 받는다
+  scheduleCron: '0 23 * * *',
+  scheduleLabel: '매일 오전 8:00 (GMT+9) · 실패 시 오후 2시 재시도',
 
   async run() {
-    const { sources, failures, inserted, newKeys } = await ingestOfficialNotices()
+    const { sources, failures, inserted, newKeys, durationMs } = await ingestOfficialNotices()
     const okCount = sources.filter(x => x.ok).length
     if (okCount === 0) throw new Error(`모든 출처 실패 — ${failures.join(' / ')}`)
     return {
-      summary: failures.length ? `신규 ${inserted}건 — 일부 실패: ${failures.join(' / ')}` : `신규 ${inserted}건 · 출처 ${okCount}곳`,
-      detail: { sources, failures, inserted, newKeys: newKeys.length, notified: 0 },
+      // 부분 실패를 완전한 정상으로 적지 않는다
+      summary: failures.length ? `부분 실패 · 신규 ${inserted}건 — ${failures.join(' / ')}` : `신규 ${inserted}건 · 출처 ${okCount}곳`,
+      detail: { sources, failures, partial: failures.length > 0, inserted, newKeys: newKeys.length, notified: 0, durationMs },
       actionable: failures.length > 0,
     }
   },
@@ -128,7 +152,7 @@ const syncNotices: RoutineDef = {
 5. 한 출처가 실패해도 다른 출처는 저장하고, 실패 사유를 결과에 남긴다.
    실패를 예시 데이터로 덮지 않는다.`,
   scheduleCron: '0 0 * * *',
-  scheduleLabel: '매일 오전 9:00 (GMT+9)',
+  scheduleLabel: '사람이 운영 화면에서 직접 돌릴 때만 (예약으로 돌지 않음)',
 
   async run() {
     const { sources, failures, inserted, newKeys } = await ingestOfficialNotices()
@@ -297,9 +321,9 @@ const fillGeo: RoutineDef = {
 4. 한 건 저장에 실패해도 나머지는 계속 채운다.
 
 좌표는 공고가 뜬 뒤 바뀌지 않는다. 그래서 읽을 때가 아니라 여기서 찾는다.`,
-  // 공고 동기화가 끝난 뒤에 돌아야 그날 들어온 것까지 덮는다
-  scheduleCron: '20 0 * * *',
-  scheduleLabel: '매일 오전 9:20 (GMT+9)',
+  // 공고 수집(08시대)이 끝난 뒤 따로 부른다 — 한 호출이 한 루틴만 맡아 함수 시간을 나눠 쓰지 않는다
+  scheduleCron: '0 1 * * *',
+  scheduleLabel: '매일 오전 10:00 (GMT+9)',
 
   async run() {
     const r = await fillCoordinates({ limit: 80 })
@@ -319,6 +343,7 @@ const fillGeo: RoutineDef = {
         byAddress: r.byAddress,
         byName: r.byName,
         missed: r.missed,
+        rejected: r.rejected ?? {},
         alreadyHad: r.skipped,
       },
       // 못 찾은 건이 절반을 넘으면 사람이 볼 일이다 — 키가 막혔을 수 있다

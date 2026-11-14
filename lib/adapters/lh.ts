@@ -160,7 +160,8 @@ export async function fetchLh(opts: { perPage?: number } = {}): Promise<FetchRes
   })
 
   try {
-    const res = await fetch(`${ENDPOINT}?${params}`, { next: { revalidate: 300 } })
+    // 원천이 멈추면 수집 함수 전체가 죽는다 — 25초에서 끊는다
+    const res = await fetch(`${ENDPOINT}?${params}`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(25_000) })
     const text = await res.text()
 
     // 인증 오류는 200 이 아니라 XML 로 돌아온다

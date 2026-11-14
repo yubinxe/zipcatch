@@ -98,6 +98,66 @@ export interface IngestMeta {
   sourcePublishedAt: null
   basis: 'RUN_LOG' | 'ROW' | 'NONE' | 'FIXTURE'
   staleAfterHours: number
+  /** 수집 실행 기록이 말하는 것 — 읽지 못했으면 없다 */
+  ingest?: IngestStatus
+}
+
+/**
+ * 마지막 수집이 어떻게 끝났는가 — 저장된 실행 기록만으로(페이지를 열 때 원천을 부르지 않는다).
+ *  OK           모든 출처가 받아 왔고 새 공고가 있었다
+ *  NO_NEW       모든 출처가 받았으나 새 공고는 없었다
+ *  PARTIAL      한 출처 이상 실패, 나머지는 저장
+ *  FAILED       전부 실패
+ *  INTERRUPTED  끝 기록 없이 멈췄다(시간 초과)
+ *  RUNNING      지금 도는 중
+ *  NONE         실행 기록이 없다
+ */
+export interface IngestStatus {
+  state: 'OK' | 'NO_NEW' | 'PARTIAL' | 'FAILED' | 'INTERRUPTED' | 'RUNNING' | 'NONE'
+  lastRunAt: string | null
+  summary: string | null
+  /** 출처별 마지막 정상 수집 시각 */
+  sources: { source: string; label: string; lastOkAt: string | null; lastStatus: 'OK' | 'FAILED' | 'UNKNOWN'; fetched: number | null; inserted: number | null }[]
+}
+
+interface RunLike {
+  status: string
+  started_at: string
+  finished_at: string | null
+  summary: string | null
+  detail: { sources?: { source?: string; label?: string; ok?: boolean; fetched?: number; inserted?: number }[]; partial?: boolean; inserted?: number } | null
+}
+
+/** 최근 실행 기록 → 수집 상태(순수 함수) */
+export function ingestStatusOf(runs: RunLike[]): IngestStatus {
+  const last = runs[0]
+  const labels: Record<string, string> = { APPLYHOME: '청약홈', LH: 'LH', MYHOME: '마이홈' }
+  const sources = Object.keys(labels).map(src => {
+    let lastOkAt: string | null = null
+    let lastStatus: 'OK' | 'FAILED' | 'UNKNOWN' = 'UNKNOWN'
+    let fetched: number | null = null
+    let inserted: number | null = null
+    for (const r of runs) {
+      const s = r.detail?.sources?.find(x => x.source === src)
+      if (!s) continue
+      if (lastStatus === 'UNKNOWN') {
+        lastStatus = s.ok ? 'OK' : 'FAILED'
+        fetched = s.fetched ?? null
+        inserted = s.inserted ?? null
+      }
+      if (s.ok && r.finished_at) {
+        lastOkAt = r.finished_at
+        break
+      }
+    }
+    return { source: src, label: labels[src], lastOkAt, lastStatus, fetched, inserted }
+  })
+  if (!last) return { state: 'NONE', lastRunAt: null, summary: null, sources }
+  const base = { lastRunAt: last.finished_at ?? last.started_at, summary: last.summary, sources }
+  if (last.status === 'RUNNING') return { state: 'RUNNING', ...base }
+  if (last.status === 'FAILED') return { state: /중단됨/.test(last.summary ?? '') ? 'INTERRUPTED' : 'FAILED', ...base }
+  if (last.detail?.partial) return { state: 'PARTIAL', ...base }
+  return { state: (last.detail?.inserted ?? 0) > 0 ? 'OK' : 'NO_NEW', ...base }
 }
 
 /** 매일 09:00 수집 기준 — 하루 + 여유 6시간 */
@@ -126,8 +186,24 @@ export interface DataModeLabel {
   detail: string
 }
 
+const INGEST_TEXT: Record<IngestStatus['state'], string | null> = {
+  OK: null,
+  NO_NEW: '마지막 수집: 새 공고 없음',
+  PARTIAL: '마지막 수집: 일부 기관 실패',
+  FAILED: '마지막 수집: 실패',
+  INTERRUPTED: '마지막 수집: 중단됨',
+  RUNNING: '수집 중',
+  NONE: null,
+}
+
 /** 공고 목록 표 — 초록 점은 수집 기록으로 신선함이 확인될 때만 */
 export function liveLabel(source: string | null, meta: IngestMeta | null): DataModeLabel {
+  const base = liveLabelBase(source, meta)
+  const note = meta?.ingest ? INGEST_TEXT[meta.ingest.state] : null
+  return note && base.kind !== 'FIXTURE' ? { ...base, detail: `${base.detail} · ${note}` } : base
+}
+
+function liveLabelBase(source: string | null, meta: IngestMeta | null): DataModeLabel {
   const from = source ?? '청약홈·LH 공고 목록'
   if (!meta) return { kind: 'UNKNOWN', title: '수집 시각 미확인', detail: `${from} · 목록을 언제 수집했는지 확인하지 못했습니다` }
   if (meta.state === 'FIXTURE') return { kind: 'FIXTURE', title: '검증용 가상 공고', detail: '미리보기 확인용으로 지어낸 공고 — 실제 공고가 아닙니다' }

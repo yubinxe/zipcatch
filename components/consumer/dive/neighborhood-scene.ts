@@ -41,10 +41,12 @@ const C = {
   halo: 0x55cdd2,
 }
 
-function shapeOf(pts: [number, number][]): THREE.Shape | null {
+function shapeOf(pts: [number, number][], holes: [number, number][][] = []): THREE.Shape | null {
   if (pts.length < 3) return null
   // x 동쪽, z 남쪽 → shape 의 (x, -z) 로 그리고 눕히면(rotateX -90°) 다시 (x, z) 가 된다
   const s = new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, -z)))
+  // 안뜰(구멍) — 자산 단계에서 형상을 바로잡았으므로 그대로 뚫는다
+  for (const h of holes) if (h.length >= 3) s.holes.push(new THREE.Path(h.map(([x, z]) => new THREE.Vector2(x, -z))))
   return s
 }
 
@@ -82,7 +84,7 @@ export function createNeighborhoodScene(canvas: HTMLCanvasElement, input: Neighb
   add(plate, new THREE.MeshStandardMaterial({ color: C.plate, roughness: 1 }), -0.05)
 
   const flatPoly = (rings: [number, number][][], color: number, y: number) => {
-    const shapes = rings.map(shapeOf).filter((s): s is THREE.Shape => Boolean(s))
+    const shapes = rings.map(r => shapeOf(r)).filter((s): s is THREE.Shape => Boolean(s))
     if (!shapes.length) return
     const g = new THREE.ShapeGeometry(shapes)
     g.rotateX(-Math.PI / 2)
@@ -118,7 +120,7 @@ export function createNeighborhoodScene(canvas: HTMLCanvasElement, input: Neighb
   const tall: THREE.BufferGeometry[] = []
   const flat: THREE.BufferGeometry[] = []
   for (const b of data.buildings) {
-    const s = shapeOf(b.f)
+    const s = shapeOf(b.f, b.holes)
     if (!s) continue
     if (b.h !== null) {
       const g = new THREE.ExtrudeGeometry(s, { depth: b.h, bevelEnabled: false })

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as RPointer
 import type { SpatialResponse, ExplorerLevel } from '@/app/api/notices/[id]/spatial/route'
 import GeoStage from './GeoStage'
 import type { GeoScene } from './geo-scene'
-import type { NeighborhoodStatus } from './Neighborhood3D'
+import type { NeighborhoodInfo, NeighborhoodStatus } from './Neighborhood3D'
 
 const Neighborhood3D = dynamic(() => import('./Neighborhood3D'), { ssr: false })
 
@@ -60,7 +60,9 @@ function statusLine(d: SpatialResponse['notice']): string | null {
   const e = d.applicationEnd
   if (e && e < t) return `접수 마감 ${e}`
   if (s && t < s) return `접수 예정 ${s}${e ? ` ~ ${e}` : ''}`
-  if (e) return `접수 중 · 마감 ${e}`
+  // 시작일이 없으면 지금 접수 중인지 알 수 없다 — 마감일만으로 '접수 중'이라 하지 않는다
+  if (!s && e) return `마감 ${e} · 시작일 미공개`
+  if (s && e) return `공고 일정상 접수 기간 · 마감 ${e}`
   return null
 }
 
@@ -80,7 +82,7 @@ export default function NoticePlace({
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const cam = useRef<Camera | null>(null)
-  const [nb, setNb] = useState<{ id: string; status: NeighborhoodStatus; attribution?: string; fetchedAt?: string; reason?: string; buildings?: number; withHeight?: number } | null>(null)
+  const [nb, setNb] = useState<{ id: string; status: NeighborhoodStatus; attribution?: string; build?: string; reason?: string; buildings?: number; withHeight?: number } | null>(null)
   const [sheet, setSheet] = useState<'peek' | 'open'>('peek')
   const d = view.data
   const busy = view.status === 'OPENING' || view.status === 'LOADING_CONTEXT'
@@ -121,14 +123,36 @@ export default function NoticePlace({
 
   const level: ExplorerLevel = view.level ?? 'NATIONAL'
   const nbForThis = nb && nb.id === view.noticeId ? nb : null
-  const showNeighborhood = level === 'NEIGHBORHOOD' && !!d?.capability.neighborhood && nbForThis?.status !== 'unavailable'
+  const nbFailed = nbForThis?.status === 'ASSET_UNAVAILABLE' || nbForThis?.status === 'RENDER_FAILED'
+  const wantNeighborhood = level === 'NEIGHBORHOOD' && !!d?.capability.neighborhood && !nbFailed
+  // 동네 장면이 서면 지역 무대를 내린다 — WebGL 맥락은 한 번에 하나(모바일 GPU). 실패하면 지역 무대가 다시 선다
+  const showNeighborhood = wantNeighborhood && nbForThis?.status === 'READY'
   const onNb = useCallback(
-    (status: NeighborhoodStatus, info?: { attribution?: string; fetchedAt?: string; reason?: string; counts?: { buildings: number; withHeight: number } }) =>
-      setNb({ id: view.noticeId, status, attribution: info?.attribution, fetchedAt: info?.fetchedAt, reason: info?.reason, buildings: info?.counts?.buildings, withHeight: info?.counts?.withHeight }),
+    (status: NeighborhoodStatus, info?: NeighborhoodInfo) =>
+      setNb({ id: view.noticeId, status, attribution: info?.attribution, build: info?.build, reason: info?.reason, buildings: info?.counts?.buildings, withHeight: info?.counts?.withHeight }),
     [view.noticeId],
   )
-  const setCam = useCallback((s: Camera | null) => {
-    cam.current = s
+  /*
+   * 카메라 단추는 지금 보이는 장면에만 — 장면마다 주인을 적어 두고, 내려가는 장면이 남이 잡은 카메라를 지우지 않게.
+   */
+  const camOwner = useRef<'geo' | 'nb' | null>(null)
+  const setGeoCam = useCallback((s: Camera | null) => {
+    if (s) {
+      cam.current = s
+      camOwner.current = 'geo'
+    } else if (camOwner.current === 'geo') {
+      cam.current = null
+      camOwner.current = null
+    }
+  }, [])
+  const setNbCam = useCallback((s: Camera | null) => {
+    if (s) {
+      cam.current = s
+      camOwner.current = 'nb'
+    } else if (camOwner.current === 'nb') {
+      cam.current = null
+      camOwner.current = null
+    }
   }, [])
 
   // 무대 키보드 — 화살표·+/-·0(처음)·N(북쪽 위)
@@ -175,16 +199,18 @@ export default function NoticePlace({
     <div className="zx" role="dialog" aria-modal="true" aria-label={`${name} — 3D 공간 탐험`} ref={ref} data-status={view.status} data-sheet={sheet}>
       <div className="zx-stage" tabIndex={0} onKeyDown={onStageKey} aria-label="입체 지도. 화살표로 돌리고 +·- 로 확대, 0 으로 처음 자리">
         {/* 전국·지역 무대는 언제나 아래에 있다 — 동네 자료가 늦거나 없어도 빈 화면이 없다 */}
-        <GeoStage
-          regionCode={regionCode}
-          point={level === 'NATIONAL' ? null : point}
-          pinpoint={!!d?.capability.pinpoint && level !== 'NATIONAL'}
-          approximate={!!d?.capability.approximateArea && level !== 'NATIONAL'}
-          label={`${d?.location.province ?? '전국'} 위치 그림`}
-          onScene={showNeighborhood ? undefined : setCam}
-        />
-        {d && d.capability.neighborhood && level === 'NEIGHBORHOOD' && (
-          <Neighborhood3D noticeId={view.noticeId} pinpoint={d.capability.pinpoint} onStatus={onNb} onScene={showNeighborhood ? setCam : undefined} />
+        {!showNeighborhood && (
+          <GeoStage
+            regionCode={regionCode}
+            point={level === 'NATIONAL' ? null : point}
+            pinpoint={!!d?.capability.pinpoint && level !== 'NATIONAL'}
+            approximate={!!d?.capability.approximateArea && level !== 'NATIONAL'}
+            label={`${d?.location.province ?? '전국'} 위치 그림`}
+            onScene={setGeoCam}
+          />
+        )}
+        {d && wantNeighborhood && (
+          <Neighborhood3D noticeId={view.noticeId} pinpoint={d.capability.pinpoint} onStatus={onNb} onScene={setNbCam} />
         )}
 
         <div className="zx-tools" role="toolbar" aria-label="카메라">
@@ -196,15 +222,29 @@ export default function NoticePlace({
           <button type="button" onClick={() => cam.current?.reset()} aria-label="처음 자리로">⌖</button>
         </div>
 
-        {showNeighborhood && nbForThis?.status === 'ready' && (
+        {showNeighborhood && nbForThis && (
           <p className="zx-credit">
-            건물·길 {nbForThis.attribution} · 기존 건물의 윤곽이며 이 공고 단지의 형상이 아닙니다
-            {typeof nbForThis.buildings === 'number' && ` · 건물 ${nbForThis.buildings}동 중 높이 자료 ${nbForThis.withHeight ?? 0}동(나머지는 바닥 윤곽만)`}
+            {/* 자료 수준에 맞는 말 — 공고명 좌표는 '추정한 주변 지역', 높이가 없으면 '위치와 윤곽' */}
+            {d?.location.provenance === 'NAME_GEOCODED'
+              ? '공고명으로 추정한 주변 지역 — 특정 건물이 이 공고의 단지라는 뜻이 아닙니다'
+              : (nbForThis.withHeight ?? 0) > 0
+                ? '공개 공간정보 기반 주변 건물 — 기존 건물이며 이 공고 단지의 형상이 아닙니다'
+                : '주변 건물의 위치와 윤곽 — 높이 자료가 없어 바닥 윤곽만 그립니다'}
+            {typeof nbForThis.buildings === 'number' &&
+              ` · 건물 ${nbForThis.buildings}동 중 높이 자료 ${nbForThis.withHeight ?? 0}동(지도 자료 값 — 실측 또는 층수 셈, 나머지는 바닥 윤곽)`}
+            {` · ${nbForThis.attribution ?? '© OpenStreetMap 기여자'}${nbForThis.build ? ` · 기준 ${nbForThis.build.slice(0, 4)}-${nbForThis.build.slice(4, 6)}-${nbForThis.build.slice(6, 8)}` : ''}`}
           </p>
         )}
-        {level === 'NEIGHBORHOOD' && nbForThis?.status === 'loading' && <p className="zx-credit" role="status">주변 건물·길을 불러오는 중</p>}
-        {level === 'NEIGHBORHOOD' && nbForThis?.status === 'unavailable' && (
-          <p className="zx-credit" role="status">주변 지도 자료를 받지 못해 지역 무대로 보여 드립니다</p>
+        {wantNeighborhood && (nbForThis?.status === 'FETCHING_ASSET' || nbForThis?.status === 'RENDERING') && (
+          <p className="zx-credit" role="status">주변 건물·길을 불러오는 중</p>
+        )}
+        {level === 'NEIGHBORHOOD' && nbFailed && (
+          <p className="zx-credit" role="status">
+            {nbForThis?.status === 'RENDER_FAILED' ? '이 기기에서 동네 입체를 그리지 못해 지역 무대로 보여 드립니다' : '이 자리의 주변 지도 자료가 아직 없어 지역 무대로 보여 드립니다'}
+          </p>
+        )}
+        {d && level !== 'NEIGHBORHOOD' && (
+          <p className="zx-credit">{d.location.provenance === 'UNKNOWN' ? '공고의 위치를 아직 확인할 수 없습니다 — 전국 단계' : '지역 수준 3D 탐험 — 단지의 정확한 자리를 짚지 않습니다'}</p>
         )}
       </div>
 

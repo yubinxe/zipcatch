@@ -174,29 +174,89 @@ export async function markRoutineRan(key: string, at: string, next: string | nul
 }
 
 /**
- * 예약 실행 한 번을 잡는다 — 저장된 다음 실행 시각(next_run_at)이 지났을 때만, 한 호출만.
- *
- * 예전에는 호출 시각 앞 90초 안에 예약 시각이 있었는지로 판단했다. Vercel Hobby 의 Cron 은
- * 그 시간 안의 아무 분에나 불리므로 거의 언제나 창을 놓쳤다. 이제는 저장된 시각과 비교한다 —
- * 늦게 불려도 한 번 돌고, 같은 창에 두 번 불려도 두 번째는 잡지 못한다(조건부 갱신).
+ * 예약 실행 한 번을 잡는다 — 저장된 next_run_at 이 지금 값(expect)과 같을 때만 다음 예약(next)으로 옮긴다.
+ * 같은 예약에 두 호출이 겹쳐도 한 호출만 성공한다(조건부 갱신). expect=null 은 '처음 등록' 자리.
+ * 판단은 lib/services/schedule.decideClaim 이 한다 — 여기서는 저장만.
  */
-export async function claimDue(key: string, at: string, next: string | null): Promise<boolean> {
+export async function claimRun(key: string, expect: string | null, next: string, at: string): Promise<boolean> {
   const sb = getSupabase()
   if (!sb) {
     const r = mem().routines.find(x => x.key === key)
-    if (!r || (r.next_run_at && r.next_run_at > at)) return false
+    if (!r || (r.next_run_at ?? null) !== expect) return false
     r.next_run_at = next
     r.last_run_at = at
     return true
   }
-  const { data, error } = await sb
-    .from('routines')
-    .update({ next_run_at: next, last_run_at: at, updated_at: now() })
-    .eq('key', key)
-    .or(`next_run_at.is.null,next_run_at.lte.${at}`)
-    .select('key')
-  if (error) throw new Error(`claimDue: ${error.message}`)
+  let q = sb.from('routines').update({ next_run_at: next, last_run_at: at, updated_at: now() }).eq('key', key)
+  q = expect === null ? q.is('next_run_at', null) : q.eq('next_run_at', expect)
+  const { data, error } = await q.select('key')
+  if (error) throw new Error(`claimRun: ${error.message}`)
   return (data ?? []).length > 0
+}
+
+/** 돌지 않고 다음 예약만 적는다(처음 등록) — 이미 누가 적었으면 그대로 둔다 */
+export async function initNextRun(key: string, next: string): Promise<void> {
+  const sb = getSupabase()
+  if (!sb) {
+    const r = mem().routines.find(x => x.key === key)
+    if (r && !r.next_run_at) r.next_run_at = next
+    return
+  }
+  const { error } = await sb.from('routines').update({ next_run_at: next, updated_at: now() }).eq('key', key).is('next_run_at', null)
+  if (error) throw new Error(`initNextRun: ${error.message}`)
+}
+
+/** 실패 뒤 물러섰다 다시 돌 시각을 적는다 */
+export async function setNextRun(key: string, next: string): Promise<void> {
+  const sb = getSupabase()
+  if (!sb) {
+    const r = mem().routines.find(x => x.key === key)
+    if (r) r.next_run_at = next
+    return
+  }
+  const { error } = await sb.from('routines').update({ next_run_at: next, updated_at: now() }).eq('key', key)
+  if (error) throw new Error(`setNextRun: ${error.message}`)
+}
+
+/**
+ * RUNNING 으로 남은 실행을 '중단됨'으로 닫는다 — 함수가 시간 초과로 죽으면 끝 기록을 남기지 못한다.
+ * 닫지 않으면 신선도 판정이 그 실행을 영영 기다리고, 실패가 보이지 않는다.
+ */
+export async function closeStaleRuns(key: string, olderThan: string): Promise<number> {
+  const fields = { status: 'FAILED' as RunStatus, summary: '중단됨 — 끝 기록 없이 멈췄습니다(함수 시간 초과 추정)', finished_at: now() }
+  const sb = getSupabase()
+  if (!sb) {
+    let n = 0
+    for (const r of mem().runs) if (r.routine_key === key && r.status === 'RUNNING' && r.started_at < olderThan) {
+      Object.assign(r, fields)
+      n++
+    }
+    return n
+  }
+  const { data, error } = await sb
+    .from('routine_runs')
+    .update(fields)
+    .eq('routine_key', key)
+    .eq('status', 'RUNNING')
+    .lt('started_at', olderThan)
+    .select('id')
+  if (error) throw new Error(`closeStaleRuns: ${error.message}`)
+  return (data ?? []).length
+}
+
+/** 이 루틴의 최근 실행 — 연속 실패 수·출처별 마지막 성공을 셀 때 */
+export async function recentRuns(key: string | string[], limit = 20): Promise<RoutineRunRow[]> {
+  const keys = Array.isArray(key) ? key : [key]
+  const sb = getSupabase()
+  if (!sb) return mem().runs.filter(r => keys.includes(r.routine_key)).slice(0, limit)
+  const { data, error } = await sb
+    .from('routine_runs')
+    .select('*')
+    .in('routine_key', keys)
+    .order('started_at', { ascending: false })
+    .limit(limit)
+  if (error) throw new Error(`recentRuns: ${error.message}`)
+  return (data ?? []) as RoutineRunRow[]
 }
 
 export async function startRun(

@@ -1,0 +1,41 @@
+# 동네 공간 자산 보강 — 새 공고 자리에 필요한 z15 타일을 만들어 PR 로 올린다(main 에 바로 넣지 않는다).
+# 이미 있는 타일은 다시 만들지 않는다. 원천: Protomaps Basemap 일일 빌드(OpenStreetMap, ODbL).
+name: spatial-tiles
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: 'Protomaps 빌드 날짜(YYYYMMDD) — 비우면 어제'
+        required: false
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pmtiles mapbox-vector-tile shapely requests
+      - name: build tiles
+        run: |
+          B="${{ github.event.inputs.build }}"
+          [ -z "$B" ] && B=$(date -u -d yesterday +%Y%m%d)
+          python scripts/spatial/build_tiles.py --build "$B"
+          echo "BUILD=$B" >> "$GITHUB_ENV"
+      - name: open PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- public/spatial; then echo "새 타일 없음"; exit 0; fi
+          BR="spatial/tiles-$BUILD-${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BR"
+          git add public/spatial
+          git commit -m "spatial: 동네 공간 자산 보강 (Protomaps $BUILD)"
+          git push -u origin "$BR"
+          gh pr create --title "spatial: 동네 공간 자산 보강 ($BUILD)" --body "scripts/spatial/build_tiles.py 로 새 공고 자리의 z15 타일을 만들었습니다. 원천 Protomaps Basemap $BUILD (OpenStreetMap, ODbL)." --base main --head "$BR"

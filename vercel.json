@@ -2,20 +2,16 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     {
-      "path": "/api/cron/routines",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/routines",
+      "path": "/api/cron/routines?only=ingest-notices",
       "schedule": "0 23 * * *"
     },
     {
-      "path": "/api/cron/routines",
-      "schedule": "30 0 * * 1-5"
+      "path": "/api/cron/routines?only=ingest-notices",
+      "schedule": "0 5 * * *"
     },
     {
-      "path": "/api/cron/routines",
-      "schedule": "20 0 * * *"
+      "path": "/api/cron/routines?only=fill-geo",
+      "schedule": "0 1 * * *"
     }
   ],
   "git": {
