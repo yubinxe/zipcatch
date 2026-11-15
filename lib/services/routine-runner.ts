@@ -44,6 +44,8 @@ export interface RunOutcome {
   run: rr.RoutineRunRow | null
   status: rr.RunStatus
   summary: string
+  /** 일부 출처만 실패했다 — 성공이지만 다시 돌 이유가 있다 */
+  partial?: boolean
 }
 
 /**
@@ -80,7 +82,7 @@ export async function runRoutine(
       startedAt: run.started_at,
     })
     await rr.markRoutineRan(key, run.started_at, nextRunAt(def.scheduleCron))
-    return { run, status: 'SUCCESS', summary: result.summary }
+    return { run, status: 'SUCCESS', summary: result.summary, partial: result.detail?.partial === true }
   } catch (err) {
     // 실패를 삼키지 않는다. 사유를 그대로 이력에 남긴다.
     const message = err instanceof Error ? err.message : String(err)

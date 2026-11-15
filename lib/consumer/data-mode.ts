@@ -118,6 +118,8 @@ export interface IngestStatus {
   summary: string | null
   /** 출처별 마지막 정상 수집 시각 */
   sources: { source: string; label: string; lastOkAt: string | null; lastStatus: 'OK' | 'FAILED' | 'UNKNOWN'; fetched: number | null; inserted: number | null }[]
+  /** 마지막 수집에서 받은 공고 가운데 가장 늦은 접수 시작일 — 수집 시각과 다르다(원천이 새 공고를 주는지의 근거) */
+  latestNoticeStart: string | null
 }
 
 interface RunLike {
@@ -125,7 +127,7 @@ interface RunLike {
   started_at: string
   finished_at: string | null
   summary: string | null
-  detail: { sources?: { source?: string; label?: string; ok?: boolean; fetched?: number; inserted?: number }[]; partial?: boolean; inserted?: number } | null
+  detail: { sources?: { source?: string; label?: string; ok?: boolean; fetched?: number; inserted?: number; latestNotice?: string | null }[]; partial?: boolean; inserted?: number } | null
 }
 
 /** 최근 실행 기록 → 수집 상태(순수 함수) */
@@ -152,8 +154,15 @@ export function ingestStatusOf(runs: RunLike[]): IngestStatus {
     }
     return { source: src, label: labels[src], lastOkAt, lastStatus, fetched, inserted }
   })
-  if (!last) return { state: 'NONE', lastRunAt: null, summary: null, sources }
-  const base = { lastRunAt: last.finished_at ?? last.started_at, summary: last.summary, sources }
+  const latestNoticeStart =
+    runs
+      .flatMap(r => r.detail?.sources ?? [])
+      .map(s => s.latestNotice ?? '')
+      .filter(Boolean)
+      .sort()
+      .pop() ?? null
+  if (!last) return { state: 'NONE', lastRunAt: null, summary: null, sources, latestNoticeStart }
+  const base = { lastRunAt: last.finished_at ?? last.started_at, summary: last.summary, sources, latestNoticeStart }
   if (last.status === 'RUNNING') return { state: 'RUNNING', ...base }
   if (last.status === 'FAILED') return { state: /중단됨/.test(last.summary ?? '') ? 'INTERRUPTED' : 'FAILED', ...base }
   if (last.detail?.partial) return { state: 'PARTIAL', ...base }

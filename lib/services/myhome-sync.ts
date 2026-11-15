@@ -18,6 +18,7 @@ export async function syncMyhome(): Promise<{
   updated: number
   enrichFailed?: number
   failed?: number
+  duplicates?: number
   newKeys: { source: string; externalId: string }[]
 }> {
   const res = await fetchMyhomeNotices({ pages: 5, rows: 100 })
@@ -68,5 +69,17 @@ export async function syncMyhome(): Promise<{
   // 저장 실패를 성공으로 적지 않는다 — 보강·적재 어느 쪽이든 실패가 있으면 이 출처는 실패(나머지 출처는 그대로)
   const failed = (up.failed ?? 0) + enrichFailed
   const reason = failed ? `저장 실패 ${failed}건 — ${up.errors?.[0] ?? firstError ?? ''}`.slice(0, 200) : null
-  return { ok: failed === 0, reason, fetched: res.items.length, enriched, enrichFailed, inserted: up.inserted, updated: up.updated, failed, newKeys }
+  return {
+    ok: failed === 0,
+    reason,
+    fetched: res.items.length,
+    enriched,
+    enrichFailed,
+    inserted: up.inserted,
+    updated: up.updated,
+    failed,
+    duplicates: 'duplicates' in up ? (up.duplicates ?? 0) : 0,
+    // 같은 열쇠가 여럿이면 새 공고 목록에도 한 번만
+    newKeys: [...new Map(newKeys.map(k => [`${k.source}|${k.externalId}`, k])).values()],
+  }
 }

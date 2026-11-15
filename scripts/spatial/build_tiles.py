@@ -221,7 +221,13 @@ def main():
     with ThreadPoolExecutor(max_workers=6) as ex:
         list(ex.map(one, sorted(need)))
 
-    tiles = sorted(f'{Z}/{x}/{y}' for (x, y) in need if os.path.exists(os.path.join(root, str(Z), str(x), f'{y}.json')))
+    # 매니페스트는 지금 필요한 것만이 아니라 이 버전에 있는 자산 전부 — 좌표가 바뀌어 덜 필요해진 타일도 유효하다
+    tiles = sorted(
+        f'{Z}/{x}/{os.path.splitext(f)[0]}'
+        for x in os.listdir(os.path.join(root, str(Z)))
+        for f in os.listdir(os.path.join(root, str(Z), x))
+        if f.endswith('.json')
+    )
     manifest = {
         'version': a.version,
         'source': f"{meta.get('name', 'Protomaps Basemap')} {meta.get('version', '')}".strip(),
