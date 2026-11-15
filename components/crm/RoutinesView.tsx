@@ -90,7 +90,8 @@ export default function RoutinesView() {
     try {
       const res = await fetch(`/api/admin/routines/${key}/run`, { method: 'POST' })
       const json = await res.json()
-      setNotice(`${STATUS[json.status as Run['status']]?.label ?? json.status} — ${json.summary}`)
+      // 응답 코드가 아니라 본문의 실제 상태로 적는다 — 일부 출처 실패는 '부분 실패'
+      setNotice(`${json.partial ? '부분 실패' : (STATUS[json.status as Run['status']]?.label ?? json.status)} — ${json.summary ?? json.error ?? res.status}`)
       setNonce(n => n + 1)
     } catch {
       setNotice('실행하지 못했습니다.')

@@ -19,7 +19,7 @@ interface RunRow {
   started_at: string
   finished_at: string | null
   summary: string | null
-  detail: { sources?: { source?: string; label?: string; ok?: boolean; fetched?: number; inserted?: number; updated?: number }[]; partial?: boolean; inserted?: number } | null
+  detail: { sources?: { source?: string; label?: string; ok?: boolean; fetched?: number; inserted?: number; updated?: number; latestNotice?: string | null }[]; partial?: boolean; inserted?: number } | null
 }
 
 async function read() {

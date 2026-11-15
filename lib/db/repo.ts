@@ -304,11 +304,31 @@ export interface UpsertResult {
   updated: number
   failed: number
   errors: string[]
+  /** 한 묶음 안에서 같은 열쇠라 버린 행 수 */
+  duplicates?: number
 }
 
-/** (source, external_id) 기준 중복 방지 upsert */
-export async function upsertOpportunities(rows: Partial<OpportunityRow>[]): Promise<UpsertResult> {
-  const out: UpsertResult = { inserted: 0, updated: 0, failed: 0, errors: [] }
+/**
+ * (source, external_id) 기준 중복 방지 upsert.
+ *
+ * 한 묶음 안에 같은 열쇠가 두 번 들어오면 Postgres 가 묶음 전체를 거절한다
+ * ('ON CONFLICT DO UPDATE command cannot affect row a second time' — 2026-11-15 운영 마이홈 15건).
+ * 보내기 전에 처음 것만 남기고 버린 수를 센다. 값을 합치지 않는다 — 같은 공고의 중복인지
+ * 다른 세대 유형인지 여기서는 가를 수 없어, 지어내지 않는 쪽(처음 것)을 고른다.
+ */
+export async function upsertOpportunities(input: Partial<OpportunityRow>[]): Promise<UpsertResult> {
+  const out: UpsertResult = { inserted: 0, updated: 0, failed: 0, errors: [], duplicates: 0 }
+  const seenKeys = new Set<string>()
+  const rows = input.filter(r => {
+    if (!r.external_id) return true
+    const k = `${r.source}|${r.external_id}`
+    if (seenKeys.has(k)) {
+      out.duplicates = (out.duplicates ?? 0) + 1
+      return false
+    }
+    seenKeys.add(k)
+    return true
+  })
   const sb = getSupabase()
   const stamp = now()
 

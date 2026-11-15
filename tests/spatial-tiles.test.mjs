@@ -3,7 +3,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { coverTiles, isTileAsset, mergeTiles, tileOf, tilePointToLngLat, validHeight } from '../lib/consumer/spatial-tiles.ts'
 
 const manifest = JSON.parse(readFileSync(new URL('../public/spatial/v1/manifest.json', import.meta.url), 'utf8'))
@@ -78,5 +78,17 @@ test('매니페스트 — 버전·원천·허락·타일 목록이 있고 목록
   assert.equal(manifest.version, 'v1')
   assert.match(manifest.license, /ODbL/)
   assert.ok(manifest.tiles.length > 100)
-  for (const k of manifest.tiles.slice(0, 50)) assert.ok(existsSync(new URL(`../public/spatial/v1/${k}.json`, import.meta.url)), k)
+  for (const k of manifest.tiles) assert.ok(existsSync(new URL(`../public/spatial/v1/${k}.json`, import.meta.url)), k)
+})
+
+test('매니페스트 ↔ 파일 — 목록에 없는 파일도, 파일 없는 목록도 없다(버전 일치)', () => {
+  const root = new URL('../public/spatial/v1/15/', import.meta.url)
+  const files = readdirSync(root).flatMap(x => readdirSync(new URL(`${x}/`, root)).map(f => `15/${x}/${f.replace(/\.json$/, '')}`))
+  assert.deepEqual([...files].sort(), [...manifest.tiles].sort())
+  // 표본 타일이 같은 버전 형식(v1)이고 z15 다
+  for (const k of manifest.tiles.slice(0, 40)) {
+    const t = JSON.parse(readFileSync(new URL(`../public/spatial/v1/${k}.json`, import.meta.url), 'utf8'))
+    assert.ok(isTileAsset(t), k)
+    assert.equal(`${t.z}/${t.x}/${t.y}`, k)
+  }
 })

@@ -107,3 +107,12 @@ test('출처별 마지막 정상 수집 시각 — 이번에 실패한 출처는
   assert.equal(lh.lastOkAt, '2026-11-13T23:02:00Z')
   assert.equal(s.sources.find(x => x.source === 'APPLYHOME').lastOkAt, '2026-11-14T23:02:00Z')
 })
+
+test('수집 시각과 최신 공고 접수 시작일을 가른다', () => {
+  const d = SRC()
+  d.sources[0].latestNotice = '2026-11-20'
+  d.sources[1].latestNotice = '2026-11-18'
+  const s = ingestStatusOf([run('SUCCESS', d)])
+  assert.equal(s.latestNoticeStart, '2026-11-20')
+  assert.equal(s.lastRunAt, '2026-11-14T23:02:00Z')
+})

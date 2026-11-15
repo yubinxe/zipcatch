@@ -1,6 +1,10 @@
 import { listOfficialProperties, OfficialReadError } from '@/lib/consumer/official'
 import { verifiedForNotice } from '@/lib/consumer/complex-visualization'
 import { resolveNoticeLocation, type LocationProvenance } from '@/lib/consumer/location'
+import { NEIGHBORHOOD_RADIUS } from '@/lib/consumer/neighborhood'
+import { coverTiles } from '@/lib/consumer/spatial-tiles'
+import { resolveSiteGeometry } from '@/lib/consumer/site-resolver'
+import manifest from '@/public/spatial/v1/manifest.json'
 
 /**
  * 공간 범위 집계 — 실제 저장된 공고로만 센다. 읽기 전용, 개인 정보 없음(건수만).
@@ -32,6 +36,11 @@ export async function GET() {
     let verifiedMassing = 0
     const today = new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10)
     let open = 0
+    const HAVE = new Set<string>(manifest.tiles)
+    /** 동네 3D 자산 — 덮어야 할 타일이 모두 있음 / 일부만 / 없음 */
+    const assets = { full: 0, partial: 0, none: 0 }
+    /** 공고별 공간 탐험 수준 */
+    const level = { complex: 0, neighborhood: 0, regional: 0, nationalOnly: 0 }
     for (const p of all) {
       if (p.lat !== null && p.lng !== null && p.geoSource !== 'REGION') {
         storedCoords++
@@ -40,8 +49,23 @@ export async function GET() {
       }
       const hit = verifiedForNotice({ id: p.id, name: p.name, announcementId: p.announcementId })
       if (hit?.src.siteKey) verifiedMassing++
-      const loc = resolveNoticeLocation(p)
+      const site = hit ? await resolveSiteGeometry(hit) : null
+      const loc = resolveNoticeLocation(p, { parcel: site?.parcel ?? null })
       byProvenance[loc.provenance]++
+      const pin = loc.provenance === 'PARCEL_CONFIRMED' || loc.provenance === 'ADDRESS_GEOCODED'
+      let nb = false
+      if ((pin || loc.provenance === 'NAME_GEOCODED') && loc.point) {
+        const want = coverTiles(loc.point.lat, loc.point.lng, pin ? NEIGHBORHOOD_RADIUS.pinpoint : NEIGHBORHOOD_RADIUS.approximate)
+        const have = want.filter(k => HAVE.has(k)).length
+        if (have === want.length) assets.full++
+        else if (have > 0) assets.partial++
+        else assets.none++
+        nb = have > 0
+      }
+      if (site?.kind === 'VERIFIED_MASSING') level.complex++
+      else if (nb) level.neighborhood++
+      else if (loc.provenance !== 'UNKNOWN') level.regional++
+      else level.nationalOnly++
       if (loc.rejectCode) rejected[loc.rejectCode] = (rejected[loc.rejectCode] ?? 0) + 1
       if (!p.applicationEnd || p.applicationEnd >= today) open++
     }
@@ -54,6 +78,8 @@ export async function GET() {
       neighborhoodEligible: byProvenance.PARCEL_CONFIRMED + byProvenance.ADDRESS_GEOCODED + byProvenance.NAME_GEOCODED,
       verifiedMassing,
       licensedModels: 0,
+      neighborhoodAssets: { ...assets, version: manifest.version, build: manifest.build, tiles: manifest.tiles.length },
+      explorerLevel: level,
       countedAt: new Date().toISOString(),
     })
   } catch (err) {

@@ -77,6 +77,10 @@ export async function GET(req: Request) {
       continue
     }
     const out = await runRoutine(key, 'SCHEDULE')
+    // 부분 실패도 다시 돈다(성공한 출처는 같은 열쇠로 덮어쓸 뿐 — upsert). 다음 재시도 호출(14시)이 받는다
+    if (out.status === 'SUCCESS' && out.partial) {
+      await rr.setNextRun(key, retryAt(def.scheduleCron, new Date(), 1))
+    }
     if (out.status === 'FAILED') {
       // 연속 실패 수만큼 물러선다(이번 실패 포함)
       let fails = 1
