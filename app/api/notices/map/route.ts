@@ -40,7 +40,17 @@ export async function GET(req: Request) {
 
     const pins = []
     let noCoord = 0
-    let exact = 0
+    /**
+     * 위치 등급별 건수. 지도 아래 문구와 표식이 같은 분류를 쓴다 —
+     * 공고명으로 찾은 좌표를 '주소로 정확히 찍은 공고'에 섞어 세지 않는다.
+     */
+    const byProvenance: Record<'PARCEL_CONFIRMED' | 'ADDRESS_GEOCODED' | 'NAME_GEOCODED' | 'DISTRICT_APPROXIMATE' | 'PROVINCE_APPROXIMATE', number> = {
+      PARCEL_CONFIRMED: 0,
+      ADDRESS_GEOCODED: 0,
+      NAME_GEOCODED: 0,
+      DISTRICT_APPROXIMATE: 0,
+      PROVINCE_APPROXIMATE: 0,
+    }
     const byProvince = new Map<string, number>()
 
     for (const p of all) {
@@ -64,7 +74,7 @@ export async function GET(req: Request) {
         noCoord++
         continue
       }
-      if (coord.source === 'ADDRESS' || coord.source === 'NAME') exact++
+      if (loc.provenance !== 'UNKNOWN') byProvenance[loc.provenance]++
 
       pins.push({
         id: p.id,
@@ -97,8 +107,13 @@ export async function GET(req: Request) {
       noCoord,
       /** 주소가 아예 없는 건 — LH 목록에는 주소 칸이 없다 */
       noAddress: pins.filter(p => !p.address).length,
-      /** 미리 찾아 둔 좌표로 정확히 찍은 건. 나머지는 지역 기준점이다 */
-      geocoded: exact,
+      /** 필지 확인 또는 주소로 찾은 좌표에 찍은 건. 공고명으로 찾은 좌표는 넣지 않는다 */
+      geocoded: byProvenance.PARCEL_CONFIRMED + byProvenance.ADDRESS_GEOCODED,
+      /** 공고명으로 찾은 좌표 — 같은 이름의 다른 곳일 수 있어 '정확'으로 세지 않는다 */
+      nameGeocoded: byProvenance.NAME_GEOCODED,
+      /** 시군구·시도 기준점에 둔 건 */
+      approximate: byProvenance.DISTRICT_APPROXIMATE + byProvenance.PROVINCE_APPROXIMATE,
+      byProvenance,
       provinces: [...byProvince.entries()]
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count),

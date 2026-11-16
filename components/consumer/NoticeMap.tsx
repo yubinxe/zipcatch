@@ -62,6 +62,9 @@ interface MapData {
   noCoord: number
   noAddress: number
   geocoded: number
+  /** 공고명으로 찾은 좌표 — 이전 응답에는 없다 */
+  nameGeocoded?: number
+  approximate?: number
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -784,7 +787,8 @@ export default function NoticeMap({
       {data && !rewound && (
         <p className="cs-note cs-sa-map__note">
           지도에 표시된 공고 {data.pins.length}건
-          {data.geocoded > 0 && ` · 주소로 정확히 찍은 공고 ${data.geocoded}건`}
+          {data.geocoded > 0 && ` · 주소로 찍은 공고 ${data.geocoded}건`}
+          {(data.nameGeocoded ?? 0) > 0 && ` · 공고명으로 찾은 대략 위치 ${data.nameGeocoded}건`}
           {data.noAddress > 0 &&
             ` · 주소가 없어 지역 기준으로 표시한 공고 ${data.noAddress}건(LH 목록에는 주소 칸이 없습니다)`}
           {data.noCoord > 0 && ` · 위치를 찾지 못한 공고 ${data.noCoord}건`}.{' '}
