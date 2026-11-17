@@ -38,7 +38,10 @@ jobs:
           echo "BUILD=$B" >> "$GITHUB_ENV"
       - name: open PR
         env:
-          GH_TOKEN: ${{ github.token }}
+          # 저장소 설정에서 Actions 의 PR 생성이 막혀 있으면(Settings > Actions > General > Workflow permissions
+          # > 'Allow GitHub Actions to create and approve pull requests') 기본 토큰으로는 PR 을 못 만든다.
+          # 그때는 PR 권한이 있는 토큰을 SPATIAL_PR_TOKEN 비밀값으로 두면 그것을 쓴다(없으면 기본 토큰).
+          GH_TOKEN: ${{ secrets.SPATIAL_PR_TOKEN || github.token }}
         run: |
           # 생성 시각만 바뀐 매니페스트는 변경으로 치지 않는다
           if [ -z "$(git status --porcelain public/spatial/v1/15)" ]; then echo "새 타일 없음"; exit 0; fi
@@ -49,4 +52,18 @@ jobs:
           git add public/spatial
           git commit -m "spatial: 동네 공간 자산 보강 (Protomaps $BUILD)"
           git push -u origin "$BR"
-          gh pr create --title "spatial: 동네 공간 자산 보강 ($BUILD)" --body "scripts/spatial/build_tiles.py 로 새 공고 자리의 z15 타일을 만들었습니다. 원천 Protomaps Basemap $BUILD (OpenStreetMap, ODbL)." --base main --head "$BR"
+          if ! OUT=$(gh pr create --title "spatial: 동네 공간 자산 보강 ($BUILD)" --body "scripts/spatial/build_tiles.py 로 새 공고 자리의 z15 타일을 만들었습니다. 원천 Protomaps Basemap $BUILD (OpenStreetMap, ODbL)." --base main --head "$BR" 2>&1); then
+            # 타일은 이미 브랜치에 올라갔다 — 일을 잃지 않게, 사람이 바로 PR 을 열 수 있는 주소와 원인을 남긴다
+            URL="https://github.com/${{ github.repository }}/compare/main...$BR?expand=1"
+            {
+              echo "### 타일은 만들었지만 PR 을 열지 못했습니다"
+              echo ""
+              echo "- 브랜치: \`$BR\`"
+              echo "- 바로 열기: $URL"
+              echo "- 원인: \`$OUT\`"
+              echo "- 해결: Settings > Actions > General > Workflow permissions 에서 'Allow GitHub Actions to create and approve pull requests' 를 켜거나, PR 권한 토큰을 SPATIAL_PR_TOKEN 비밀값으로 등록"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error title=PR 생성 실패::타일은 $BR 에 푸시됨. $URL 에서 PR 을 여세요. 원인: $OUT"
+            exit 1
+          fi
+          echo "$OUT"
