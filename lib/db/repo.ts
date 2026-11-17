@@ -542,6 +542,28 @@ export async function listNotifications(limit = 50): Promise<NotificationRow[]> 
   )
 }
 
+/**
+ * 대상 공고들에 대해 이미 알림 이력이 있는 (customer_id, opportunity_id) 집합을 반환한다.
+ * 발송 전 중복을 거르기 위해 최근 500건 상한이 있는 listNotifications 대신 공고 id 기준으로 조회한다.
+ */
+export async function listNotifiedCustomerIds(opportunityIds: string[]): Promise<Set<string>> {
+  if (!opportunityIds.length) return new Set()
+  const want = new Set(opportunityIds)
+  const sb = getSupabase()
+  if (!sb) {
+    return new Set(
+      mem()
+        .notifications.filter(n => n.opportunity_id && want.has(n.opportunity_id))
+        .map(n => `${n.customer_id}|${n.opportunity_id}`),
+    )
+  }
+  const rows = must(
+    await sb.from('notifications').select('customer_id, opportunity_id').in('opportunity_id', opportunityIds),
+    'listNotifiedCustomerIds',
+  ) as { customer_id: string; opportunity_id: string | null }[]
+  return new Set(rows.filter(r => r.opportunity_id).map(r => `${r.customer_id}|${r.opportunity_id}`))
+}
+
 // ── 행동 이벤트 ─────────────────────────────────────────────
 
 export async function insertBehavior(

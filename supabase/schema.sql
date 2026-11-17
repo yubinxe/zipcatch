@@ -222,6 +222,36 @@ create table if not exists consumer_state (
   updated_at timestamptz not null default now()
 );
 
+-- ── 루틴 정의 & 실행 이력 ─────────────────────────────────
+create table if not exists routines (
+  id             uuid primary key default gen_random_uuid(),
+  key            text not null unique,
+  name           text not null,
+  purpose        text not null,
+  instruction    text not null,
+  schedule_cron  text not null,
+  schedule_label text not null,
+  enabled        boolean not null default true,
+  last_run_at    timestamptz,
+  next_run_at    timestamptz,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+
+create table if not exists routine_runs (
+  id          uuid primary key default gen_random_uuid(),
+  routine_id  uuid not null references routines(id) on delete cascade,
+  routine_key text not null,
+  trigger     text not null check (trigger in ('SCHEDULE','MANUAL')),
+  status      text not null check (status in ('RUNNING','SUCCESS','FAILED','SKIPPED')),
+  started_at  timestamptz not null default now(),
+  finished_at timestamptz,
+  duration_ms integer,
+  summary     text,
+  detail      jsonb not null default '{}'::jsonb
+);
+create index if not exists routine_runs_key_idx on routine_runs (routine_key, started_at desc);
+
 -- ── updated_at 자동 갱신 ────────────────────────────────────
 -- search_path 를 비워 스키마 하이재킹을 막는다 (pg_catalog 은 항상 잡힌다)
 create or replace function touch_updated_at() returns trigger
@@ -236,7 +266,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['customers','customer_preferences','opportunities','applications'] loop
+  foreach t in array array['customers','customer_preferences','opportunities','applications','routines'] loop
     execute format(
       'drop trigger if exists %I_touch on %I; create trigger %I_touch before update on %I
        for each row execute function touch_updated_at();', t, t, t, t);
@@ -264,6 +294,8 @@ alter table applications         enable row level security;
 alter table application_tasks    enable row level security;
 alter table inquiries            enable row level security;
 alter table consumer_state       enable row level security;
+alter table routines             enable row level security;
+alter table routine_runs         enable row level security;
 
 -- 공고는 공개 정보이므로 읽기만 허용하고 싶을 때:
 -- create policy "public read opportunities" on opportunities

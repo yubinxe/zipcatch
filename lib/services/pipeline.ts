@@ -2,6 +2,7 @@ import * as repo from '@/lib/db/repo'
 import { MATCH_CONFIG, formatMan, scoreMatch, daysUntil } from './matching'
 import { applyBehavior } from './lead-scoring'
 import { emailProvider } from '@/lib/notifications/email'
+import { filterNotifiableMatches } from '@/lib/services/notification-guard'
 import type { NotificationProvider } from '@/lib/notifications/provider'
 import type {
   BehaviorEventType,
@@ -82,7 +83,7 @@ export interface PipelineResult {
 export async function runMatchingForEvent(
   opportunity: OpportunityRow,
   eventType: OpportunityEventType,
-  opts: { previousValue?: string | null; currentValue?: string | null; isDemo?: boolean } = {},
+  opts: { previousValue?: string | null; currentValue?: string | null; isDemo?: boolean; excludeCustomerIds?: Set<string> } = {},
 ): Promise<PipelineResult> {
   const now = new Date()
 
@@ -129,10 +130,12 @@ export async function runMatchingForEvent(
     })),
   )
 
-  // 임계치 이상만 알림
-  const toNotify = matches
-    .filter(m => m.opportunity_score >= MATCH_CONFIG.notifyThreshold)
-    .slice(0, MATCH_CONFIG.maxNotificationsPerEvent)
+  // 임계치 이상이면서 아직 동일 공고 알림을 받지 않은 고객만 발송한다(발송 전 중복 차단)
+  const toNotify = filterNotifiableMatches(matches, {
+    notifyThreshold: MATCH_CONFIG.notifyThreshold,
+    maxNotifications: MATCH_CONFIG.maxNotificationsPerEvent,
+    excludeCustomerIds: opts.excludeCustomerIds,
+  })
 
   const notified: NotificationRow[] = []
   for (const match of toNotify) {
