@@ -6,8 +6,6 @@
  * NEXT_PUBLIC_ 이라 빌드 때 박힌다: 바꾼 뒤에는 다시 배포해야 반영된다.
  */
 const off = (v: string | undefined) => (v ?? '').trim() === '0'
-/** 기본 꺼짐 — '1' 일 때만 켜진다. 데이터·검증이 준비되기 전의 기능에 쓴다 */
-const on = (v: string | undefined) => (v ?? '').trim() === '1'
 
 export const FEATURES = {
   /** A. 지도 화면의 날짜 되감기 */
@@ -31,9 +29,8 @@ export const FEATURES = {
   /** PROPERTY EXPERIENCE — 공고의 주택형을 입체로 보고 견주기 */
   complex: !off(process.env.NEXT_PUBLIC_FEATURE_COMPLEX),
   /**
-   * 역세권·교통 입지 분석 — 기본 꺼짐.
-   * 역·출입구 공식 데이터가 아직 저장소에 없다(docs/domain/transit-premium-hypothesis-v0.md).
-   * 데이터를 들인 뒤 '1' 로 켠다. 가격 보정 시나리오는 이 스위치와 무관하게 화면에 내지 않는다.
+   * 역세권·교통 입지 분석 — 정적 도시철도·광역전철 역 데이터(public/spatial/transit/stations-v1.json) 기반.
+   * 가격 보정 시나리오는 이 스위치와 무관하게 화면에 내지 않는다.
    */
-  transitAccess: on(process.env.NEXT_PUBLIC_FEATURE_TRANSIT_ACCESS),
+  transitAccess: !off(process.env.NEXT_PUBLIC_FEATURE_TRANSIT_ACCESS),
 } as const

@@ -109,6 +109,8 @@ export interface Property {
   collectedAt: string | null
   /** 집캐치가 처음 저장한 시각(공식 공고만). 원문에 시작일이 없을 때 '언제부터 알았는지'의 하한 */
   firstSeenAt?: string | null
+  /** 공고 게시일(예: LH PAN_NT_ST_DT). 시작일 미기재 공고의 타임머신 하한 기준 */
+  noticePublishedAt?: string | null
   dataOrigin: DataOrigin
 }
 

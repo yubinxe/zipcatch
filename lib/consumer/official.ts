@@ -80,6 +80,7 @@ function toProperty(row: OpportunityRow, today = new Date()): Property {
     geoSource: row.geo_source,
     collectedAt: row.updated_at ?? row.created_at ?? null,
     firstSeenAt: row.created_at ?? null,
+    noticePublishedAt: row.notice_published_at ?? null,
     dataOrigin: 'OFFICIAL',
   }
 }

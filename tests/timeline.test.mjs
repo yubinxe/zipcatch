@@ -49,3 +49,11 @@ test('날짜 계산과 막대 계열', () => {
   assert.equal(s.length, 3)
   assert.deepEqual(s[0], { day: '2026-10-01', open: 2, upcoming: 1 })
 })
+
+test('공고 게시일(published): 시작일 미기재 시 firstSeenAt(seen) 보다 우선한다', () => {
+  const lhLike = { id: 'lh-1', name: 'LH', province: '경기', kind: 'RENT', start: null, end: '2026-10-20', published: '2026-10-03', seen: '2026-10-12' }
+  assert.equal(stateOn(lhLike, '2026-10-02'), 'UNKNOWN')
+  assert.equal(stateOn(lhLike, '2026-10-03'), 'OPEN_UNDATED')
+  assert.equal(stateOn(lhLike, '2026-10-11'), 'OPEN_UNDATED')
+  assert.deepEqual(timelineRange([lhLike], '2026-10-15'), { from: '2026-10-03', to: '2026-10-20' })
+})

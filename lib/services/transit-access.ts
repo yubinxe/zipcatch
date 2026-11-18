@@ -3,6 +3,7 @@ import { resolveNoticeLocation } from '@/lib/consumer/location'
 import { verifiedForNotice } from '@/lib/consumer/complex-visualization'
 import { resolveSiteGeometry } from '@/lib/consumer/site-resolver'
 import type { Property } from '@/lib/crm/types'
+import stationsDataset from '@/public/spatial/transit/stations-v1.json'
 import {
   buildStationIndex,
   mergeStationRecords,
@@ -30,13 +31,21 @@ export function setStationRecords(records: StationRecord[], version: string): St
 }
 
 export function getStationIndex(): StationIndex | null {
+  if (!cachedIndex && Array.isArray(stationsDataset?.records) && stationsDataset.records.length > 0) {
+    return setStationRecords(stationsDataset.records as StationRecord[], stationsDataset.version ?? 'transit-v1')
+  }
   return cachedIndex
+}
+
+export interface NoticeTransitResponse extends TransitAccessibility {
+  enabled: boolean
+  attribution: string | null
 }
 
 export async function evaluateNoticeTransitAccess(
   property: Pick<Property, 'id' | 'name' | 'announcementId' | 'lat' | 'lng' | 'geoSource' | 'address' | 'district' | 'region'>,
   opts: { index?: StationIndex | null; forceEnabled?: boolean } = {},
-): Promise<TransitAccessibility & { enabled: boolean }> {
+): Promise<NoticeTransitResponse> {
   const enabled = opts.forceEnabled ?? FEATURES.transitAccess
   const hit = verifiedForNotice({ id: property.id, name: property.name, announcementId: property.announcementId })
   const site = hit ? await resolveSiteGeometry(hit) : null
@@ -53,11 +62,16 @@ export async function evaluateNoticeTransitAccess(
       searchRadiusM: 1500,
       stationDataVersion: null,
       walkNetwork: null,
-      reason: '역세권 입지 분석 기능이 아직 활성화되지 않았습니다.',
+      reason: '역세권 입지 분석 기능이 비활성화되어 있습니다.',
+      attribution: null,
     }
   }
 
   const index = opts.index !== undefined ? opts.index : getStationIndex()
   const access = await transitAccessibility({ provenance: loc.provenance, point: loc.point }, index)
-  return { enabled: true, ...access }
+  return {
+    enabled: true,
+    ...access,
+    attribution: stationsDataset?.attribution ?? null,
+  }
 }

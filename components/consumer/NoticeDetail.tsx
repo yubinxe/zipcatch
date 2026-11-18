@@ -12,6 +12,7 @@ import SpecialSupply from './SpecialSupply'
 import SaveButton from './SaveButton'
 import CompareToggle from './battle/CompareToggle'
 import CommuteExplorer from './CommuteExplorer'
+import TransitAccess from './TransitAccess'
 import NoticeTitleMorph from './NoticeTitleMorph'
 import ComplexLauncher from './complex/ComplexLauncher'
 import { wonFull } from './complex/ComplexParts'
@@ -1024,6 +1025,11 @@ export default function NoticeDetail({ id }: { id: string }) {
                 <NearbyStores lat={property.lat} lng={property.lng} approximate={property.geoSource === 'NAME'} />
               </section>
             )}
+          {!isSample && (
+            <section className="cs-sa-doc__sec">
+              <TransitAccess id={property.id} />
+            </section>
+          )}
           {/* 출퇴근 대중교통(TransitRoutes · /api/transit)은 ODsay 키 인증이 통과하면 이 자리에 붙인다.
               2026-10-28 실측: 서버·Referer 유무와 관계없이 ApiKeyAuthFailed — 실패하는 버튼은 내보내지 않는다.
               4.0: 업무지구까지 직선거리는 주소로 찾은 좌표일 때만 적고, 경로 시간은 서비스가 답할 때만 붙인다 */}
