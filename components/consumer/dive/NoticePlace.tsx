@@ -7,8 +7,30 @@ import type { SpatialResponse, ExplorerLevel } from '@/app/api/notices/[id]/spat
 import GeoStage from './GeoStage'
 import type { GeoScene } from './geo-scene'
 import type { NeighborhoodInfo, NeighborhoodStatus } from './Neighborhood3D'
+import type { NeighborhoodScene } from './neighborhood-scene'
+import type { SunPosition } from '@/lib/geo/sun'
 
 const Neighborhood3D = dynamic(() => import('./Neighborhood3D'), { ssr: false })
+const SunStudy = dynamic(() => import('./SunStudy'), { ssr: false })
+
+/**
+ * 하늘빛 — 해의 고도로 무대 뒤 그라데이션을 고른다(밤 남색 → 해 질 녘 호박빛 → 낮 강철빛).
+ * 그림은 투명한 캔버스 뒤에 깔린다. 꾸밈이며 값을 말하지 않는다.
+ */
+function skyOf(sun: SunPosition | null): React.CSSProperties | undefined {
+  if (!sun) return undefined
+  const e = sun.elevation
+  const day = Math.max(0, Math.min(1, (e + 4) / 22))
+  const glow = Math.max(0, 1 - Math.abs(e - 3) / 14)
+  const mix = (a: number[], b: number[], k: number) => a.map((v, i) => Math.round(v + (b[i] - v) * k)).join(',')
+  const top = mix([6, 14, 26], [44, 72, 104], day)
+  const mid = mix([9, 19, 33], [70, 98, 126], day)
+  // 해가 있는 쪽 지평선에 빛이 고인다 — 방위를 화면 가로 위치로 대략 옮긴다(카메라가 돌면 맞지 않는 꾸밈)
+  const x = 50 + Math.sin((sun.azimuth * Math.PI) / 180) * 32
+  return {
+    background: `radial-gradient(70% 55% at ${x.toFixed(0)}% 100%, rgba(242,160,92,${(0.55 * glow).toFixed(2)}), transparent 70%), linear-gradient(180deg, rgb(${top}) 0%, rgb(${mid}) 100%)`,
+  }
+}
 
 /**
  * 공간 탐험의 껍데기 — 어느 공고, 어느 화면에서 열어도 같은 하나.
@@ -84,6 +106,9 @@ export default function NoticePlace({
   const cam = useRef<Camera | null>(null)
   const [nb, setNb] = useState<{ id: string; status: NeighborhoodStatus; attribution?: string; build?: string; reason?: string; buildings?: number; withHeight?: number } | null>(null)
   const [sheet, setSheet] = useState<'peek' | 'open'>('peek')
+  /** 동네 장면 — 해 그림자 연구가 해를 옮기는 상대 */
+  const [nbScene, setNbScene] = useState<NeighborhoodScene | null>(null)
+  const [sunPos, setSunPos] = useState<SunPosition | null>(null)
   const d = view.data
   const busy = view.status === 'OPENING' || view.status === 'LOADING_CONTEXT'
 
@@ -146,6 +171,7 @@ export default function NoticePlace({
     }
   }, [])
   const setNbCam = useCallback((s: Camera | null) => {
+    setNbScene((s as NeighborhoodScene | null) ?? null)
     if (s) {
       cam.current = s
       camOwner.current = 'nb'
@@ -209,6 +235,7 @@ export default function NoticePlace({
             onScene={setGeoCam}
           />
         )}
+        {showNeighborhood && <div className="zx-sky" style={skyOf(sunPos)} aria-hidden="true" />}
         {d && wantNeighborhood && (
           <Neighborhood3D noticeId={view.noticeId} pinpoint={d.capability.pinpoint} onStatus={onNb} onScene={setNbCam} />
         )}
@@ -222,6 +249,9 @@ export default function NoticePlace({
           <button type="button" onClick={() => cam.current?.reset()} aria-label="처음 자리로">⌖</button>
         </div>
 
+        {showNeighborhood && nbScene && point && (
+          <SunStudy scene={nbScene} lat={point.lat} lng={point.lng} pinpoint={!!d?.capability.pinpoint} name={name} onSun={setSunPos} />
+        )}
         {showNeighborhood && nbForThis && (
           <p className="zx-credit">
             {/* 자료 수준에 맞는 말 — 공고명 좌표는 '추정한 주변 지역', 높이가 없으면 '위치와 윤곽' */}

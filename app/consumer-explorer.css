@@ -51,6 +51,8 @@
   position: absolute; left: 16px; bottom: 14px; right: 72px; margin: 0;
   font-size: 11px; line-height: 1.5; color: var(--zx-mute); word-break: keep-all;
 }
+/* 낮의 흰 모형 위에서도 읽히게 — 동네 무대에서만 글 뒤에 짙은 띠 */
+.zx-sky ~ .zx-credit { right: auto; max-width: calc(100% - 96px); padding: 5px 9px; border-radius: 6px; background: rgba(7, 17, 31, 0.78); color: rgba(232, 237, 242, 0.72); }
 
 .zx-panel {
   position: relative; display: flex; flex-direction: column; gap: 18px; min-height: 0; overflow-y: auto;
@@ -146,3 +148,114 @@
 
 /* 단지 단계는 탐험 껍데기 위에 */
 .pxe { z-index: 1010; }
+
+/* ═════════════════════════════════════════════════════════
+   해 그림자 연구 — 동네 3D 위의 하루. 하늘빛은 캔버스 뒤에 깔리고, 조작판은 무대 왼쪽 아래.
+   반투명 유리판 대신 짙은 단색판 — 그림자가 주인공이다.
+   ═════════════════════════════════════════════════════════ */
+.zx-sky { position: absolute; inset: 0; transition: background 0.6s ease; }
+
+.zx-sun {
+  position: absolute; left: 16px; bottom: 58px; width: min(560px, calc(100% - 96px));
+  display: grid; gap: 10px; padding: 14px 16px 12px;
+  border: 1px solid var(--zx-line); border-radius: 12px;
+  background: rgba(7, 17, 31, 0.9);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.6);
+}
+.zx-sun__head { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.zx-sun__eyebrow {
+  margin: 0; display: inline-flex; align-items: center; gap: 6px; flex: none;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.16em; color: var(--zx-gold);
+}
+.zx-sun__days { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--zx-line); border-radius: 8px; min-width: 0; }
+.zx-sun__days button {
+  padding: 5px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--zx-mute);
+  font: 700 12px/1 inherit; cursor: pointer; white-space: nowrap; transition: background-color 0.15s ease, color 0.15s ease;
+}
+.zx-sun__days button[aria-checked='true'] { background: rgba(199, 163, 106, 0.2); color: var(--zx-ink); }
+.zx-sun__days button:focus-visible { outline: 2px solid var(--zx-gold); outline-offset: 1px; }
+.zx-sun__acts { display: flex; gap: 4px; margin-left: auto; }
+.zx-sun__icon {
+  width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid transparent; border-radius: 8px;
+  background: transparent; color: var(--zx-mute); cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease;
+}
+.zx-sun__icon:hover { color: var(--zx-ink); border-color: var(--zx-line); }
+.zx-sun__icon[aria-pressed='true'] { color: var(--zx-gold); border-color: rgba(199, 163, 106, 0.5); }
+.zx-sun__icon:focus-visible, .zx-sun__play:focus-visible { outline: 2px solid var(--zx-gold); outline-offset: 2px; }
+
+.zx-sun__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.zx-sun__play {
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(199, 163, 106, 0.55);
+  display: grid; place-items: center; background: rgba(199, 163, 106, 0.12); color: #f0d7a8; cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.zx-sun__play:hover { background: rgba(199, 163, 106, 0.24); }
+.zx-sun__play:active { transform: scale(0.96); }
+.zx-sun__time { min-width: 4.2ch; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: var(--zx-ink); text-align: right; }
+
+/* 시각 바 — 바 자체가 하루의 빛: 해돋이·해넘이는 어둡고 남중에서 가장 밝다 */
+.zx-sun__track { position: relative; min-width: 0; padding-top: 2px; }
+.zx-sun__track input {
+  -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 22px; margin: 0; background: transparent; cursor: pointer;
+}
+.zx-sun__track input::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 3px;
+  background: linear-gradient(90deg, #3b2a2a 0%, #c9824a 8%, #f3d9a4 var(--noon), #c9824a 92%, #3b2a2a 100%);
+}
+.zx-sun__track input::-moz-range-track {
+  height: 6px; border-radius: 3px;
+  background: linear-gradient(90deg, #3b2a2a 0%, #c9824a 8%, #f3d9a4 var(--noon), #c9824a 92%, #3b2a2a 100%);
+}
+.zx-sun__track input::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6px; border-radius: 50%;
+  background: #fff4dc; border: 0; box-shadow: 0 0 0 4px rgba(243, 217, 164, 0.28), 0 0 18px 4px rgba(243, 190, 110, 0.55);
+}
+.zx-sun__track input::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%; border: 0;
+  background: #fff4dc; box-shadow: 0 0 0 4px rgba(243, 217, 164, 0.28), 0 0 18px 4px rgba(243, 190, 110, 0.55);
+}
+.zx-sun__track input:focus-visible { outline: 2px solid var(--zx-gold); outline-offset: 2px; border-radius: 4px; }
+.zx-sun__ticks { display: flex; justify-content: space-between; margin-top: 2px; font-size: 11px; color: var(--zx-mute); }
+
+.zx-sun__read { margin: 0; font-size: 12.5px; color: var(--zx-mute); }
+.zx-sun__read b { color: var(--zx-ink); font-weight: 700; }
+
+.zx-sun__light { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid var(--zx-line); }
+.zx-sun__strip { display: block; width: 100%; height: 12px; border-radius: 3px; overflow: hidden; }
+.zx-sun__strip rect { fill: rgba(232, 237, 242, 0.1); }
+.zx-sun__strip rect[data-core] { fill: rgba(232, 237, 242, 0.16); }
+.zx-sun__strip rect[data-lit] { fill: #d9a35e; }
+.zx-sun__strip rect[data-lit][data-core] { fill: #f0c27c; }
+.zx-sun__strip .zx-sun__now { fill: #ffffff; }
+.zx-sun__sum { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--zx-mute); word-break: keep-all; }
+.zx-sun__sum b { color: var(--zx-ink); font-weight: 800; }
+.zx-sun__ref { margin: 0; font-size: 11.5px; line-height: 1.55; color: rgba(232, 237, 242, 0.5); word-break: keep-all; }
+.zx-sun__note { margin: 0; font-size: 11px; line-height: 1.5; color: rgba(232, 237, 242, 0.45); word-break: keep-all; }
+.zx-sun__toast {
+  position: absolute; right: 12px; top: -40px; margin: 0; padding: 7px 12px; border-radius: 8px;
+  background: #f0d7a8; color: #1b1408; font-size: 12.5px; font-weight: 800;
+}
+
+.zx-sun-pill {
+  position: absolute; left: 16px; bottom: 58px; display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 14px; border-radius: 999px; border: 1px solid rgba(199, 163, 106, 0.5);
+  background: rgba(7, 17, 31, 0.9); color: #f0d7a8; font: 700 13px/1 inherit; cursor: pointer;
+}
+.zx-sun-pill b { color: var(--zx-ink); font-weight: 800; }
+.zx-sun-pill:focus-visible { outline: 2px solid var(--zx-gold); outline-offset: 2px; }
+
+@media (max-width: 860px) {
+  /* 아래 판(34vh) 바로 위 — 판을 펴면 그 밑으로 숨는다 */
+  .zx-sun { left: 10px; right: 10px; width: auto; bottom: calc(34vh + 10px); padding: 12px 12px 10px; gap: 8px; }
+  .zx-sun-pill { left: 12px; bottom: calc(34vh + 12px); }
+  .zx-sun__head { flex-wrap: wrap; gap: 8px; }
+  .zx-sun__days { order: 3; width: 100%; justify-content: space-between; }
+  .zx-sun__days button { flex: 1; }
+  .zx-sun__time { font-size: 22px; }
+  .zx-sun__ref { display: none; }
+  /* 판을 편 동안 오른쪽 카메라 단추가 판에 덮이지 않게 잠시 접는다 — 판을 접으면 돌아온다(끌기·집기로는 늘 돌린다) */
+  .zx-stage:has(.zx-sun) .zx-tools { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zx-sky { transition: none; }
+}
