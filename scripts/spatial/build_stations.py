@@ -184,6 +184,11 @@ ADD_TO_EXISTING = [
     ("벡스코", "DONGHAE", BUSAN_DONGHAE),
 ]
 
+# 검색으로 찾은 역에 붙일 노선(검색 뒤에 처리한다)
+ADD_AFTER_LOOKUP = [
+    ("수원", "SUIN_BUNDANG", LINE1_SOUTH),
+]
+
 # 아예 빠진 역 — 위키데이터 검색으로 좌표를 찾는다(네트워크가 있을 때만)
 LOOKUP = [
     *[(n, "GYEONGUI_JUNGANG", GYEONGUI) for n in ["서강대", "수색", "화전", "강매", "곡산", "백마", "풍산", "일산", "탄현", "야당", "운정", "금릉", "금촌", "월롱", "파주"]],
@@ -315,6 +320,16 @@ def apply_corrections(records, lookup=True):
         qid, lat, lng = hit
         out.append(record(f"{name}역", lid, lat, lng, f"{qid}:{lid}"))
         report["added"].append(f"{name} +{LINE_NAME[lid]} ({qid})")
+
+    for name, lid, box in ADD_AFTER_LOOKUP:
+        if has(name, lid):
+            continue
+        base = next((x for x in out if norm(x["name"]) == name and inside(box, x["lat"], x["lng"])), None)
+        if not base:
+            report["unresolved"].append(f"{name} ({LINE_NAME[lid]}) — 붙일 역 좌표 없음")
+            continue
+        out.append(record(base["name"], lid, base["lat"], base["lng"], base["sourceId"].split(":")[0] + ":" + lid, base["source"]))
+        report["added"].append(f"{name} +{LINE_NAME[lid]} (기존 좌표)")
 
     out.sort(key=lambda x: (x["lineId"], norm(x["name"])))
     return out, report

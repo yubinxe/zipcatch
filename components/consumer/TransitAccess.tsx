@@ -77,7 +77,8 @@ export default function TransitAccess({ id }: { id: string }) {
   }, [id])
 
   if (!FEATURES.transitAccess) return null
-  if (!loading && (!data || !data.enabled)) return null
+  // 기능이 서버에서 꺼져 있으면 자리를 접는다. 응답을 못 받은 것은 숨기지 않고 그렇다고 적는다
+  if (!loading && data && !data.enabled) return null
 
   return (
     <div className="tx">
@@ -89,7 +90,10 @@ export default function TransitAccess({ id }: { id: string }) {
       ) : data.status === 'NOT_AVAILABLE' ? (
         <p className="tx-msg">{data.reason ?? '정확한 위치가 확인되지 않아 역 거리를 산정할 수 없습니다.'}</p>
       ) : data.status === 'NO_STATION_IN_RANGE' || !data.nearest ? (
-        <p className="tx-msg">반경 {(data.searchRadiusM / 1000).toFixed(1)}km 안에 운행 중인 도시철도·광역전철 역이 없습니다.</p>
+        <p className="tx-msg">
+          반경 {(data.searchRadiusM / 1000).toFixed(1)}km 안에 운행 중인 도시철도·광역전철 역이 없습니다. KTX·일반열차만 서는 역은 세지
+          않습니다.
+        </p>
       ) : (
         <>
           <ul className="tx-list" aria-live="polite">

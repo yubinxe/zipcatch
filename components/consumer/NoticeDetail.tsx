@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import type { Candidate, UrgencyInfo } from '@/lib/crm/services/scoring'
 import { formatMan } from '@/lib/crm/services/scoring'
 import type { Property, Task } from '@/lib/crm/types'
+import type { SupersedeLink } from '@/lib/consumer/supersede'
 import type { SpecialRead } from '@/lib/adapters/applyhome-special'
 import { ddayText, shortDate, statusBadge } from './NoticeCard'
 import PageMasthead from './PageMasthead'
@@ -94,6 +95,10 @@ interface DetailResponse {
   trade?: TradeStat | null
   /** 주소로 찾은 자리. 광역 단위 공고처럼 주소가 없으면 null */
   place?: { dong: string | null; sigungu: string | null; lawd: string | null } | null
+  /** 이 공고를 대신하는 정정공고·새 회차 */
+  supersededBy?: SupersedeLink | null
+  /** 이 공고가 대신하는 이전 공고 */
+  supersedes?: SupersedeLink[]
 }
 
 export default function NoticeDetail({ id }: { id: string }) {
@@ -373,6 +378,33 @@ export default function NoticeDetail({ id }: { id: string }) {
       <div className="cs-sa-dossier">
         {/* ── 요점 레일 — 문서를 내려 읽는 동안 옆에 붙어 따라온다(넓은 화면) ── */}
         <aside className="cs-sa-rail" aria-label="공고 요점">
+          {/* 같은 모집의 정정공고·새 회차가 있으면 요점 레일 맨 위에서 먼저 말한다 —
+              모바일에서는 레일이 문서보다 먼저 나오고, 넓은 화면에서는 화면에 붙어 따라온다. 원공고의 금액·일정으로 준비하지 않게 */}
+          {data.supersededBy && (
+            <div className="cs-sa-lineage" role="note" data-kind="superseded">
+              <p>
+                <b>{data.supersededBy.reason === 'CORRECTION' ? '이 공고에는 정정공고가 있습니다.' : '같은 단지의 더 최근 공고가 있습니다.'}</b>{' '}
+                {data.supersededBy.reason === 'CORRECTION'
+                  ? '금액·일정·자격은 정정공고 기준으로 확인하세요.'
+                  : '이 공고는 이전 회차입니다. 지금 접수는 최근 공고를 보세요.'}
+              </p>
+              <Link href={`/notices/${data.supersededBy.id}`} className="cs-sa-lineage__go">
+                {data.supersededBy.reason === 'CORRECTION' ? '정정공고 보기' : '최근 공고 보기'} <span aria-hidden="true">→</span>
+              </Link>
+            </div>
+          )}
+          {!data.supersededBy && (data.supersedes?.length ?? 0) > 0 && (
+            <div className="cs-sa-lineage" role="note" data-kind="supersedes">
+              <p>
+                {data.supersedes!.some(s => s.reason === 'CORRECTION')
+                  ? '원공고를 고친 정정공고입니다. 목록에는 이 공고만 보여 드립니다.'
+                  : `같은 단지의 이전 공고 ${data.supersedes!.length}건 대신 이 공고를 보여 드립니다.`}
+              </p>
+              <Link href={`/notices/${data.supersedes![0].id}`} className="cs-sa-lineage__go cs-sa-lineage__go--quiet">
+                {data.supersedes!.some(s => s.reason === 'CORRECTION') ? '원공고' : '이전 공고'} 열기
+              </Link>
+            </div>
+          )}
           <div className="cs-sa-rail__card">
             <div className="cs-sa-due" data-closed={closed ? 'true' : undefined}>
               <span className="cs-sa-due__k">{isSample ? '예시 접수 마감' : '접수 마감'}</span>

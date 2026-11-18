@@ -73,6 +73,10 @@ const SEEDS: Seed[] = [
   { key: '14', kind: 'APPLYHOME', name: '경기 하남 행복주택', housingType: '행복주택', region: '경기', district: '하남시', address: '경기도 하남시 (가상 주소)', start: -2, end: 8, seen: -7, lat: 37.5392, lng: 127.2149, deposit: 4800, rent: 21, area: 36, supply: 260 },
   { key: '15', kind: 'LH', name: '충남 천안 국민임대', housingType: '국민임대', region: '충남', district: '', address: '', start: null, end: 30, seen: -1, lat: null, lng: null, deposit: null, rent: null, area: null, supply: 0 },
   { key: '16', kind: 'LH', name: '강원 원주 매입임대', housingType: '매입임대', region: '강원', district: '', address: '', start: null, end: -18, seen: -40, lat: null, lng: null, deposit: null, rent: null, area: null, supply: 0 },
+  // 정정공고 — 02 의 금액을 고친 공고. 목록에는 이것만 서고 02 는 링크로만 열린다(lib/consumer/supersede)
+  { key: '17', kind: 'APPLYHOME', name: '[정정공고] 고양 창릉 신혼희망', housingType: '신혼희망', region: '경기', district: '고양시', address: '경기도 고양시 덕양구 (가상 주소)', start: 4, end: 9, seen: -1, lat: 37.6584, lng: 126.832, deposit: 37000, rent: null, area: 55, supply: 610 },
+  // 재공고 — 14 와 같은 단지·같은 금액의 이전 회차. 14 가 대신 선다
+  { key: '18', kind: 'APPLYHOME', name: '경기 하남 행복주택', housingType: '행복주택', region: '경기', district: '하남시', address: '경기도 하남시 (가상 주소)', start: -60, end: 8, seen: -70, lat: 37.5392, lng: 127.2149, deposit: 4800, rent: 21, area: 36, supply: 260 },
 ]
 
 export const FIXTURE_SOURCE = '검증용 픽스처 (가상 공고)'

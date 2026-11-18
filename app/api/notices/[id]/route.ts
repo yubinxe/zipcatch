@@ -1,5 +1,5 @@
 import { propertyById } from '@/lib/crm/store'
-import { findOfficialProperty } from '@/lib/consumer/official'
+import { findOfficialProperty, supersedeContext } from '@/lib/consumer/official'
 import { fetchSupplyModels } from '@/lib/adapters/applyhome-models'
 import { fetchSpecialSupply } from '@/lib/adapters/applyhome-special'
 import { fetchTradeStat, fetchPresaleStat } from '@/lib/adapters/molit-trade'
@@ -105,8 +105,21 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 
     track(session, 'notice_viewed', { propertyId: property.id })
 
+    /**
+     * 같은 모집의 정정공고·새 회차가 따로 실려 있으면 그쪽을 먼저 안내한다 — 원공고의 금액·일정을
+     * 그대로 믿고 준비하지 않게. 판단은 목록과 같은 규칙(lib/consumer/supersede)이다.
+     */
+    const lineage =
+      property.dataOrigin === 'OFFICIAL'
+        ? await supersedeContext(property).catch(() => ({ supersededBy: null, supersedes: [] }))
+        : { supersededBy: null, supersedes: [] }
+
     return Response.json({
       property,
+      /** 이 공고를 대신하는 정정공고·새 회차. 없으면 null */
+      supersededBy: lineage.supersededBy,
+      /** 이 공고가 대신하는 이전 공고(정정 전 원공고·이전 회차) */
+      supersedes: lineage.supersedes,
       urgency,
       candidate,
       schedule,
