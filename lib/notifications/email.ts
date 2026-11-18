@@ -1,5 +1,10 @@
 import type { NotificationProvider, NotificationPayload, SendOutcome } from './provider'
 import { GUARD_NOTE, isGuardedDeploy } from '@/lib/runtime/deploy-guard'
+import {
+  evaluateEmailSendGate,
+  isLiveNotificationEnabled,
+  isUndeliverableAddress,
+} from '@/lib/services/notification-guard'
 
 /**
  * 이메일 알림 어댑터 (기본 채널).
@@ -25,11 +30,8 @@ function fromAddress() {
  * RFC 2606·6761 이 문서·테스트용으로 예약해 둔 도메인만 넣는다.
  * 진짜 주소를 실수로 막지 않으려면 목록은 좁아야 한다.
  */
-const UNDELIVERABLE =
-  /@(?:example\.(?:com|org|net)|localhost)$|@[^@]*\.(?:test|example|invalid|localhost|local)$/i
-
 export function isUndeliverable(address: string) {
-  return UNDELIVERABLE.test(address.trim())
+  return isUndeliverableAddress(address)
 }
 
 /** 알림 본문(평문)을 이메일 HTML 로 감싼다 */
@@ -71,29 +73,27 @@ export function renderEmailHtml(payload: NotificationPayload): string {
 </body></html>`
 }
 
+export { isLiveNotificationEnabled }
+
 export const emailProvider: NotificationProvider = {
   channel: 'EMAIL',
   label: '이메일',
 
   isConfigured() {
-    return Boolean((process.env.RESEND_API_KEY ?? '').trim())
+    return Boolean((process.env.RESEND_API_KEY ?? '').trim()) && isLiveNotificationEnabled()
   },
 
   async send(payload: NotificationPayload): Promise<SendOutcome> {
     const key = (process.env.RESEND_API_KEY ?? '').trim()
-
-    if (!key) {
-      return { status: 'PREVIEW', detail: '이메일 발송 키가 없어 발송하지 않고 원문만 보관했습니다.' }
-    }
-    if (isGuardedDeploy()) return { status: 'PREVIEW', detail: GUARD_NOTE }
-    if (!payload.to) {
-      return { status: 'PREVIEW', detail: '고객 이메일 주소가 없어 발송하지 않고 원문만 보관했습니다.' }
-    }
-    if (isUndeliverable(payload.to)) {
-      return {
-        status: 'PREVIEW',
-        detail: '배달할 수 없는 예약 도메인(시연용 주소)이라 발송하지 않고 원문만 보관했습니다.',
-      }
+    const gate = evaluateEmailSendGate({
+      apiKey: key,
+      liveEnabled: isLiveNotificationEnabled(),
+      guardedDeploy: isGuardedDeploy(),
+      guardNote: GUARD_NOTE,
+      to: payload.to,
+    })
+    if (!gate.allow) {
+      return { status: gate.status, detail: gate.detail }
     }
 
     try {

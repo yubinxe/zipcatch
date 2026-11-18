@@ -2,6 +2,7 @@ import type { Property, PropertyStatus } from '@/lib/crm/types'
 import { fixtureActive, fixtureProperties } from '@/lib/runtime/preview-fixture'
 import type { OpportunityRow } from '@/lib/db/types'
 import * as repo from '@/lib/db/repo'
+import { supersede, tidyTitle, type SupersedeLink } from './supersede'
 
 /**
  * CRM 저장소(opportunities)의 **실제 공고**를 소비자 화면 모델로 옮긴다.
@@ -55,7 +56,7 @@ function toProperty(row: OpportunityRow, today = new Date()): Property {
     id: row.id,
     source: SOURCE_LABEL[row.source] ?? row.source,
     announcementId: row.external_id ?? row.id,
-    name: row.title,
+    name: tidyTitle(row.title),
     housingType: displayType(row),
     region: row.region,
     // 광역명이 없으면 만들지 않는다. 지역명을 두 번 찍게 된다 ("전북 전북").
@@ -80,6 +81,7 @@ function toProperty(row: OpportunityRow, today = new Date()): Property {
     geoSource: row.geo_source,
     collectedAt: row.updated_at ?? row.created_at ?? null,
     firstSeenAt: row.created_at ?? null,
+    noticePublishedAt: row.notice_published_at ?? null,
     dataOrigin: 'OFFICIAL',
   }
 }
@@ -97,6 +99,32 @@ export interface OfficialQuery {
   /** 공고 표기 기준. 선택지 이름과 정확히 같지 않을 수 있어 부분일치로 본다 */
   housingType?: string
   limit?: number
+  /**
+   * 정정·재공고로 가려진 이전 공고까지 그대로 받는다. 기본은 같은 모집에서 지금 유효한 한 장만
+   * (lib/consumer/supersede). 상세 화면이 '정정공고가 있습니다'를 찾을 때만 켠다.
+   */
+  includeSuperseded?: boolean
+}
+
+/** 같은 모집의 이전 공고를 걷어내고, 남긴 공고에 무엇을 가렸는지 적는다 */
+export function collapseSuperseded(list: Property[]): Property[] {
+  const r = supersede(list)
+  if (r.keep.size === list.length) return list
+  return list.filter(p => r.keep.has(p.id)).map(p => (r.supersedes.has(p.id) ? { ...p, supersedes: r.supersedes.get(p.id) } : p))
+}
+
+/**
+ * 이 공고와 같은 모집의 다른 공고 — 같은 지역 공고를 함께 읽어 목록과 같은 규칙으로 판단한다.
+ *  - supersededBy: 이 공고를 대신하는 정정공고·새 회차(있으면 상세가 먼저 안내한다)
+ *  - supersedes: 이 공고가 대신하는 이전 공고
+ */
+export async function supersedeContext(
+  property: Property,
+): Promise<{ supersededBy: SupersedeLink | null; supersedes: SupersedeLink[] }> {
+  const siblings = await listOfficialProperties({ region: property.region, limit: 300, includeSuperseded: true }).catch((): Property[] => [])
+  if (!siblings.some(p => p.id === property.id)) siblings.push(property)
+  const r = supersede(siblings)
+  return { supersededBy: r.supersededBy.get(property.id) ?? null, supersedes: r.supersedes.get(property.id) ?? [] }
 }
 
 /**
@@ -124,11 +152,12 @@ export async function listOfficialProperties(q: OfficialQuery = {}): Promise<Pro
   if (await fixtureActive()) {
     const today = new Date()
     const t = new Date(today.getTime() + 9 * 3_600_000).toISOString().slice(0, 10)
-    return fixtureProperties(today)
+    const list = fixtureProperties(today)
       .filter(p => !q.openOnly || (p.applicationEnd ?? '') >= t)
       .filter(p => !q.region || p.region === q.region)
       .filter(p => !q.housingType || p.housingType.includes(q.housingType) || q.housingType.includes(p.housingType))
       .slice(0, q.limit ?? 100)
+    return q.includeSuperseded ? list : collapseSuperseded(list)
   }
   try {
     const today = new Date()
@@ -139,7 +168,8 @@ export async function listOfficialProperties(q: OfficialQuery = {}): Promise<Pro
       endsAfter: q.openOnly ? ymd : undefined,
       limit: q.limit ?? 100,
     })
-    const out = rows.map(row => toProperty(row, today))
+    const all = rows.map(row => toProperty(row, today))
+    const out = q.includeSuperseded ? all : collapseSuperseded(all)
     if (!q.housingType) return out
     return out.filter(p => p.housingType.includes(q.housingType!) || q.housingType!.includes(p.housingType))
   } catch (err) {

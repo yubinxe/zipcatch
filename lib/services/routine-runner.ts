@@ -1,5 +1,7 @@
 import * as rr from '@/lib/db/routines-repo'
 import { ROUTINES, findRoutine } from '@/lib/services/routines'
+import { hasActiveRun } from '@/lib/services/notification-guard'
+import { RUN_LEASE_MS } from '@/lib/services/schedule'
 
 /**
  * 루틴 실행기.
@@ -64,6 +66,11 @@ export async function runRoutine(
 
   const routine = await rr.getRoutine(key)
   if (!routine) return { run: null, status: 'FAILED', summary: '루틴이 등록되지 않았습니다.' }
+
+  // 같은 루틴이 10분(RUN_LEASE_MS) 안에 이미 돌고 있으면 중첩 실행을 막는다
+  if (hasActiveRun(await rr.recentRuns(key, 5), new Date(), RUN_LEASE_MS)) {
+    return { run: null, status: 'SKIPPED', summary: '이미 실행 중인 작업이 있어 건너뛰었습니다.' }
+  }
 
   const run = await rr.startRun(routine, trigger)
 

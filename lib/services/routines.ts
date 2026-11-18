@@ -6,6 +6,7 @@ import { runMatchingForEvent } from '@/lib/services/pipeline'
 import { daysUntil } from '@/lib/services/matching'
 import { STAGE_LABEL } from '@/lib/services/lead-scoring'
 import { fillCoordinates } from '@/lib/services/geocode-fill'
+import { notifiedCustomerIdsFor } from '@/lib/services/notification-guard'
 
 /**
  * 루틴 — 사람이 매일 손으로 하던 확인을 고정된 시각에 대신 돌린다.
@@ -225,18 +226,21 @@ const deadlineWatch: RoutineDef = {
       }
     }
 
-    // 이미 알린 (고객, 공고) 조합은 건너뛴다
-    const sent = new Set(
-      (await repo.listNotifications(500)).map(n => `${n.customer_id}|${n.opportunity_id}`),
-    )
+    // 이미 알린 (고객, 공고) 조합은 발송 전에 건너뛴다
+    const targets = closing.slice(0, 10)
+    const sent = await repo.listNotifiedCustomerIds(targets.map(o => o.id))
 
     let notified = 0
     const touched: string[] = []
-    for (const opp of closing.slice(0, 10)) {
-      const out = await runMatchingForEvent(opp, 'DEADLINE_APPROACHING', { isDemo: opp.is_demo })
-      const fresh = out.notified.filter(n => !sent.has(`${n.customer_id}|${n.opportunity_id}`))
-      notified += fresh.length
-      if (fresh.length) touched.push(opp.title)
+    for (const opp of targets) {
+      const excludeCustomerIds = notifiedCustomerIdsFor(sent, opp.id)
+      const out = await runMatchingForEvent(opp, 'DEADLINE_APPROACHING', {
+        isDemo: opp.is_demo,
+        excludeCustomerIds,
+      })
+      for (const n of out.notified) sent.add(`${n.customer_id}|${n.opportunity_id}`)
+      notified += out.notified.length
+      if (out.notified.length) touched.push(opp.title)
     }
 
     return {

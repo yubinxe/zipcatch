@@ -4,6 +4,8 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   DISTANCE_ANCHORS,
   LINE_FACTORS,
@@ -166,4 +168,56 @@ test('역 데이터가 없으면 준비되지 않았다고 답한다', async () 
 
 test('하버사인 — 위도 0.001° ≈ 111m', () => {
   assert.ok(Math.abs(haversineMeters({ lat: 37.5, lng: 127 }, { lat: 37.501, lng: 127 }) - 111.2) < 0.5)
+})
+
+test('정적 역 데이터(stations-v1.json) — 전국 운행 노선 무결성 및 주요 환승역 검증', async () => {
+  const raw = JSON.parse(readFileSync(join(process.cwd(), 'public/spatial/transit/stations-v1.json'), 'utf8'))
+  assert.equal(raw.version, 'transit-v1.1')
+  assert.ok(Array.isArray(raw.records) && raw.records.length >= 900)
+  // 교정 규칙: 여객 역이 아닌 점·영문 이름·간선 전용 구간이 남지 않는다
+  for (const r of raw.records) {
+    assert.ok(!/(신호소|신호장|조차장)$/.test(r.name), `여객 역 아님: ${r.name}`)
+    assert.ok(/[가-힣]/.test(r.name), `한글 이름 아님: ${r.name}`)
+    assert.equal(r.version, raw.version)
+  }
+  const lineOf = name => raw.records.filter(r => normalizeStationName(r.name) === name).map(r => r.lineId).sort()
+  assert.ok(!lineOf('연신내').includes('METRO_2'), '연신내는 2호선이 아니다')
+  assert.ok(!lineOf('왕십리').includes('METRO_1'), '왕십리는 1호선이 서지 않는다')
+  assert.ok(lineOf('왕십리').includes('GYEONGUI_JUNGANG'))
+  assert.ok(!lineOf('강릉').length, '경강선 KTX 구간은 광역전철이 아니다')
+  for (const r of raw.records) {
+    assert.equal(r.status, 'OPERATING')
+    assert.ok(r.lat >= 33 && r.lat <= 39 && r.lng >= 124 && r.lng <= 132)
+  }
+
+  const merged = mergeStationRecords(raw.records)
+  const idx = buildStationIndex(merged, raw.version)
+
+  // 강남역 인근 100m
+  const gangnam = await transitAccessibility(
+    { provenance: 'ADDRESS_GEOCODED', point: { lat: 37.4979, lng: 127.0276 } },
+    idx,
+  )
+  assert.equal(gangnam.status, 'OK')
+  assert.equal(gangnam.nearest?.name, '강남')
+  assert.equal(gangnam.nearest?.uniqueOperatingLineCount, 2)
+  assert.equal(gangnam.nearest?.isTransfer, true)
+
+  // 부산 서면역 인근
+  const seomyeon = await transitAccessibility(
+    { provenance: 'ADDRESS_GEOCODED', point: { lat: 35.1578, lng: 129.0592 } },
+    idx,
+  )
+  assert.equal(seomyeon.status, 'OK')
+  assert.equal(seomyeon.nearest?.name, '서면')
+  assert.equal(seomyeon.nearest?.uniqueOperatingLineCount, 2)
+
+  // 대구 반월당역 인근
+  const banwoldang = await transitAccessibility(
+    { provenance: 'ADDRESS_GEOCODED', point: { lat: 35.8648, lng: 128.5933 } },
+    idx,
+  )
+  assert.equal(banwoldang.status, 'OK')
+  assert.equal(banwoldang.nearest?.name, '반월당')
+  assert.equal(banwoldang.nearest?.uniqueOperatingLineCount, 2)
 })

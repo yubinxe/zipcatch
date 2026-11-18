@@ -1,0 +1,53 @@
+# 도시철도·광역전철 역 정적 데이터 재빌드 — 위키데이터(CC0) + 교정 규칙.
+#
+# 운영 정책
+#  - 방문자 요청은 언제나 public/spatial/transit/stations-v1.json(정적 파일)만 읽는다. 위키데이터를 실시간으로 부르지 않는다.
+#  - 교정 규칙(scripts/spatial/build_stations.py)이 바뀌면 그 브랜치에서 다시 만들어 같은 브랜치에 커밋한다(main 제외).
+#  - main 에서 손으로 돌리면 결과를 PR 로 올린다. main 에 바로 쓰지 않는다.
+#  - 찾지 못한 역은 파일의 unresolved 에 남는다 — 좌표를 지어내지 않는다.
+name: transit-stations
+on:
+  workflow_dispatch:
+  push:
+    branches: ['claude/**']
+    paths:
+      - scripts/spatial/build_stations.py
+      - .github/workflows/transit-stations.yml
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: transit-stations-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install requests
+      - name: build stations
+        run: python scripts/spatial/build_stations.py | tee build.log
+      - name: commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain public/spatial/transit)" ]; then echo "변경 없음"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          REF="${GITHUB_REF#refs/heads/}"
+          if [ "$REF" = "main" ]; then
+            BR="spatial/stations-${{ github.run_id }}"
+            git checkout -b "$BR"
+          else
+            BR="$REF"
+          fi
+          git add public/spatial/transit
+          git commit -m "spatial: 역 데이터 재빌드 (위키데이터 + 교정 규칙)" -m "$(head -c 60000 build.log)"
+          git push origin "HEAD:$BR"
+          if [ "$REF" = "main" ]; then
+            gh pr create --title "spatial: 역 데이터 재빌드" --body "scripts/spatial/build_stations.py 로 다시 만들었습니다. 원천 위키데이터(CC0)." --base main --head "$BR"
+          fi

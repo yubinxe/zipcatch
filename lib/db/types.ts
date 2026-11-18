@@ -51,6 +51,7 @@ export interface OpportunityRow {
   /** 공고 원문에 있는 날짜만. 없으면 null */
   application_start: string | null
   application_end: string | null
+  notice_published_at?: string | null
   document_deadline: string | null
   result_date: string | null
   contract_start: string | null

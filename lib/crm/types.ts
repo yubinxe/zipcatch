@@ -109,6 +109,13 @@ export interface Property {
   collectedAt: string | null
   /** 집캐치가 처음 저장한 시각(공식 공고만). 원문에 시작일이 없을 때 '언제부터 알았는지'의 하한 */
   firstSeenAt?: string | null
+  /** 공고 게시일(예: LH PAN_NT_ST_DT). 시작일 미기재 공고의 타임머신 하한 기준 */
+  noticePublishedAt?: string | null
+  /**
+   * 이 공고가 대신 세운 같은 모집의 이전 공고(정정 전 원공고·이전 회차).
+   * 목록에서는 가려지고 링크로만 열린다(lib/consumer/supersede).
+   */
+  supersedes?: { id: string; name: string; reason: 'CORRECTION' | 'REISSUE' }[]
   dataOrigin: DataOrigin
 }
 
