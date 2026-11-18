@@ -111,12 +111,41 @@ function specialCell(d: Detail): string {
     : `${Math.round((s.applied / s.supply) * 100) / 100}배 마감`
 }
 
-function buildLines(items: Detail[]): Line[] {
+interface TransitSummary {
+  status: 'OK' | 'NO_STATION_IN_RANGE' | 'NOT_AVAILABLE'
+  nearest: {
+    name: string
+    straightMeters: number
+    lines: { lineName: string }[]
+  } | null
+}
+
+function transitCell(t: TransitSummary | undefined): { text: string; dim?: boolean } {
+  if (!t) return { text: '확인 중', dim: true }
+  if (t.status === 'OK' && t.nearest) {
+    const lines = t.nearest.lines.map(l => l.lineName).join('·')
+    const dist = t.nearest.straightMeters >= 1000 ? `${(t.nearest.straightMeters / 1000).toFixed(2)}km` : `${t.nearest.straightMeters}m`
+    return { text: `${t.nearest.name}역 (${lines}) · ${dist} 직선` }
+  }
+  if (t.status === 'NO_STATION_IN_RANGE') return { text: '반경 1.5km 내 역 없음', dim: true }
+  return { text: '주소 미확인(산정 제외)', dim: true }
+}
+
+function buildLines(items: Detail[], transitMap: Record<string, TransitSummary>): Line[] {
   const col = <T,>(f: (d: Detail) => T) => items.map(f)
 
   const lines: Line[] = [
     { label: '지역', values: col(d => ({ text: [d.property.district, d.property.region].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(' ') || '—' })) },
     { label: '유형', values: col(d => ({ text: d.property.housingType || '—' })) },
+    ...(FEATURES.transitAccess
+      ? [
+          {
+            label: '가까운 역',
+            values: col(d => transitCell(transitMap[d.property.id])),
+            note: '주소 이상으로 확인된 자리만 운행 중인 도시철도·광역전철 역까지 직선거리로 견줍니다.',
+          },
+        ]
+      : []),
     { label: '공급 세대', values: col(d => ({ text: d.property.supplyCount > 0 ? `${d.property.supplyCount.toLocaleString()}세대` : '공고문 확인', dim: d.property.supplyCount === 0 })) },
     { label: '면적', values: col(d => ({ text: areaRange(d), dim: areaRange(d) === '공고문 확인' })) },
     { label: '금액', values: col(d => ({ text: priceCell(d), dim: priceCell(d) === '공고문 확인' })), note: '분양은 주택형별 최고가 범위, 임대는 공고에 적힌 보증금·월세입니다.' },
@@ -175,6 +204,7 @@ export default function CompareView() {
   const ids = (params.get('ids') ?? '').split(',').map(s => s.trim()).filter(Boolean).slice(0, 3)
 
   const [got, setGot] = useState<{ key: string; items: Detail[] }>({ key: '', items: [] })
+  const [transitMap, setTransitMap] = useState<Record<string, TransitSummary>>({})
   const [onlyDiff, setOnlyDiff] = useState(false)
   const key = ids.join(',')
   const loading = key !== '' && got.key !== key
@@ -182,8 +212,9 @@ export default function CompareView() {
   useEffect(() => {
     if (!key) return
     let alive = true
+    const idList = key.split(',')
     Promise.all(
-      key.split(',').map(id =>
+      idList.map(id =>
         fetch(`/api/notices/${id}`, { cache: 'no-store' })
           .then(r => (r.ok ? r.json() : null))
           .catch(() => null),
@@ -191,6 +222,21 @@ export default function CompareView() {
     ).then(res => {
       if (alive) setGot({ key, items: res.filter(Boolean) as Detail[] })
     })
+    if (FEATURES.transitAccess) {
+      Promise.all(
+        idList.map(async id => {
+          const t = await fetch(`/api/notices/${id}/transit`, { cache: 'no-store' })
+            .then(r => (r.ok ? (r.json() as Promise<TransitSummary>) : null))
+            .catch(() => null)
+          return [id, t] as const
+        }),
+      ).then(pairs => {
+        if (!alive) return
+        const next: Record<string, TransitSummary> = {}
+        for (const [id, t] of pairs) if (t) next[id] = t
+        setTransitMap(next)
+      })
+    }
     return () => {
       alive = false
     }
@@ -241,7 +287,7 @@ export default function CompareView() {
     )
   }
 
-  const lines = buildLines(items)
+  const lines = buildLines(items, transitMap)
   const diffCount = lines.filter(l => !allSame(l)).length
   const shown = onlyDiff ? lines.filter(l => !allSame(l)) : lines
 

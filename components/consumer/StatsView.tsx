@@ -139,6 +139,10 @@ export default function StatsView() {
   const [month, setMonth] = useState(months[0])
   /** 불러오지 못했을 때 다시 누르는 횟수 — 같은 달을 한 번 더 받는다 */
   const [attempt, setAttempt] = useState(0)
+  const [regionQuery, setRegionQuery] = useState('')
+  const [compSort, setCompSort] = useState<'RATE_DESC' | 'SUPPLY_DESC' | 'NAME_ASC'>('RATE_DESC')
+  const [onlyUnder, setOnlyUnder] = useState(false)
+  const [showAllScores, setShowAllScores] = useState(false)
   const want = `${month}:${attempt}`
 
   /** 어떤 달의 결과인지 함께 담아, 로딩 여부를 파생값으로 계산한다 */
@@ -218,6 +222,34 @@ export default function StatsView() {
     }
     return { regions: comp.length, top, under }
   }, [comp])
+
+  const filteredComp = useMemo(() => {
+    if (!comp) return []
+    const q = regionQuery.trim().toLowerCase()
+    return comp
+      .filter(r => !q || r.SUBSCRPT_AREA_CODE_NM.toLowerCase().includes(q))
+      .filter(r => {
+        if (!onlyUnder) return true
+        const p = parseRate(r.SUPLY_CMPET_RATE)
+        return p?.kind === 'UNDER' || (p?.kind === 'RATE' && p.value < 1)
+      })
+      .slice()
+      .sort((a, b) => {
+        if (compSort === 'NAME_ASC') return a.SUBSCRPT_AREA_CODE_NM.localeCompare(b.SUBSCRPT_AREA_CODE_NM, 'ko-KR')
+        if (compSort === 'SUPPLY_DESC') return (Number(b.SUPLY_HSHLDCO) || 0) - (Number(a.SUPLY_HSHLDCO) || 0)
+        const pa = parseRate(a.SUPLY_CMPET_RATE)
+        const pb = parseRate(b.SUPLY_CMPET_RATE)
+        return (pb?.kind === 'RATE' ? pb.value : -1) - (pa?.kind === 'RATE' ? pa.value : -1)
+      })
+  }, [comp, regionQuery, onlyUnder, compSort])
+
+  const filteredScores = useMemo(() => {
+    if (!scores) return []
+    const q = regionQuery.trim().toLowerCase()
+    return scores.filter(
+      r => !q || r.SUBSCRPT_AREA_CODE_NM.toLowerCase().includes(q) || r.RESIDE_SECD_NM.toLowerCase().includes(q),
+    )
+  }, [scores, regionQuery])
 
   const status: 'busy' | 'err' | 'ok' | 'idle' = loading
     ? 'busy'
@@ -340,6 +372,37 @@ export default function StatsView() {
 
             {comp && comp.length > 0 ? (
               <>
+                <div className="cs-sb-tools" role="region" aria-label="경쟁률·가점 지역 필터">
+                  <label className="cs-sb-search">
+                    <span className="cs-sr">지역명 검색</span>
+                    <input
+                      type="search"
+                      value={regionQuery}
+                      onChange={e => setRegionQuery(e.target.value)}
+                      placeholder="지역 검색 (예: 서울, 경기, 부산)"
+                    />
+                  </label>
+                  <div className="cs-sb-tools__right">
+                    <button
+                      type="button"
+                      className="cs-sb-chip"
+                      aria-pressed={onlyUnder}
+                      onClick={() => setOnlyUnder(v => !v)}
+                    >
+                      미달만 보기
+                    </button>
+                    <select
+                      aria-label="정렬 기준"
+                      className="cs-sb-select"
+                      value={compSort}
+                      onChange={e => setCompSort(e.target.value as 'RATE_DESC' | 'SUPPLY_DESC' | 'NAME_ASC')}
+                    >
+                      <option value="RATE_DESC">경쟁률 높은 순</option>
+                      <option value="SUPPLY_DESC">공급세대 많은 순</option>
+                      <option value="NAME_ASC">지역명 가나다순</option>
+                    </select>
+                  </div>
+                </div>
                 <ul className="cs-sb-heatkey" aria-label="단계 읽는 법">
                   <li data-heat="UNDER">미달</li>
                   <li data-heat="CALM">여유 · 5 미만</li>
@@ -347,15 +410,11 @@ export default function StatsView() {
                   <li data-heat="HOT">치열 · 50 미만</li>
                   <li data-heat="BLAZE">과열 · 50 이상</li>
                 </ul>
-                <div className="cs-heatgrid">
-                  {comp
-                    .slice()
-                    .sort((a, b) => {
-                      const pa = parseRate(a.SUPLY_CMPET_RATE)
-                      const pb = parseRate(b.SUPLY_CMPET_RATE)
-                      return (pb?.kind === 'RATE' ? pb.value : -1) - (pa?.kind === 'RATE' ? pa.value : -1)
-                    })
-                    .map((r, i) => {
+                {filteredComp.length === 0 ? (
+                  <p className="cs-sb-empty">조건에 맞는 지역 집계가 없습니다.</p>
+                ) : (
+                  <div className="cs-heatgrid">
+                    {filteredComp.map((r, i) => {
                       const p = parseRate(r.SUPLY_CMPET_RATE)
                       const heat: Heat = p?.kind === 'RATE' ? heatOf(p.value) : 'UNDER'
                       return (
@@ -398,7 +457,8 @@ export default function StatsView() {
                         </article>
                       )
                     })}
-                </div>
+                  </div>
+                )}
               </>
             ) : (
               <div className="cs-sb-void">
@@ -428,28 +488,45 @@ export default function StatsView() {
             </div>
 
             {scores && scores.length > 0 ? (
-              <div className="cs-sb-scores">
-                {scores.slice(0, 18).map((r, i) => (
-                  <div
-                    key={`${r.SUBSCRPT_AREA_CODE_NM}-${r.RESIDE_SECD_NM}-${i}`}
-                    className="cs-sb-scorecard"
-                    style={{ '--i': i } as CSSProperties}
-                  >
-                    <div className="cs-sb-scorecard__head">
-                      <span className="cs-sb-scorecard__name">{r.SUBSCRPT_AREA_CODE_NM}</span>
-                      <span className="cs-sb-scorecard__tag">{r.RESIDE_SECD_NM}</span>
-                    </div>
-                    <div className="cs-sb-scorecard__avg cs-num">
-                      {Number(r.AVRG_SCORE).toFixed(1)}
-                      <span>점 평균</span>
-                    </div>
-                    <ScoreRuler min={Number(r.LWET_SCORE)} avg={Number(r.AVRG_SCORE)} max={Number(r.TOP_SCORE)} />
-                    <p className="cs-sb-scorecard__meta cs-num">
-                      최저 <b>{Number(r.LWET_SCORE).toFixed(1)}</b> · 최고 <b>{Number(r.TOP_SCORE).toFixed(1)}</b>
-                    </p>
+              <>
+                {filteredScores.length === 0 ? (
+                  <p className="cs-sb-empty">검색 조건에 맞는 당첨가점 집계가 없습니다.</p>
+                ) : (
+                  <div className="cs-sb-scores">
+                    {(showAllScores || regionQuery.trim() ? filteredScores : filteredScores.slice(0, 18)).map((r, i) => (
+                      <div
+                        key={`${r.SUBSCRPT_AREA_CODE_NM}-${r.RESIDE_SECD_NM}-${i}`}
+                        className="cs-sb-scorecard"
+                        style={{ '--i': i } as CSSProperties}
+                      >
+                        <div className="cs-sb-scorecard__head">
+                          <span className="cs-sb-scorecard__name">{r.SUBSCRPT_AREA_CODE_NM}</span>
+                          <span className="cs-sb-scorecard__tag">{r.RESIDE_SECD_NM}</span>
+                        </div>
+                        <div className="cs-sb-scorecard__avg cs-num">
+                          {Number(r.AVRG_SCORE).toFixed(1)}
+                          <span>점 평균</span>
+                        </div>
+                        <ScoreRuler min={Number(r.LWET_SCORE)} avg={Number(r.AVRG_SCORE)} max={Number(r.TOP_SCORE)} />
+                        <p className="cs-sb-scorecard__meta cs-num">
+                          최저 <b>{Number(r.LWET_SCORE).toFixed(1)}</b> · 최고 <b>{Number(r.TOP_SCORE).toFixed(1)}</b>
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+                {!regionQuery.trim() && filteredScores.length > 18 && (
+                  <div className="cs-sb-more">
+                    <button
+                      type="button"
+                      className="cs-btn cs-btn--ghost"
+                      onClick={() => setShowAllScores(v => !v)}
+                    >
+                      {showAllScores ? '상위 18건만 보기' : `전체 ${filteredScores.length}건 모두 보기`}
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="cs-sb-void">
                 <span className="cs-sb-void__mark" aria-hidden="true">

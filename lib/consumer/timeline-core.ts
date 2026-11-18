@@ -25,6 +25,11 @@ export interface TimelineNotice {
    * 그보다 앞선 날에는 공고가 있었는지조차 모르므로 어느 상태로도 세지 않는다.
    */
   seen?: string | null
+  /**
+   * 공고 게시일 (예: LH PAN_NT_ST_DT). 접수 시작일이 없을 때 firstSeenAt 보다 우선해
+   * '적어도 이 날 이후 존재한 공고'의 하한으로 쓴다.
+   */
+  published?: string | null
 }
 
 export type NoticeState = 'UPCOMING' | 'OPEN' | 'OPEN_UNDATED' | 'CLOSED' | 'UNKNOWN'
@@ -47,14 +52,14 @@ export function diffDays(a: string, b: string): number {
 }
 
 /** 그날 이 공고의 상태 */
-export function stateOn(n: Pick<TimelineNotice, 'start' | 'end' | 'seen'>, day: string): NoticeState {
+export function stateOn(n: Pick<TimelineNotice, 'start' | 'end' | 'seen' | 'published'>, day: string): NoticeState {
   const end = dayKey(n.end)
   const start = dayKey(n.start)
   if (!end) return 'UNKNOWN'
   if (day > end) return 'CLOSED'
   if (!start) {
-    const seen = dayKey(n.seen)
-    return seen && day < seen ? 'UNKNOWN' : 'OPEN_UNDATED'
+    const knownFrom = dayKey(n.published) ?? dayKey(n.seen)
+    return knownFrom && day < knownFrom ? 'UNKNOWN' : 'OPEN_UNDATED'
   }
   return day < start ? 'UPCOMING' : 'OPEN'
 }
@@ -107,7 +112,7 @@ export function timelineRange(notices: TimelineNotice[], today: string, span = 9
   let lo = today
   let hi = today
   for (const n of notices) {
-    const s = dayKey(n.start) ?? dayKey(n.seen) ?? dayKey(n.end)
+    const s = dayKey(n.start) ?? dayKey(n.published) ?? dayKey(n.seen) ?? dayKey(n.end)
     const e = dayKey(n.end)
     if (s && s < lo) lo = s
     if (e && e > hi) hi = e

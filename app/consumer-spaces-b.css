@@ -1893,6 +1893,48 @@
   --sb-hk: var(--glow);
 }
 
+.cs-sb .cs-sb-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 14px;
+}
+.cs-sb .cs-sb-search { flex: 1 1 220px; max-width: 320px; }
+.cs-sb .cs-sb-search input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  color: var(--title);
+  font: inherit;
+  font-size: 14px;
+}
+.cs-sb .cs-sb-tools__right { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cs-sb .cs-sb-chip,
+.cs-sb .cs-sb-select {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  color: var(--body);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cs-sb .cs-sb-chip[aria-pressed='true'] {
+  background: var(--title);
+  border-color: var(--title);
+  color: var(--surface, #fff);
+}
+.cs-sb .cs-sb-empty { margin: 16px 0 0; font-size: 14px; color: var(--muted); }
+.cs-sb .cs-sb-more { margin-top: 16px; display: flex; justify-content: center; }
+
 .cs-sb .cs-heatgrid {
   grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
   gap: 12px;

@@ -96,6 +96,10 @@ function statusOf(item: LhItem, end: string | null, today: string): OpportunityR
   return 'OPEN'
 }
 
+export function extractLhPublishedAt(item: Pick<LhItem, 'PAN_NT_ST_DT'>): string | null {
+  return isoDate(item.PAN_NT_ST_DT)
+}
+
 export function normalizeLh(items: LhItem[], fetchedAt: string): Partial<OpportunityRow>[] {
   const today = fetchedAt.slice(0, 10)
 

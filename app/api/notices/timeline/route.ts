@@ -32,6 +32,7 @@ export async function GET() {
         start: dayKey(p.applicationStart),
         end,
         seen: dayKey(p.applicationStart) ? null : dayKey(p.firstSeenAt),
+        published: dayKey(p.applicationStart) ? null : dayKey(p.noticePublishedAt),
       })
       if (p.collectedAt && (!latest || p.collectedAt > latest)) latest = p.collectedAt
     }
